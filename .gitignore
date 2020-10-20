@@ -1,0 +1,7 @@
+*.iml
+docker/esdata/*
+docker/kubeconfig/*.crt
+docker/kubeconfig/*.key
+docker/logs/*
+notes.txt
+.idea
