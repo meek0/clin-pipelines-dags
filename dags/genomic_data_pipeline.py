@@ -1,13 +1,15 @@
+import re
+from datetime import datetime, timedelta
 from typing import Pattern
 
 from airflow import DAG
-from datetime import datetime, timedelta
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.sensors.s3_key_sensor import S3KeySensor
-import re
+from airflow.operators.bash import BashOperator
+from airflow.operators.dummy import DummyOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from kubernetes.client import models as k8s
 
 # Global config
 default_args = {
@@ -27,9 +29,9 @@ BUCKET_REGEXP: Pattern[str] = re.compile('batches/batch=(.*)/_SUCCESS')
 
 
 def batchInformations(ds, **kwargs):
-    from airflow.hooks.S3_hook import S3Hook
+
     hook = S3Hook(aws_conn_id=OBJECT_STORE, verify=None)
-    key: str = hook.get_wildcard_key(BUCKET_KEY, BUCKET_NAME).key
+    key: str = hook.list_keys(BUCKET_KEY, BUCKET_NAME)[0]
     batch_key: str = key.replace('/_SUCCESS', '')
     batch_id: str = BUCKET_REGEXP.findall(key)[0]
     return {'key': f"{BUCKET_NAME}/{batch_key}", 'batch_id': batch_id}
@@ -60,10 +62,12 @@ with DAG(dag_id="clin_genomic_data_pipeline",
     )
 
     test = BashOperator(
-        task_id='bash_test',
-        provide_context=True,
+        task_id='bash-test',
+        # provide_context=True,
         bash_command="echo {{ task_instance.xcom_pull(task_ids='extract_batch_informations').key }}",
         dag=dag)
+
+    env_vars = [k8s.V1EnvVar(name='SERVICE_ENDPOINT', value='http://192.168.0.16:9000')]
 
     # Replace the following by S3Sensor - check for _success file to launch the flow
     checkDataTaskStatus = KubernetesPodOperator(
@@ -75,9 +79,7 @@ with DAG(dag_id="clin_genomic_data_pipeline",
         },
         image="192.168.0.16:5000/clin-pipelines:2020.1",
         image_pull_policy="Always",  # local development - use IfNotPresent in prod
-        env_vars={
-            "SERVICE_ENDPOINT": "http://192.168.0.16:9000"
-        },
+        env_vars=env_vars,
         arguments=["check-new-files-on-s3"],
         get_logs=True,
         hostnetwork=True,
@@ -94,9 +96,7 @@ with DAG(dag_id="clin_genomic_data_pipeline",
         },
         image="192.168.0.16:5000/clin-pipelines:2020.1",
         image_pull_policy="Always",  # local development - use IfNotPresent in prod
-        env_vars={
-            "SERVICE_ENDPOINT": "http://192.168.0.16:9000"
-        },
+        env_vars=env_vars,
         arguments=["load-metadata-in-fhir"],
         get_logs=True,
         hostnetwork=True,
@@ -113,9 +113,7 @@ with DAG(dag_id="clin_genomic_data_pipeline",
         },
         image="192.168.0.16:5000/clin-pipelines:2020.1",
         image_pull_policy="Always",  # local development - use IfNotPresent in prod
-        env_vars={
-            "SERVICE_ENDPOINT": "http://192.168.0.16:9000"
-        },
+        env_vars=env_vars,
         arguments=["extract-fhir-data-for-etl"],
         get_logs=True,
         hostnetwork=True,
