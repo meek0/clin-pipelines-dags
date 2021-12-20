@@ -25,7 +25,7 @@ RAW_FHIR_ETL_CONF = ["config/qa.conf", "all", "first_load"]
 
 with DAG(
         dag_id="k8s_normalize_vcf_etl",
-        schedule_interval="@daily",
+        schedule_interval=None,
         default_args=default_args,
         start_date=days_ago(2),
         catchup=False

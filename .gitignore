@@ -6,3 +6,4 @@ docker/logs/*
 notes.txt
 venv
 .idea
+logs
