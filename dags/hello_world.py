@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy import DummyOperator
 
 default_args = {
     "owner": "cbotek",
