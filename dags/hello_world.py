@@ -16,3 +16,7 @@ with DAG("hello_world", start_date=days_ago(2),
             task_id="hello_world",
             bash_command="echo 'Hello World'",
             dag=dag)
+
+        end = DummyOperator(task_id='end')
+
+        task_hello_world >> end
