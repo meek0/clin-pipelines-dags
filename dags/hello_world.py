@@ -14,8 +14,7 @@ with DAG("hello_world", start_date=days_ago(2),
     schedule_interval=None, catchup=False) as dag:
         task_hello_world = BashOperator(
             task_id="hello_world",
-            bash_command="echo 'Hello World'",
-            dag=dag)
+            bash_command="echo 'Hello World'")
 
         end = DummyOperator(task_id='end')
 
