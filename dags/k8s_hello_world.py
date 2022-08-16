@@ -19,6 +19,7 @@ with DAG("k8s_hello_world", start_date=days_ago(2),
             name="say-hello",
             is_delete_operator_pod=False,
             in_cluster=True,
+            cluster_context= 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc',
             task_id="say-hello",
             get_logs=True,
         )
