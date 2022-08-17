@@ -13,9 +13,9 @@ default_args = {
 with DAG("k8s_hello_world", start_date=days_ago(2),
     schedule_interval=None, catchup=False) as dag:
         task_hello_world = KubernetesPodOperator(
-            namespace='cqgc-etl',
+            namespace='cqgc-qa',
             image='alpine',
-            cmds=["sh", "-c", "sleep 60"],
+            cmds=["sh", "-c", "echo 'Hello WOrld!'"],
             name="say-hello",
             is_delete_operator_pod=False,
             in_cluster=True,
