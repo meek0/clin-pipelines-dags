@@ -13,6 +13,7 @@ default_args = {
 }
 
 def _spark_task_check(ti):
+    config.load_incluster_config
     v1 = client.CoreV1Api()
     pod = v1.list_namespaced_pod(
         namespace='cqgc-qa',
