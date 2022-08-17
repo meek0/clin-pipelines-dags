@@ -3,6 +3,7 @@ from airflow.utils.dates import days_ago
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from airflow.operators.python import PythonOperator
 from kubernetes import client, config
+from airflow.models import Variable
 import logging
 default_args = {
     "owner": "jcostanza",
@@ -12,11 +13,13 @@ default_args = {
     "email": "jcostanza@ferlab.bio"
 }
 
+namespace=Variable.get("kubernetes_namespace")
+
 def _spark_task_check(ti):
     config.load_incluster_config()
     v1 = client.CoreV1Api()
     pod = v1.list_namespaced_pod(
-        namespace='cqgc-qa',
+        namespace=namespace,
         limit=3,
     )
     logging.info(pod)
@@ -24,7 +27,7 @@ def _spark_task_check(ti):
 with DAG("k8s_hello_world", start_date=days_ago(2),
     schedule_interval=None, catchup=False) as dag:
         task_hello_world = KubernetesPodOperator(
-            namespace='cqgc-qa',
+            namespace=namespace,
             image='alpine',
             cmds=["sh", "-c", "echo 'Hello WOrld!'"],
             name="say-hello",
