@@ -2,7 +2,7 @@ import kubernetes
 import os
 
 
-def load_config():
+def k8s_load_config():
     if os.getenv('K8S_LOCAL_CONFIG', 'false') == 'true':
         kubernetes.config.load_kube_config()
     else:

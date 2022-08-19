@@ -6,7 +6,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from airflow.utils.dates import days_ago
 from lib.etl import config
-from lib.k8s import load_config as k8s_load_config
+from lib.k8s import k8s_load_config
 
 default_args = {
     "owner": "jcostanza",

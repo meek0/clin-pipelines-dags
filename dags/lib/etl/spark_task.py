@@ -5,7 +5,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.task_group import TaskGroup
 from kubernetes.client import models as k8s
 from lib.helper import task_id
-from lib.k8s import load_config as k8s_load_config
+from lib.k8s import k8s_load_config
 from typing import List
 
 
