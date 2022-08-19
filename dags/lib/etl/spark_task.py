@@ -18,8 +18,9 @@ def spark_task(
     spark_image: str,
     spark_jar: str,
     spark_class: str,
-    spark_config: str,
-    arguments: List[str] = []
+    spark_config: str = '',
+    spark_secret: str = '',
+    arguments: List[str] = [],
 ) -> TaskGroup:
 
     def _spark_job_status(ti):
@@ -61,6 +62,65 @@ def spark_task(
 
     with TaskGroup(group_id=group_id) as spark_task_group:
 
+        volumes = [
+            k8s.V1Volume(
+                name='spark-defaults',
+                config_map=k8s.V1ConfigMapVolumeSource(
+                    name='spark-defaults',
+                ),
+            ),
+            k8s.V1Volume(
+                name='spark-s3-credentials',
+                secret=k8s.V1SecretVolumeSource(
+                    secret_name='spark-s3-credentials',
+                ),
+            ),
+        ]
+        volume_mounts = [
+            k8s.V1VolumeMount(
+                name='spark-defaults',
+                mount_path='/opt/spark-configs/defaults',
+                read_only=True,
+            ),
+            k8s.V1VolumeMount(
+                name='spark-s3-credentials',
+                mount_path='/opt/spark-configs/s3-credentials',
+                read_only=True,
+            ),
+        ]
+        if spark_config:
+            volumes.append(
+                k8s.V1Volume(
+                    name=spark_config,
+                    config_map=k8s.V1ConfigMapVolumeSource(
+                        name=spark_config,
+                    ),
+                )
+            )
+            volume_mounts.append(
+                k8s.V1VolumeMount(
+                    name=spark_config,
+                    mount_path=f'/opt/spark-configs/{spark_config}',
+                    read_only=True,
+                )
+            )
+        if spark_secret:
+            volumes.append(
+                k8s.V1Volume(
+                    name=spark_secret,
+                    secret=k8s.V1SecretVolumeSource(
+                        secret_name=spark_secret,
+                    ),
+                )
+            )
+            volume_mounts.append(
+                k8s.V1VolumeMount(
+                    name=spark_secret,
+                    mount_path=f'/opt/spark-configs/{spark_secret}',
+                    read_only=True,
+                )
+            )
+
         spark_job = KubernetesPodOperator(
             task_id='spark_job',
             namespace=k8s_namespace,
@@ -94,43 +154,8 @@ def spark_task(
                     value=spark_class,
                 ),
             ],
-            volumes=[
-                k8s.V1Volume(
-                    name='spark-defaults',
-                    config_map=k8s.V1ConfigMapVolumeSource(
-                        name='spark-defaults',
-                    ),
-                ),
-                k8s.V1Volume(
-                    name=spark_config,
-                    config_map=k8s.V1ConfigMapVolumeSource(
-                        name=spark_config,
-                    ),
-                ),
-                k8s.V1Volume(
-                    name='spark-s3-credentials',
-                    secret=k8s.V1SecretVolumeSource(
-                        secret_name='spark-s3-credentials',
-                    ),
-                ),
-            ],
-            volume_mounts=[
-                k8s.V1VolumeMount(
-                    name='spark-defaults',
-                    mount_path='/opt/spark-configs/defaults',
-                    read_only=True,
-                ),
-                k8s.V1VolumeMount(
-                    name=spark_config,
-                    mount_path=f'/opt/spark-configs/{spark_config}',
-                    read_only=True,
-                ),
-                k8s.V1VolumeMount(
-                    name='spark-s3-credentials',
-                    mount_path='/opt/spark-configs/s3-credentials',
-                    read_only=True,
-                ),
-            ],
+            volumes=volumes,
+            volume_mounts=volume_mounts,
         )
 
         spark_job_status = PythonOperator(

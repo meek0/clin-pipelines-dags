@@ -188,12 +188,12 @@ def etl_task(
             spark_jar=spark_jar,
             spark_class='bio.ferlab.clin.etl.varsome.Varsome',
             spark_config='varsome-etl',
+            spark_secret='varsome',
             arguments=[
                 f'config/{environment}.conf',
                 'initial',
                 'all',
             ],
-            # TODO extra spark secret + volume
         )
 
         step_4_10 = spark_task(
