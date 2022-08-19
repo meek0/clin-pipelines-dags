@@ -1,9 +1,9 @@
+__pycache__
+.idea
 *.iml
 docker/esdata/*
 docker/kubeconfig/*.crt
 docker/kubeconfig/*.key
 docker/logs/*
-notes.txt
-venv
-.idea
 logs
+venv
