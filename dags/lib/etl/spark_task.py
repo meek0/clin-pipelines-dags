@@ -60,7 +60,7 @@ def spark_task(
         if pod.items[0].status.phase != 'Succeeded':
             raise AirflowFailException('Spark task failed')
 
-    with TaskGroup(group_id=group_id) as spark_task_group:
+    with TaskGroup(group_id=group_id) as task_group:
 
         volumes = [
             k8s.V1Volume(
@@ -165,4 +165,4 @@ def spark_task(
 
         spark_job >> spark_job_status
 
-    return spark_task_group
+    return task_group
