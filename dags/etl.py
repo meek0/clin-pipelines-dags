@@ -20,6 +20,8 @@ with DAG(
         spark_image=config.spark_image,
         spark_jar=config.spark_jar,
         batch_id=config.batch_id,
+        release=config.release,
+        color=config.color,
     )
 
     task

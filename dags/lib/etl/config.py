@@ -26,3 +26,4 @@ spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/dow
 
 batch_id = '201106_A00516_0169_AHFM3HDSXY'
 release = 're_000'
+color = 'green'

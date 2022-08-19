@@ -12,7 +12,6 @@ from typing import List
 def spark_task(
     group_id: str,
     parent_id: str,
-    environment: str,
     k8s_namespace: str,
     k8s_context: str,
     k8s_service_account: str,
@@ -20,7 +19,7 @@ def spark_task(
     spark_jar: str,
     spark_class: str,
     spark_config: str,
-    extra_args: List[str] = []
+    arguments: List[str] = []
 ) -> TaskGroup:
 
     def _spark_job_status(ti):
@@ -70,7 +69,7 @@ def spark_task(
             name='spark_job',
             image=spark_image,
             cmds=['/opt/client-entrypoint.sh'],
-            arguments=[f'config/{environment}.conf'] + extra_args,
+            arguments=arguments,
             is_delete_operator_pod=True,
             image_pull_secrets=[
                 k8s.V1LocalObjectReference(
