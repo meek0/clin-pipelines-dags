@@ -214,23 +214,23 @@ with DAG(
             ],
         )
 
-        varsome = spark_task(
-            group_id='varsome',
-            parent_id=parent_id,
-            k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
-            k8s_service_account=k8s_service_account,
-            spark_image=spark_image,
-            spark_jar=spark_jar,
-            spark_class='bio.ferlab.clin.etl.varsome.Varsome',
-            spark_config='varsome-etl',
-            spark_secret='varsome',
-            arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'all',
-            ],
-        )
+        # varsome = spark_task(
+        #     group_id='varsome',
+        #     parent_id=parent_id,
+        #     k8s_namespace=k8s_namespace,
+        #     k8s_context=k8s_context.etl,
+        #     k8s_service_account=k8s_service_account,
+        #     spark_image=spark_image,
+        #     spark_jar=spark_jar,
+        #     spark_class='bio.ferlab.clin.etl.varsome.Varsome',
+        #     spark_config='varsome-etl',
+        #     spark_secret='varsome',
+        #     arguments=[
+        #         f'config/{environment}.conf',
+        #         'initial',
+        #         'all',
+        #     ],
+        # )
 
         gene_tables = spark_task(
             group_id='gene_tables',
@@ -248,23 +248,23 @@ with DAG(
             ],
         )
 
-        public_tables = spark_task(
-            group_id='public_tables',
-            parent_id=parent_id,
-            k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
-            k8s_service_account=k8s_service_account,
-            spark_image=spark_image,
-            spark_jar=spark_jar,
-            spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
-            spark_config='public-tables-creation-etl',
-            arguments=[
-                f'config/{environment}.conf',
-                'initial',
-            ],
-        )
+        # public_tables = spark_task(
+        #     group_id='public_tables',
+        #     parent_id=parent_id,
+        #     k8s_namespace=k8s_namespace,
+        #     k8s_context=k8s_context.etl,
+        #     k8s_service_account=k8s_service_account,
+        #     spark_image=spark_image,
+        #     spark_jar=spark_jar,
+        #     spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
+        #     spark_config='public-tables-creation-etl',
+        #     arguments=[
+        #         f'config/{environment}.conf',
+        #         'initial',
+        #     ],
+        # )
 
-        file_import >> fhir_export >> fhir_normalize >> vcf_snv >> vcf_cnv >> vcf_variants >> vcf_consequences >> external_panels >> external_mane_summary >> external_refseq_annotation >> external_refseq_feature >> varsome >> gene_tables >> public_tables
+        file_import >> fhir_export >> fhir_normalize >> vcf_snv >> vcf_cnv >> vcf_variants >> vcf_consequences >> external_panels >> external_mane_summary >> external_refseq_annotation >> external_refseq_feature >> gene_tables
 
     with TaskGroup(group_id='enrich') as enrich:
 
