@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
+from lib.etl.pipeline_task import pipeline_task
 from lib.etl.spark_task import spark_task
 
 
@@ -15,6 +16,7 @@ with DAG(
     k8s_namespace = config.k8s_namespace
     k8s_context = config.k8s_context
     k8s_service_account = config.k8s_service_account
+    pipeline_image = config.pipeline_image
     spark_image = config.spark_image
     spark_jar = config.spark_jar
     batch_id = config.batch_id
@@ -25,16 +27,45 @@ with DAG(
 
         parent_id = 'ingest'
 
-        fhir = spark_task(
-            group_id='fhir',
+        file_import = pipeline_task(
+            task_id='file_import',
+            environment=environment,
+            k8s_namespace=k8s_namespace,
+            k8s_context=k8s_context.default,
+            pipeline_image=pipeline_image,
+            aws_bucket=f'cqgc-{environment}-app-files-import',
+            color=color,
+            arguments=[
+                'bio.ferlab.clin.etl.FileImport',
+                batch_id,
+                'false',
+                'true',
+            ],
+        )
+
+        fhir_export = pipeline_task(
+            task_id='fhir_export',
+            environment=environment,
+            k8s_namespace=k8s_namespace,
+            k8s_context=k8s_context.default,
+            pipeline_image=pipeline_image,
+            aws_bucket=f'cqgc-{environment}-app-datalake',
+            color=color,
+            arguments=[
+                'bio.ferlab.clin.etl.FhirExport',
+                'all',
+            ],
+        )
+
+        fhir_normalize = spark_task(
+            group_id='fhir_normalize',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
-            # bio.ferlab.clin.etl.fhir.FhirRawToNormalized
-            spark_class='bio.ferlab.clin.etl.fail.Fail',
+            spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
             arguments=[
                 f'config/{environment}.conf',
@@ -233,14 +264,14 @@ with DAG(
             ],
         )
 
-        fhir >> vcf_snv >> vcf_cnv >> vcf_variants >> vcf_consequences >> external_panels >> external_mane_summary >> external_refseq_annotation >> external_refseq_feature >> varsome >> gene_tables >> public_tables
+        file_import >> fhir_export >> fhir_normalize >> vcf_snv >> vcf_cnv >> vcf_variants >> vcf_consequences >> external_panels >> external_mane_summary >> external_refseq_annotation >> external_refseq_feature >> varsome >> gene_tables >> public_tables
 
     with TaskGroup(group_id='enrich') as enrich:
 
         parent_id = 'enrich'
 
-        enriched_variants = spark_task(
-            group_id='enriched_variants',
+        variants = spark_task(
+            group_id='variants',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -256,8 +287,8 @@ with DAG(
             ],
         )
 
-        enriched_consequences = spark_task(
-            group_id='enriched_consequences',
+        consequences = spark_task(
+            group_id='consequences',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -273,8 +304,8 @@ with DAG(
             ],
         )
 
-        enriched_cnv = spark_task(
-            group_id='enriched_cnv',
+        cnv = spark_task(
+            group_id='cnv',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -290,14 +321,14 @@ with DAG(
             ],
         )
 
-        enriched_variants >> enriched_consequences >> enriched_cnv
+        variants >> consequences >> cnv
 
     with TaskGroup(group_id='prepare') as prepare:
 
         parent_id = 'prepare'
 
-        prepare_gene_centric = spark_task(
-            group_id='prepare_gene_centric',
+        gene_centric = spark_task(
+            group_id='gene_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -314,8 +345,8 @@ with DAG(
             ],
         )
 
-        prepare_gene_suggestions = spark_task(
-            group_id='prepare_gene_suggestions',
+        gene_suggestions = spark_task(
+            group_id='gene_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -332,8 +363,8 @@ with DAG(
             ],
         )
 
-        prepare_variant_centric = spark_task(
-            group_id='prepare_variant_centric',
+        variant_centric = spark_task(
+            group_id='variant_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -350,8 +381,8 @@ with DAG(
             ],
         )
 
-        prepare_variant_suggestions = spark_task(
-            group_id='prepare_variant_suggestions',
+        variant_suggestions = spark_task(
+            group_id='variant_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -368,8 +399,8 @@ with DAG(
             ],
         )
 
-        prepare_cnv_centric = spark_task(
-            group_id='prepare_cnv_centric',
+        cnv_centric = spark_task(
+            group_id='cnv_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
             k8s_context=k8s_context.etl,
@@ -386,17 +417,17 @@ with DAG(
             ],
         )
 
-        prepare_gene_centric >> prepare_gene_suggestions >> prepare_variant_centric >> prepare_variant_suggestions >> prepare_cnv_centric
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
     with TaskGroup(group_id='index') as index:
 
         parent_id = 'index'
 
-        index_gene_centric = spark_task(
-            group_id='index_gene_centric',
+        gene_centric = spark_task(
+            group_id='gene_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.qa,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -406,7 +437,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_gene_centric',
+                f'clin_{environment}_{color}_gene_centric',
                 release,
                 'gene_centric_template.json',
                 'gene_centric',
@@ -415,11 +446,11 @@ with DAG(
             ],
         )
 
-        index_gene_suggestions = spark_task(
-            group_id='index_gene_suggestions',
+        gene_suggestions = spark_task(
+            group_id='gene_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.qa,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -429,7 +460,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_gene_suggestions',
+                f'clin_{environment}_{color}_gene_suggestions',
                 release,
                 'gene_suggestions_template.json',
                 'gene_suggestions',
@@ -438,11 +469,11 @@ with DAG(
             ],
         )
 
-        index_variant_centric = spark_task(
-            group_id='index_variant_centric',
+        variant_centric = spark_task(
+            group_id='variant_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.qa,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -452,7 +483,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_variant_centric',
+                f'clin_{environment}_{color}_variant_centric',
                 release,
                 'variant_centric_template.json',
                 'variant_centric',
@@ -461,11 +492,11 @@ with DAG(
             ],
         )
 
-        index_variant_suggestions = spark_task(
-            group_id='index_variant_suggestions',
+        variant_suggestions = spark_task(
+            group_id='variant_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.qa,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -475,7 +506,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_variant_suggestions',
+                f'clin_{environment}_{color}_variant_suggestions',
                 release,
                 'variant_suggestions_template.json',
                 'variant_suggestions',
@@ -484,11 +515,11 @@ with DAG(
             ],
         )
 
-        index_cnv_centric = spark_task(
-            group_id='index_cnv_centric',
+        cnv_centric = spark_task(
+            group_id='cnv_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.qa,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -498,7 +529,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_cnv_centric',
+                f'clin_{environment}_{color}_cnv_centric',
                 release,
                 'cnv_centric_template.json',
                 'cnv_centric',
@@ -507,17 +538,17 @@ with DAG(
             ],
         )
 
-        index_gene_centric >> index_gene_suggestions >> index_variant_centric >> index_variant_suggestions >> index_cnv_centric
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
     with TaskGroup(group_id='publish') as publish:
 
         parent_id = 'publish'
 
-        publish_gene_centric = spark_task(
-            group_id='publish_gene_centric',
+        gene_centric = spark_task(
+            group_id='gene_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -527,16 +558,16 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_gene_centric',
+                f'clin_{environment}_{color}_gene_centric',
                 release
             ],
         )
 
-        publish_gene_suggestions = spark_task(
-            group_id='publish_gene_suggestions',
+        gene_suggestions = spark_task(
+            group_id='gene_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -546,16 +577,16 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_gene_suggestions',
+                f'clin_{environment}_{color}_gene_suggestions',
                 release
             ],
         )
 
-        publish_variant_centric = spark_task(
-            group_id='publish_variant_centric',
+        variant_centric = spark_task(
+            group_id='variant_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -565,16 +596,16 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_variant_centric',
+                f'clin_{environment}_{color}_variant_centric',
                 release
             ],
         )
 
-        publish_variant_suggestions = spark_task(
-            group_id='publish_variant_suggestions',
+        variant_suggestions = spark_task(
+            group_id='variant_suggestions',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -584,16 +615,16 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_variant_suggestions',
+                f'clin_{environment}_{color}_variant_suggestions',
                 release
             ],
         )
 
-        publish_cnv_centric = spark_task(
-            group_id='publish_cnv_centric',
+        cnv_centric = spark_task(
+            group_id='cnv_centric',
             parent_id=parent_id,
             k8s_namespace=k8s_namespace,
-            k8s_context=k8s_context.etl,
+            k8s_context=k8s_context.default,
             k8s_service_account=k8s_service_account,
             spark_image=spark_image,
             spark_jar=spark_jar,
@@ -603,11 +634,24 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_qa_{color}_cnv_centric',
+                f'clin_{environment}_{color}_cnv_centric',
                 release
             ],
         )
 
-        publish_gene_centric >> publish_gene_suggestions >> publish_variant_centric >> publish_variant_suggestions >> publish_cnv_centric
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
-    ingest >> enrich >> prepare >> index >> publish
+    notify = pipeline_task(
+        task_id='notify',
+        environment=environment,
+        k8s_namespace=k8s_namespace,
+        k8s_context=k8s_context.default,
+        pipeline_image=pipeline_image,
+        color=color,
+        arguments=[
+            'bio.ferlab.clin.etl.LDMNotifier',
+            batch_id,
+        ],
+    )
+
+    ingest >> enrich >> prepare >> index >> publish >> notify

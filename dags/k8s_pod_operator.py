@@ -12,13 +12,13 @@ with DAG(
 
     k8s_pod_operator = KubernetesPodOperator(
         task_id='k8s_pod_operator',
+        is_delete_operator_pod=True,
         namespace=config.k8s_namespace,
-        cluster_context='kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc',
+        cluster_context=config.k8s_context.default,
         name='k8s_pod_operator',
         image='alpine',
         cmds=['echo', 'hello'],
         arguments=[],
-        is_delete_operator_pod=True,
     )
 
     k8s_pod_operator

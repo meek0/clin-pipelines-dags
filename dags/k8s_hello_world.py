@@ -19,7 +19,7 @@ default_args = {
 namespace = config.k8s_namespace
 
 
-def _spark_task_check(ti):
+def _pod_list():
     k8s_load_config()
     k8s_client = kubernetes.client.CoreV1Api()
     pod = k8s_client.list_namespaced_pod(
@@ -36,19 +36,20 @@ with DAG(
     catchup=False
 ) as dag:
 
-    task_hello_world = KubernetesPodOperator(
+    hello_world = KubernetesPodOperator(
+        task_id="say_hello",
+        is_delete_operator_pod=True,
         namespace=namespace,
+        cluster_context=config.k8s_context.default,
+        name="say_hello",
         image='alpine',
-        cmds=["sh", "-c", "echo 'Hello WOrld!'"],
-        name="say-hello",
-        is_delete_operator_pod=False,
-        task_id="say-hello",
+        cmds=["sh", "-c", "echo 'Hello World!'"],
         get_logs=True,
     )
 
-    spark_task_check = PythonOperator(
-        task_id="spark_task_check",
-        python_callable=_spark_task_check,
+    pod_list = PythonOperator(
+        task_id="pod_list",
+        python_callable=_pod_list,
     )
 
-    task_hello_world >> spark_task_check
+    hello_world >> pod_list

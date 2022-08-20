@@ -52,7 +52,7 @@ def spark_task(
         try:
             k8s_client.delete_namespaced_pod(
                 name=f'{pod_name}-driver',
-                namespace=pod_namespace
+                namespace=pod_namespace,
             )
         except:
             raise AirflowFailException('Spark task pod delete failed')
@@ -95,14 +95,14 @@ def spark_task(
                     config_map=k8s.V1ConfigMapVolumeSource(
                         name=spark_config,
                     ),
-                )
+                ),
             )
             volume_mounts.append(
                 k8s.V1VolumeMount(
                     name=spark_config,
                     mount_path=f'/opt/spark-configs/{spark_config}',
                     read_only=True,
-                )
+                ),
             )
         if spark_secret:
             volumes.append(
@@ -111,18 +111,19 @@ def spark_task(
                     secret=k8s.V1SecretVolumeSource(
                         secret_name=spark_secret,
                     ),
-                )
+                ),
             )
             volume_mounts.append(
                 k8s.V1VolumeMount(
                     name=spark_secret,
                     mount_path=f'/opt/spark-configs/{spark_secret}',
                     read_only=True,
-                )
+                ),
             )
 
         spark_job = KubernetesPodOperator(
             task_id='spark_job',
+            is_delete_operator_pod=True,
             namespace=k8s_namespace,
             cluster_context=k8s_context,
             service_account_name=k8s_service_account,
@@ -130,7 +131,6 @@ def spark_task(
             image=spark_image,
             cmds=['/opt/client-entrypoint.sh'],
             arguments=arguments,
-            is_delete_operator_pod=True,
             image_pull_secrets=[
                 k8s.V1LocalObjectReference(
                     name='images-registry-credentials',
