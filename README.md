@@ -20,6 +20,12 @@ Web UI credentials :
 
 - Password : `airflow`
 
+Create Airflow variables :
+
+- `environment`
+
+- `kubernetes_namespace`
+
 Get scheduler container shell :
 
 ```

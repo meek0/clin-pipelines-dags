@@ -1,24 +1,34 @@
+from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
+from enum import StrEnum
 
 
-class K8sContext:
-    default: str
-    etl: str
+class K8sContext(StrEnum):
+    DEFAULT = 'default',
+    ETL = 'etl',
 
 
-class K8sContextQa(K8sContext):
-    default = 'kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc'
-    etl = 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc'
+environment = Variable.get('environment')
+k8s_namespace = Variable.get('kubernetes_namespace')
 
+if environment == 'qa':
+    k8s_context = {
+        'default': 'kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc',
+        'etl': 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc',
+    }
+elif environment == 'staging':
+    k8s_context = {
+        'default': 'kubernetes-admin-cluster.staging.cqgc@cluster.staging.cqgc',
+        'etl': 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc',
+    }
+elif environment == 'prod':
+    k8s_context = {
+        'default': 'kubernetes-admin-cluster.prod.cqgc@cluster.prod.cqgc',
+        'etl': 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc',
+    }
+else:
+    raise AirflowConfigException(f'Unexpected environment "{environment}"')
 
-environment = 'qa'
-
-try:
-    k8s_namespace = Variable.get('kubernetes_namespace')
-except:
-    k8s_namespace = 'cqgc-qa'
-
-k8s_context: K8sContext = K8sContextQa
 k8s_service_account = 'spark'
 
 pipeline_image = 'ferlabcrsj/clin-pipelines'

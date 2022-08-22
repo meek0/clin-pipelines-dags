@@ -4,6 +4,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from airflow.utils.task_group import TaskGroup
 from kubernetes.client import models as k8s
+from lib.etl import config
+from lib.etl.config import K8sContext
 from lib.helper import task_id
 from lib.k8s import k8s_load_config
 from typing import List
@@ -12,16 +14,18 @@ from typing import List
 def spark_task(
     group_id: str,
     parent_id: str,
-    k8s_namespace: str,
-    k8s_context: str,
-    k8s_service_account: str,
-    spark_image: str,
-    spark_jar: str,
+    k8s_context: K8sContext,
     spark_class: str,
     spark_config: str = '',
     spark_secret: str = '',
     arguments: List[str] = [],
 ) -> TaskGroup:
+
+    k8s_namespace = config.k8s_namespace
+    k8s_context = getattr(config.k8s_context, k8s_context)
+    k8s_service_account = config.k8s_service_account
+    spark_image = config.spark_image
+    spark_jar = config.spark_jar
 
     def _spark_job_status(ti):
 
