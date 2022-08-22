@@ -1,11 +1,10 @@
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
-from enum import StrEnum
 
 
-class K8sContext(StrEnum):
-    DEFAULT = 'default',
-    ETL = 'etl',
+class K8sContext:
+    DEFAULT = 'default'
+    ETL = 'etl'
 
 
 environment = Variable.get('environment')

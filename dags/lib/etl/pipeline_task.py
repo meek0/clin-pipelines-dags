@@ -1,13 +1,12 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib.etl import config
-from lib.etl.config import K8sContext
 from typing import List
 
 
 def pipeline_task(
     task_id: str,
-    k8s_context: K8sContext,
+    k8s_context: str,
     aws_bucket: str = '',
     color: str = '',
     arguments: List[str] = [],
@@ -15,7 +14,7 @@ def pipeline_task(
 
     environment = config.environment
     k8s_namespace = config.k8s_namespace
-    k8s_context = getattr(config.k8s_context, k8s_context)
+    k8s_context = config.k8s_context[k8s_context]
     pipeline_image = config.pipeline_image
 
     env_vars = [
