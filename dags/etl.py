@@ -5,6 +5,7 @@ from lib.etl import config
 from lib.etl.config import K8sContext
 from lib.etl.pipeline_task import pipeline_task
 from lib.etl.spark_task import spark_task
+from lib.helper import join
 
 
 with DAG(
@@ -342,7 +343,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_gene_centric',
+                join('_', ['clin', environment, color, 'gene_centric']),
                 release,
                 'gene_centric_template.json',
                 'gene_centric',
@@ -361,7 +362,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_gene_suggestions',
+                join('_', ['clin', environment, color, 'gene_suggestion']),
                 release,
                 'gene_suggestions_template.json',
                 'gene_suggestions',
@@ -380,7 +381,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_variant_centric',
+                join('_', ['clin', environment, color, 'variant_centric']),
                 release,
                 'variant_centric_template.json',
                 'variant_centric',
@@ -399,7 +400,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_variant_suggestions',
+                join('_', ['clin', environment, color, 'variant_suggestions']),
                 release,
                 'variant_suggestions_template.json',
                 'variant_suggestions',
@@ -418,7 +419,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_cnv_centric',
+                join('_', ['clin', environment, color, 'cnv_centric']),
                 release,
                 'cnv_centric_template.json',
                 'cnv_centric',
@@ -443,7 +444,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_gene_centric',
+                join('_', ['clin', environment, color, 'gene_centric']),
                 release
             ],
         )
@@ -458,7 +459,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_gene_suggestions',
+                join('_', ['clin', environment, color, 'gene_suggestions']),
                 release
             ],
         )
@@ -473,7 +474,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_variant_centric',
+                join('_', ['clin', environment, color, 'variant_centric']),
                 release
             ],
         )
@@ -488,7 +489,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_variant_suggestions',
+                join('_', ['clin', environment, color, 'variant_suggestion']),
                 release
             ],
         )
@@ -503,7 +504,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                f'clin_{environment}_{color}_cnv_centric',
+                join('_', ['clin', environment, color, 'cnv_centric']),
                 release
             ],
         )

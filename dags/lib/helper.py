@@ -1,5 +1,5 @@
 from typing import List
 
 
-def task_id(ids: List[str]) -> str:
-    return '.'.join(filter(None, ids))
+def join(string: str, parts: List[str]) -> str:
+    return string.join(filter(None, parts))

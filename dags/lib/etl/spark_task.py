@@ -5,7 +5,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.task_group import TaskGroup
 from kubernetes.client import models as k8s
 from lib.etl import config
-from lib.helper import task_id
+from lib.helper import join
 from lib.k8s import k8s_load_config
 from typing import List
 
@@ -28,7 +28,7 @@ def spark_task(
 
     def _spark_job_status(ti):
 
-        task_ids = [task_id([parent_id, group_id, 'spark_job'])]
+        task_ids = [join('_', [parent_id, group_id, 'spark_job'])]
         xcom_pod_name = ti.xcom_pull(
             key='pod_name',
             task_ids=task_ids,
