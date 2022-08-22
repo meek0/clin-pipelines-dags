@@ -40,7 +40,7 @@ with DAG(
         task_id="say_hello",
         is_delete_operator_pod=True,
         namespace=namespace,
-        cluster_context=config.k8s_context.default,
+        cluster_context=config.k8s_context['default'],
         name="say_hello",
         image='alpine',
         cmds=["sh", "-c", "echo 'Hello World!'"],
