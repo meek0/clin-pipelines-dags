@@ -1,4 +1,5 @@
 from airflow import DAG
+from airflow.models.param import Param
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
@@ -12,12 +13,17 @@ with DAG(
     dag_id='etl',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
+    params={
+        'batch_id':  Param('BATCHID', type='string', minLength=1),
+        'release': Param('re_000', type='string', minLength=1),
+        'color': Param('', enum=['', 'blue', 'green']),
+    },
 ) as dag:
 
     environment = config.environment
-    batch_id = config.batch_id
-    release = config.release
-    color = config.color
+
+    def index(name: str) -> str:
+        return f'clin_{environment}_' + '{% if params.color|length %}{{ params.color }}_{% endif %}' + name
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -27,10 +33,10 @@ with DAG(
             task_id='file_import',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-files-import',
-            color=color,
+            color='{{ params.color }}',
             arguments=[
                 'bio.ferlab.clin.etl.FileImport',
-                batch_id,
+                '{{ params.batch_id }}',
                 'false',
                 'true',
             ],
@@ -40,7 +46,7 @@ with DAG(
             task_id='fhir_export',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-datalake',
-            color=color,
+            color='{{ params.color }}',
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport',
                 'all',
@@ -69,7 +75,7 @@ with DAG(
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                batch_id,
+                '{{ params.batch_id }}',
                 'snv',
             ],
         )
@@ -83,7 +89,7 @@ with DAG(
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                batch_id,
+                '{{ params.batch_id }}',
                 'cnv',
             ],
         )
@@ -97,7 +103,7 @@ with DAG(
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                batch_id,
+                '{{ params.batch_id }}',
                 'variants',
             ],
         )
@@ -111,7 +117,7 @@ with DAG(
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                batch_id,
+                '{{ params.batch_id }}',
                 'consequences',
             ],
         )
@@ -267,7 +273,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'gene_centric',
-                release,
+                '{{ params.release }}',
             ],
         )
 
@@ -281,7 +287,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'gene_suggestions',
-                release,
+                '{{ params.release }}',
             ],
         )
 
@@ -295,7 +301,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'variant_centric',
-                release,
+                '{{ params.release }}',
             ],
         )
 
@@ -309,7 +315,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'variant_suggestions',
-                release,
+                '{{ params.release }}',
             ],
         )
 
@@ -323,7 +329,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'cnv_centric',
-                release,
+                '{{ params.release }}',
             ],
         )
 
@@ -343,8 +349,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'gene_centric']),
-                release,
+                index('gene_centric'),
+                '{{ params.release }}',
                 'gene_centric_template.json',
                 'gene_centric',
                 '1900-01-01 00:00:00',
@@ -362,8 +368,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'gene_suggestion']),
-                release,
+                index('gene_suggestion'),
+                '{{ params.release }}',
                 'gene_suggestions_template.json',
                 'gene_suggestions',
                 '1900-01-01 00:00:00',
@@ -381,8 +387,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'variant_centric']),
-                release,
+                index('variant_centric'),
+                '{{ params.release }}',
                 'variant_centric_template.json',
                 'variant_centric',
                 '1900-01-01 00:00:00',
@@ -400,8 +406,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'variant_suggestions']),
-                release,
+                index('variant_suggestions'),
+                '{{ params.release }}',
                 'variant_suggestions_template.json',
                 'variant_suggestions',
                 '1900-01-01 00:00:00',
@@ -419,8 +425,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'cnv_centric']),
-                release,
+                index('cnv_centric'),
+                '{{ params.release }}',
                 'cnv_centric_template.json',
                 'cnv_centric',
                 '1900-01-01 00:00:00',
@@ -444,8 +450,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'gene_centric']),
-                release
+                index('gene_centric'),
+                '{{ params.release }}',
             ],
         )
 
@@ -459,8 +465,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'gene_suggestions']),
-                release
+                index('gene_suggestions'),
+                '{{ params.release }}',
             ],
         )
 
@@ -474,8 +480,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'variant_centric']),
-                release
+                index('variant_centric'),
+                '{{ params.release }}',
             ],
         )
 
@@ -489,8 +495,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'variant_suggestion']),
-                release
+                index('variant_suggestion'),
+                '{{ params.release }}',
             ],
         )
 
@@ -504,8 +510,8 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                join('_', ['clin', environment, color, 'cnv_centric']),
-                release
+                index('cnv_centric'),
+                '{{ params.release }}',
             ],
         )
 
@@ -514,10 +520,10 @@ with DAG(
     notify = pipeline_task(
         task_id='notify',
         k8s_context=K8sContext.DEFAULT,
-        color=color,
+        color='{{ params.color }}',
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier',
-            batch_id,
+            '{{ params.batch_id }}',
         ],
     )
 
