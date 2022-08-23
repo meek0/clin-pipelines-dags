@@ -42,11 +42,6 @@ with DAG(
             deployment=color_k8s_resource('fhir-server'),
         )
 
-        fhir_resume = k8s_deployment_resume(
-            task_id='fhir_resume',
-            deployment=color_k8s_resource('fhir-server'),
-        )
-
         db_tables_delete = postgres_task(
             task_id='db_tables_delete',
             k8s_context=K8sContext.DEFAULT,
@@ -63,6 +58,11 @@ with DAG(
                 END$$$;
                 ''',
             ],
+        )
+
+        fhir_resume = k8s_deployment_resume(
+            task_id='fhir_resume',
+            deployment=color_k8s_resource('fhir-server'),
         )
 
         fhir_restart = k8s_deployment_restart(
@@ -83,7 +83,7 @@ with DAG(
             ],
         )
 
-        s3_download_delete = aws_task(
+        s3_download_files_delete = aws_task(
             task_id='s3_download_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -93,7 +93,7 @@ with DAG(
             ],
         )
 
-        s3_datalake_delete = aws_task(
+        s3_datalake_files_delete = aws_task(
             task_id='s3_datalake_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -106,12 +106,12 @@ with DAG(
             ],
         )
 
-        wait_2_min = BashOperator(
-            task_id='wait_2_min',
+        fhir_wait = BashOperator(
+            task_id='fhir_wait',
             bash_command='sleep 120',
         )
 
-        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2_min
+        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> fhir_wait
 
     with TaskGroup(group_id='ingest') as ingest:
 
