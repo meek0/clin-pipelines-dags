@@ -108,33 +108,33 @@ with DAG(
             ],
         )
 
-        fhir_wait = BashOperator(
-            task_id='fhir_wait',
+        wait = BashOperator(
+            task_id='wait',
             bash_command='sleep 120',
         )
 
-        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> fhir_wait
+        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> wait
 
     with TaskGroup(group_id='fhir_init') as fhir_init:
 
-        fhir_ig_publish = fhir_task(
-            task_id='fhir_ig_publish',
+        ig_publish = fhir_task(
+            task_id='ig_publish',
             k8s_context=K8sContext.DEFAULT,
             dash_color=color('-'),
         )
 
-        fhir_wait = BashOperator(
-            task_id='fhir_wait',
+        wait = BashOperator(
+            task_id='wait',
             bash_command='sleep 20',
         )
 
-        fhir_csv_import = fhir_csv_task(
-            task_id='fhir_csv_import',
+        csv_import = fhir_csv_task(
+            task_id='csv_import',
             k8s_context=K8sContext.DEFAULT,
             dash_color=color('-'),
         )
 
-        fhir_ig_publish >> fhir_wait >> fhir_csv_import
+        ig_publish >> wait >> csv_import
 
     with TaskGroup(group_id='ingest') as ingest:
 
