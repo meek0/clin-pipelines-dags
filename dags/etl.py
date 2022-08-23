@@ -3,7 +3,9 @@ from airflow.models.param import Param
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
+from lib.etl.aws_task import aws_task
 from lib.etl.config import K8sContext
+from lib.etl.curl_task import curl_task
 from lib.etl.pipeline_task import pipeline_task
 from lib.etl.postgres_task import postgres_task
 from lib.etl.spark_task import spark_task
@@ -34,8 +36,6 @@ with DAG(
 
     with TaskGroup(group_id='cleanup') as cleanup:
 
-        parent_id = 'cleanup'
-
         fhir_pause = k8s_deployment_pause(
             task_id='fhir_pause',
             deployment=color_k8s_resource('fhir-server'),
@@ -46,8 +46,8 @@ with DAG(
             deployment=color_k8s_resource('fhir-server'),
         )
 
-        delete_tables = postgres_task(
-            task_id='delete_tables',
+        db_tables_delete = postgres_task(
+            task_id='db_tables_delete',
             k8s_context=K8sContext.DEFAULT,
             dash_color=color('-'),
             cmds=[
@@ -69,7 +69,43 @@ with DAG(
             deployment=color_k8s_resource('fhir-server'),
         )
 
-        fhir_pause >> delete_tables >> fhir_resume >> fhir_restart
+        es_indices_delete = curl_task(
+            task_id='es_indices_delete',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                '-f', '-X', 'DELETE',
+                f'http://elasticsearch:9200/clin-{environment}-prescriptions' + color('-') +
+                f',clin-{environment}-patients' + color('-') +
+                f',clin-{environment}-analyses' + color('-') +
+                f',clin-{environment}-sequencings' + color('-') +
+                '?ignore_unavailable=true',
+            ],
+        )
+
+        s3_download_delete = aws_task(
+            task_id='s3_download_delete',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
+                f's3://cqgc-{environment}-app-download' + color('/') + '/',
+                '--recursive',
+            ],
+        )
+
+        s3_datalake_delete = aws_task(
+            task_id='s3_datalake_delete',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
+                's3://cqgc-qa-app-datalake/', '--recursive', '--exclude', '"*"',
+                '--include', '"normalized/*"',
+                '--include', '"enriched/*"',
+                '--include', '"raw/landing/fhir/*"',
+                '--include', '"es_index/*"',
+            ],
+        )
+
+        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete
 
     with TaskGroup(group_id='ingest') as ingest:
 

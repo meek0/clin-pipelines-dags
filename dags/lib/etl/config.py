@@ -30,6 +30,8 @@ else:
 
 k8s_service_account = 'spark'
 
+aws_image = 'amazon/aws-cli'
+
 curl_image = 'curlimages/curl'
 
 pipeline_image = 'ferlabcrsj/clin-pipelines'
