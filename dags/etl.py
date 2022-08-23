@@ -6,7 +6,6 @@ from lib.etl import config
 from lib.etl.config import K8sContext
 from lib.etl.pipeline_task import pipeline_task
 from lib.etl.spark_task import spark_task
-from lib.helper import join
 
 
 with DAG(
@@ -22,7 +21,7 @@ with DAG(
 
     environment = config.environment
 
-    def index(name: str) -> str:
+    def es_index(name: str) -> str:
         return f'clin_{environment}_' + '{% if params.color|length %}{{ params.color }}_{% endif %}' + name
 
     with TaskGroup(group_id='ingest') as ingest:
@@ -349,7 +348,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('gene_centric'),
+                es_index('gene_centric'),
                 '{{ params.release }}',
                 'gene_centric_template.json',
                 'gene_centric',
@@ -368,7 +367,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('gene_suggestion'),
+                es_index('gene_suggestion'),
                 '{{ params.release }}',
                 'gene_suggestions_template.json',
                 'gene_suggestions',
@@ -387,7 +386,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('variant_centric'),
+                es_index('variant_centric'),
                 '{{ params.release }}',
                 'variant_centric_template.json',
                 'variant_centric',
@@ -406,7 +405,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('variant_suggestions'),
+                es_index('variant_suggestions'),
                 '{{ params.release }}',
                 'variant_suggestions_template.json',
                 'variant_suggestions',
@@ -425,7 +424,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('cnv_centric'),
+                es_index('cnv_centric'),
                 '{{ params.release }}',
                 'cnv_centric_template.json',
                 'cnv_centric',
@@ -450,7 +449,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('gene_centric'),
+                es_index('gene_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -465,7 +464,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('gene_suggestions'),
+                es_index('gene_suggestions'),
                 '{{ params.release }}',
             ],
         )
@@ -480,7 +479,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('variant_centric'),
+                es_index('variant_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -495,7 +494,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('variant_suggestion'),
+                es_index('variant_suggestion'),
                 '{{ params.release }}',
             ],
         )
@@ -510,7 +509,7 @@ with DAG(
                 'http://elasticsearch:9200',
                 '',
                 '',
-                index('cnv_centric'),
+                es_index('cnv_centric'),
                 '{{ params.release }}',
             ],
         )
