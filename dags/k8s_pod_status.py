@@ -13,7 +13,7 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    def _pod_status():
+    def pod_status():
         k8s_load_config()
         k8s_client = kubernetes.client.CoreV1Api()
         list = k8s_client.list_namespaced_pod(
@@ -26,7 +26,7 @@ with DAG(
 
     k8s_pod_status = PythonOperator(
         task_id='pod_status',
-        python_callable=_pod_status,
+        python_callable=pod_status,
     )
 
     k8s_pod_status

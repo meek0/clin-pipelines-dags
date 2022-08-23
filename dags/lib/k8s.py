@@ -19,7 +19,7 @@ def k8s_deployment_pause(
     task_id: str,
     deployment: str,
 ):
-    def _deployment_pause():
+    def deployment_pause():
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
@@ -30,7 +30,7 @@ def k8s_deployment_pause(
 
     return PythonOperator(
         task_id=task_id,
-        python_callable=_deployment_pause,
+        python_callable=deployment_pause,
     )
 
 
@@ -38,7 +38,7 @@ def k8s_deployment_resume(
     task_id: str,
     deployment: str,
 ):
-    def _deployment_resume():
+    def deployment_resume():
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
@@ -49,7 +49,7 @@ def k8s_deployment_resume(
 
     return PythonOperator(
         task_id=task_id,
-        python_callable=_deployment_resume,
+        python_callable=deployment_resume,
     )
 
 
@@ -57,7 +57,7 @@ def k8s_deployment_restart(
     task_id: str,
     deployment: str,
 ):
-    def _deployment_restart():
+    def deployment_restart():
         now = str(datetime.utcnow().isoformat('T') + 'Z')
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
@@ -79,5 +79,5 @@ def k8s_deployment_restart(
 
     return PythonOperator(
         task_id=task_id,
-        python_callable=_deployment_restart,
+        python_callable=deployment_restart,
     )
