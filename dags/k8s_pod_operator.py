@@ -15,7 +15,7 @@ with DAG(
         is_delete_operator_pod=True,
         namespace=config.k8s_namespace,
         cluster_context=config.k8s_context['default'],
-        name='k8s_pod_operator',
+        name='k8s-pod-operator',
         image='alpine',
         cmds=['echo', 'hello'],
         arguments=[],

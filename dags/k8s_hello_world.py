@@ -36,12 +36,12 @@ with DAG(
     catchup=False
 ) as dag:
 
-    hello_world = KubernetesPodOperator(
+    say_hello = KubernetesPodOperator(
         task_id="say_hello",
         is_delete_operator_pod=True,
         namespace=namespace,
         cluster_context=config.k8s_context['default'],
-        name="say_hello",
+        name="say-hello",
         image='alpine',
         cmds=["sh", "-c", "echo 'Hello World!'"],
         get_logs=True,
@@ -52,4 +52,4 @@ with DAG(
         python_callable=_pod_list,
     )
 
-    hello_world >> pod_list
+    say_hello >> pod_list

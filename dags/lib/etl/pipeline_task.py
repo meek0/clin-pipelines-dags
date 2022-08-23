@@ -129,7 +129,7 @@ def pipeline_task(
         is_delete_operator_pod=True,
         namespace=k8s_namespace,
         cluster_context=k8s_context,
-        name='pipeline_task',
+        name='pipeline-task',
         image=pipeline_image,
         cmds=['/opt/entrypoint/entrypoint.sh', 'java -cp clin-pipelines.jar'],
         arguments=arguments,

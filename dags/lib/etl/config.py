@@ -30,6 +30,8 @@ else:
 
 k8s_service_account = 'spark'
 
+curl_image = 'curlimages/curl'
+
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'

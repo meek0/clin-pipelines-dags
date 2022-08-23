@@ -21,7 +21,7 @@ def postgres_task(
         is_delete_operator_pod=True,
         namespace=k8s_namespace,
         cluster_context=k8s_context,
-        name='postgres_task',
+        name='postgres-task',
         image=postgres_image,
         cmds=cmds,
         image_pull_secrets=[

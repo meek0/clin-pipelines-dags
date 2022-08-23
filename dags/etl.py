@@ -52,7 +52,7 @@ with DAG(
             dash_color=color('-'),
             cmds=[
                 'psql', '-d', 'fhir' + color('_'), '-c',
-                """
+                '''
                 DO $$$DECLARE
                     r RECORD;
                 BEGIN
@@ -60,7 +60,7 @@ with DAG(
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                     END LOOP;
                 END$$$;
-                """,
+                ''',
             ],
         )
 
