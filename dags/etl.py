@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.models.param import Param
+from airflow.operators.bash import BashOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
@@ -105,7 +106,12 @@ with DAG(
             ],
         )
 
-        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete
+        wait_2_min = BashOperator(
+            task_id='wait_2_min',
+            bash_command='sleep 120',
+        )
+
+        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2_min
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -592,4 +598,4 @@ with DAG(
         ],
     )
 
-    ingest >> enrich >> prepare >> index >> publish >> notify
+    cleanup >> ingest >> enrich >> prepare >> index >> publish >> notify
