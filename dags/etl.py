@@ -26,10 +26,10 @@ with DAG(
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
-    def k8s_resource_color(name: str) -> str:
+    def color_k8s_resource(name: str) -> str:
         return name + '{% if params.color|length %}-{{ params.color }}{% endif %}'
 
-    def es_index_color(name: str) -> str:
+    def color_es_index(name: str) -> str:
         return f'clin_{environment}_' + '{% if params.color|length %}{{ params.color }}_{% endif %}' + name
 
     with TaskGroup(group_id='cleanup') as cleanup:
@@ -38,12 +38,12 @@ with DAG(
 
         fhir_pause = k8s_deployment_pause(
             task_id='fhir_pause',
-            deployment=k8s_resource_color('fhir-server'),
+            deployment=color_k8s_resource('fhir-server'),
         )
 
         fhir_resume = k8s_deployment_resume(
             task_id='fhir_resume',
-            deployment=k8s_resource_color('fhir-server'),
+            deployment=color_k8s_resource('fhir-server'),
         )
 
         delete_tables = postgres_task(
@@ -66,7 +66,7 @@ with DAG(
 
         fhir_restart = k8s_deployment_restart(
             task_id='fhir_restart',
-            deployment=k8s_resource_color('fhir-server'),
+            deployment=color_k8s_resource('fhir-server'),
         )
 
         fhir_pause >> delete_tables >> fhir_resume >> fhir_restart
@@ -395,7 +395,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('gene_centric'),
+                color_es_index('gene_centric'),
                 '{{ params.release }}',
                 'gene_centric_template.json',
                 'gene_centric',
@@ -412,7 +412,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('gene_suggestion'),
+                color_es_index('gene_suggestion'),
                 '{{ params.release }}',
                 'gene_suggestions_template.json',
                 'gene_suggestions',
@@ -429,7 +429,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('variant_centric'),
+                color_es_index('variant_centric'),
                 '{{ params.release }}',
                 'variant_centric_template.json',
                 'variant_centric',
@@ -446,7 +446,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('variant_suggestions'),
+                color_es_index('variant_suggestions'),
                 '{{ params.release }}',
                 'variant_suggestions_template.json',
                 'variant_suggestions',
@@ -463,7 +463,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('cnv_centric'),
+                color_es_index('cnv_centric'),
                 '{{ params.release }}',
                 'cnv_centric_template.json',
                 'cnv_centric',
@@ -486,7 +486,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('gene_centric'),
+                color_es_index('gene_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -499,7 +499,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('gene_suggestions'),
+                color_es_index('gene_suggestions'),
                 '{{ params.release }}',
             ],
         )
@@ -512,7 +512,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('variant_centric'),
+                color_es_index('variant_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -525,7 +525,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('variant_suggestion'),
+                color_es_index('variant_suggestion'),
                 '{{ params.release }}',
             ],
         )
@@ -538,7 +538,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                es_index_color('cnv_centric'),
+                color_es_index('cnv_centric'),
                 '{{ params.release }}',
             ],
         )
