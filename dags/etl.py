@@ -23,7 +23,7 @@ with DAG(
 
     environment = config.environment
 
-    def color(prefix: str) -> str:
+    def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def k8s_resource_color(name: str) -> str:
