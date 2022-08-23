@@ -608,7 +608,65 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+        arranger_restart = k8s_deployment_restart(
+            task_id='arranger_restart',
+            deployment='arranger',
+        )
+
+        wait = BashOperator(
+            task_id='wait',
+            bash_command='sleep 20',
+        )
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_restart >> wait
+
+    with TaskGroup(group_id='rolling') as rolling:
+
+        es_indices_rolling = curl_task(
+            task_id='es_indices_rolling',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                '-f', '-X', 'POST', 'http://elasticsearch:9200/_aliases',
+                '-H', '"Content-Type: application/json"', '-d',
+                '''
+                {{
+                    "actions": [
+                        {{ "remove": {{ "index": "*", "alias": "clin-{environment}-analyses" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin-{environment}-sequencings" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_gene_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_cnv_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_gene_suggestions" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_variant_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_variant_suggestions" }} }},
+                        {{ "add": {{ "index": "clin-{environment}-analyses{dash_color}", "alias": "clin-{environment}-analyses" }} }},
+                        {{ "add": {{ "index": "clin-{environment}-sequencings{dash_color}", "alias": "clin-{environment}-sequencings" }} }},
+                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_gene_centric_{release}", "alias": "clin_{environment}_gene_centric" }} }},
+                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_gene_suggestions_{release}", "alias": "clin_{environment}_gene_suggestions" }} }},
+                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_variant_centric_{release}", "alias": "clin_{environment}_variant_centric" }} }},
+                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_cnv_centric_{release}", "alias": "clin_{environment}_cnv_centric" }} }},
+                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_variant_suggestions_{release}", "alias": "clin_{environment}_variant_suggestions" }} }}
+                    ]
+                }}
+                '''.format(
+                    environment=environment,
+                    dash_color=color('-'),
+                    underscore_color=color('_'),
+                    release='{{ params.release }}',
+                ),
+            ],
+        )
+
+        arranger_restart = k8s_deployment_restart(
+            task_id='arranger_restart',
+            deployment='arranger',
+        )
+
+        wait = BashOperator(
+            task_id='wait',
+            bash_command='sleep 20',
+        )
+
+        es_indices_rolling >> arranger_restart >> wait
 
     notify = pipeline_task(
         task_id='notify',
@@ -621,4 +679,4 @@ with DAG(
         ],
     )
 
-    cleanup >> fhir_init >> ingest >> enrich >> prepare >> index >> publish >> notify
+    cleanup >> fhir_init >> ingest >> enrich >> prepare >> index >> publish >> rolling >> notify
