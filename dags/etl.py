@@ -5,7 +5,9 @@ from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
 from lib.etl.pipeline_task import pipeline_task
+from lib.etl.postgres_task import postgres_task
 from lib.etl.spark_task import spark_task
+from lib.k8s import k8s_deployment_pause, k8s_deployment_resume, k8s_deployment_restart
 
 
 with DAG(
@@ -21,8 +23,53 @@ with DAG(
 
     environment = config.environment
 
-    def es_index(name: str) -> str:
+    def color(prefix: str) -> str:
+        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def k8s_resource_color(name: str) -> str:
+        return name + '{% if params.color|length %}-{{ params.color }}{% endif %}'
+
+    def es_index_color(name: str) -> str:
         return f'clin_{environment}_' + '{% if params.color|length %}{{ params.color }}_{% endif %}' + name
+
+    with TaskGroup(group_id='cleanup') as cleanup:
+
+        parent_id = 'cleanup'
+
+        fhir_pause = k8s_deployment_pause(
+            task_id='fhir_pause',
+            deployment=k8s_resource_color('fhir-server'),
+        )
+
+        fhir_resume = k8s_deployment_resume(
+            task_id='fhir_resume',
+            deployment=k8s_resource_color('fhir-server'),
+        )
+
+        delete_tables = postgres_task(
+            task_id='delete_tables',
+            k8s_context=K8sContext.DEFAULT,
+            dash_color=color('-'),
+            cmds=[
+                'psql', '-d', 'fhir' + color('_'), '-c',
+                """
+                DO $$$DECLARE
+                    r RECORD;
+                BEGIN
+                    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
+                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                    END LOOP;
+                END$$$;
+                """,
+            ],
+        )
+
+        fhir_restart = k8s_deployment_restart(
+            task_id='fhir_restart',
+            deployment=k8s_resource_color('fhir-server'),
+        )
+
+        fhir_pause >> delete_tables >> fhir_resume >> fhir_restart
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -32,7 +79,8 @@ with DAG(
             task_id='file_import',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-files-import',
-            color='{{ params.color }}',
+            color=color(),
+            dash_color=color('-'),
             arguments=[
                 'bio.ferlab.clin.etl.FileImport',
                 '{{ params.batch_id }}',
@@ -45,7 +93,8 @@ with DAG(
             task_id='fhir_export',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-datalake',
-            color='{{ params.color }}',
+            color=color(),
+            dash_color=color('-'),
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport',
                 'all',
@@ -345,10 +394,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('gene_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('gene_centric'),
                 '{{ params.release }}',
                 'gene_centric_template.json',
                 'gene_centric',
@@ -364,10 +411,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('gene_suggestion'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('gene_suggestion'),
                 '{{ params.release }}',
                 'gene_suggestions_template.json',
                 'gene_suggestions',
@@ -383,10 +428,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('variant_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('variant_centric'),
                 '{{ params.release }}',
                 'variant_centric_template.json',
                 'variant_centric',
@@ -402,10 +445,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('variant_suggestions'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('variant_suggestions'),
                 '{{ params.release }}',
                 'variant_suggestions_template.json',
                 'variant_suggestions',
@@ -421,10 +462,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('cnv_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('cnv_centric'),
                 '{{ params.release }}',
                 'cnv_centric_template.json',
                 'cnv_centric',
@@ -446,10 +485,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('gene_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('gene_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -461,10 +498,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('gene_suggestions'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('gene_suggestions'),
                 '{{ params.release }}',
             ],
         )
@@ -476,10 +511,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('variant_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('variant_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -491,10 +524,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('variant_suggestion'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('variant_suggestion'),
                 '{{ params.release }}',
             ],
         )
@@ -506,10 +537,8 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200',
-                '',
-                '',
-                es_index('cnv_centric'),
+                'http://elasticsearch:9200', '', '',
+                es_index_color('cnv_centric'),
                 '{{ params.release }}',
             ],
         )
@@ -519,7 +548,8 @@ with DAG(
     notify = pipeline_task(
         task_id='notify',
         k8s_context=K8sContext.DEFAULT,
-        color='{{ params.color }}',
+        color=color(),
+        dash_color=color('-'),
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier',
             '{{ params.batch_id }}',

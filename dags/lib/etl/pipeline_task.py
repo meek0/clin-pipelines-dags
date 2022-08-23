@@ -1,7 +1,6 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib.etl import config
-from lib.helper import join
 from typing import List
 
 
@@ -10,6 +9,7 @@ def pipeline_task(
     k8s_context: str,
     aws_bucket: str = '',
     color: str = '',
+    dash_color: str = '',
     arguments: List[str] = [],
 ) -> KubernetesPodOperator:
 
@@ -29,8 +29,7 @@ def pipeline_task(
         ),
         k8s.V1EnvVar(
             name='FHIR_URL',
-            value='https://' +
-            join('-', ['fhir', color]) +
+            value='https://fhir' + dash_color +
             f'.{environment}.cqgc.hsj.rtss.qc.ca/fhir',
         ),
         k8s.V1EnvVar(
