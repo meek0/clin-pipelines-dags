@@ -86,7 +86,7 @@ with DAG(
         )
 
         s3_download_files_delete = aws_task(
-            task_id='s3_download_delete',
+            task_id='s3_download_files_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
@@ -96,7 +96,7 @@ with DAG(
         )
 
         s3_datalake_files_delete = aws_task(
-            task_id='s3_datalake_delete',
+            task_id='s3_datalake_files_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
