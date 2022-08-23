@@ -7,6 +7,8 @@ from lib.etl import config
 from lib.etl.aws_task import aws_task
 from lib.etl.config import K8sContext
 from lib.etl.curl_task import curl_task
+from lib.etl.fhir_csv_task import fhir_csv_task
+from lib.etl.fhir_task import fhir_task
 from lib.etl.pipeline_task import pipeline_task
 from lib.etl.postgres_task import postgres_task
 from lib.etl.spark_task import spark_task
@@ -98,7 +100,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-                's3://cqgc-qa-app-datalake/', '--recursive', '--exclude', '"*"',
+                f's3://cqgc-{environment}-app-datalake/', '--recursive', '--exclude', '"*"',
                 '--include', '"normalized/*"',
                 '--include', '"enriched/*"',
                 '--include', '"raw/landing/fhir/*"',
@@ -112,6 +114,27 @@ with DAG(
         )
 
         fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> fhir_wait
+
+    with TaskGroup(group_id='fhir_init') as fhir_init:
+
+        fhir_ig_publish = fhir_task(
+            task_id='fhir_ig_publish',
+            k8s_context=K8sContext.DEFAULT,
+            dash_color=color('-'),
+        )
+
+        fhir_wait = BashOperator(
+            task_id='fhir_wait',
+            bash_command='sleep 20',
+        )
+
+        fhir_csv_import = fhir_csv_task(
+            task_id='fhir_csv_import',
+            k8s_context=K8sContext.DEFAULT,
+            dash_color=color('-'),
+        )
+
+        fhir_ig_publish >> fhir_wait >> fhir_csv_import
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -598,4 +621,4 @@ with DAG(
         ],
     )
 
-    cleanup >> ingest >> enrich >> prepare >> index >> publish >> notify
+    cleanup >> fhir_init >> ingest >> enrich >> prepare >> index >> publish >> notify

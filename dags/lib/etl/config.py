@@ -34,6 +34,9 @@ aws_image = 'amazon/aws-cli'
 
 curl_image = 'curlimages/curl'
 
+fhir_image = 'ferlabcrsj/clin-fhir'
+fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
+
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
