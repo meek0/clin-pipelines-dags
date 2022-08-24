@@ -21,7 +21,7 @@ class CurlOperator(KubernetesPodOperator):
 
     def execute(self, **kwargs):
         k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[k8s_context]
+        k8s_context = config.k8s_context[self.k8s_context]
         curl_image = config.curl_image
 
         self.is_delete_operator_pod = True
