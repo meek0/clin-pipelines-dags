@@ -1,6 +1,7 @@
 import kubernetes
 import os
 from airflow.models import Variable
+from airflow.models.baseoperator import BaseOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 
@@ -15,54 +16,56 @@ def k8s_load_config():
         kubernetes.config.load_incluster_config()
 
 
-def k8s_deployment_pause(
-    task_id: str,
-    deployment: str,
-):
-    def deployment_pause():
+class K8sDeploymentPauseOperator(BaseOperator):
+
+    template_fields = ('deployment',)
+
+    def __init__(self, deployment: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.deployment = deployment
+
+    def execute(self, context):
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
-            name=deployment,
+            name=self.deployment,
             namespace=k8s_namespace,
             body={'spec': {'paused': True}},
         )
 
-    return PythonOperator(
-        task_id=task_id,
-        python_callable=deployment_pause,
-    )
 
+class K8sDeploymentResumeOperator(BaseOperator):
 
-def k8s_deployment_resume(
-    task_id: str,
-    deployment: str,
-):
-    def deployment_resume():
+    template_fields = ('deployment',)
+
+    def __init__(self, deployment: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.deployment = deployment
+
+    def execute(self, context):
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
-            name=deployment,
+            name=self.deployment,
             namespace=k8s_namespace,
             body={'spec': {'paused': False}},
         )
 
-    return PythonOperator(
-        task_id=task_id,
-        python_callable=deployment_resume,
-    )
 
+class K8sDeploymentRestartOperator(BaseOperator):
 
-def k8s_deployment_restart(
-    task_id: str,
-    deployment: str,
-):
-    def deployment_restart():
+    template_fields = ('deployment',)
+
+    def __init__(self, deployment: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.deployment = deployment
+
+    def execute(self, context):
         now = str(datetime.utcnow().isoformat('T') + 'Z')
         k8s_load_config()
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
-            name=deployment,
+            name=self.deployment,
             namespace=k8s_namespace,
             body={
                 'spec': {
@@ -76,8 +79,3 @@ def k8s_deployment_restart(
                 }
             },
         )
-
-    return PythonOperator(
-        task_id=task_id,
-        python_callable=deployment_restart,
-    )

@@ -12,7 +12,7 @@ from lib.etl.fhir_task import fhir_task
 from lib.etl.pipeline_task import pipeline_task
 from lib.etl.postgres_task import postgres_task
 from lib.etl.spark_task import spark_task
-from lib.k8s import k8s_deployment_pause, k8s_deployment_resume, k8s_deployment_restart
+from lib.k8s import K8sDeploymentPauseOperator, K8sDeploymentResumeOperator, K8sDeploymentRestartOperator
 
 
 with DAG(
@@ -39,7 +39,7 @@ with DAG(
 
     with TaskGroup(group_id='cleanup') as cleanup:
 
-        fhir_pause = k8s_deployment_pause(
+        fhir_pause = K8sDeploymentPauseOperator(
             task_id='fhir_pause',
             deployment=color_k8s_resource('fhir-server'),
         )
@@ -62,12 +62,12 @@ with DAG(
             ],
         )
 
-        fhir_resume = k8s_deployment_resume(
+        fhir_resume = K8sDeploymentResumeOperator(
             task_id='fhir_resume',
             deployment=color_k8s_resource('fhir-server'),
         )
 
-        fhir_restart = k8s_deployment_restart(
+        fhir_restart = K8sDeploymentRestartOperator(
             task_id='fhir_restart',
             deployment=color_k8s_resource('fhir-server'),
         )
@@ -608,7 +608,7 @@ with DAG(
             ],
         )
 
-        arranger_restart = k8s_deployment_restart(
+        arranger_restart = K8sDeploymentRestartOperator(
             task_id='arranger_restart',
             deployment='arranger',
         )
@@ -656,7 +656,7 @@ with DAG(
             ],
         )
 
-        arranger_restart = k8s_deployment_restart(
+        arranger_restart = K8sDeploymentRestartOperator(
             task_id='arranger_restart',
             deployment='arranger',
         )
