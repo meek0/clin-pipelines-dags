@@ -1,36 +1,48 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib.etl import config
-from typing import List
+from lib.utils import join
 
 
-def fhir_csv_task(
-    task_id: str,
-    k8s_context: str,
-    dash_color: str = '',
-) -> KubernetesPodOperator:
+class FhirCsvOperator(KubernetesPodOperator):
 
-    environment = config.environment
-    k8s_namespace = config.k8s_namespace
-    k8s_context = config.k8s_context[k8s_context]
-    fhir_csv_image = config.fhir_csv_image
+    template_fields = KubernetesPodOperator.template_fields + (
+        'color',
+    )
 
-    return KubernetesPodOperator(
-        task_id=task_id,
-        is_delete_operator_pod=True,
-        namespace=k8s_namespace,
-        cluster_context=k8s_context,
-        name='fhir-csv-task',
-        image=fhir_csv_image,
-        image_pull_secrets=[
+    def __init__(
+        self,
+        k8s_context: str,
+        color: str = '',
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            name='fhir-csv-operator',
+            **kwargs,
+        )
+        self.k8s_context = k8s_context
+        self.color = color
+
+    def execute(self, **kwargs):
+        environment = config.environment
+        k8s_namespace = config.k8s_namespace
+        k8s_context = config.k8s_context[self.k8s_context]
+        fhir_csv_image = config.fhir_csv_image
+
+        self.is_delete_operator_pod = True
+        self.namespace = k8s_namespace
+        self.cluster_context = k8s_context
+        self.image = fhir_csv_image
+        self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
             ),
-        ],
-        env_vars=[
+        ]
+        self.env_vars = [
             k8s.V1EnvVar(
                 name='CONFIG__FHIR__URL',
-                value=f'https://fhir{dash_color}.{environment}.cqgc.hsj.rtss.qc.ca/fhir',
+                value='https://' + join('-', ['fhir', self.color]) +
+                f'.{environment}.cqgc.hsj.rtss.qc.ca/fhir',
             ),
             k8s.V1EnvVar(
                 name='CONFIG__FHIR__OAUTH__URL',
@@ -53,8 +65,8 @@ def fhir_csv_task(
                 name='CONFIG__FHIR__OAUTH__UMA_AUDIENCE',
                 value='clin-acl',
             ),
-        ],
-        volumes=[
+        ]
+        self.volumes = [
             k8s.V1Volume(
                 name='google-credentials',
                 secret=k8s.V1SecretVolumeSource(
@@ -62,12 +74,13 @@ def fhir_csv_task(
                     default_mode=0o555,
                 ),
             ),
-        ],
-        volume_mounts=[
+        ]
+        self.volume_mounts = [
             k8s.V1VolumeMount(
                 name='google-credentials',
                 mount_path='/app/creds',
                 read_only=True,
             ),
-        ],
-    )
+        ]
+
+        super().execute(**kwargs)

@@ -2,7 +2,6 @@ import kubernetes
 import os
 from airflow.models import Variable
 from airflow.models.baseoperator import BaseOperator
-from airflow.operators.python import PythonOperator
 from datetime import datetime
 
 
@@ -20,7 +19,11 @@ class K8sDeploymentPauseOperator(BaseOperator):
 
     template_fields = ('deployment',)
 
-    def __init__(self, deployment: str, **kwargs) -> None:
+    def __init__(
+        self,
+        deployment: str,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.deployment = deployment
 
@@ -38,7 +41,11 @@ class K8sDeploymentResumeOperator(BaseOperator):
 
     template_fields = ('deployment',)
 
-    def __init__(self, deployment: str, **kwargs) -> None:
+    def __init__(
+        self,
+        deployment: str,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
         self.deployment = deployment
 
@@ -56,7 +63,11 @@ class K8sDeploymentRestartOperator(BaseOperator):
 
     template_fields = ('deployment',)
 
-    def __init__(self, deployment: str, **kwargs) -> None:
+    def __init__(
+        self,
+        deployment: str,
+        **kwargs
+    ) -> None:
         super().__init__(**kwargs)
         self.deployment = deployment
 

@@ -1,17 +1,17 @@
 from airflow import DAG
 from airflow.models.param import Param
-from airflow.operators.bash import BashOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
-from lib.etl.aws_task import aws_task
+from lib.etl.aws import AwsOperator
 from lib.etl.config import K8sContext
-from lib.etl.curl_task import curl_task
-from lib.etl.fhir_csv_task import fhir_csv_task
-from lib.etl.fhir_task import fhir_task
-from lib.etl.pipeline_task import pipeline_task
-from lib.etl.postgres_task import postgres_task
-from lib.etl.spark_task import spark_task
+from lib.etl.curl import CurlOperator
+from lib.etl.fhir import FhirOperator
+from lib.etl.fhir_csv import FhirCsvOperator
+from lib.etl.pipeline import PipelineOperator
+from lib.etl.postgres import PostgresOperator
+from lib.etl.spark import SparkOperator
+from lib.etl.wait import WaitOperator
 from lib.k8s import K8sDeploymentPauseOperator, K8sDeploymentResumeOperator, K8sDeploymentRestartOperator
 
 
@@ -28,26 +28,26 @@ with DAG(
 
     environment = config.environment
 
+    def batch_id() -> str:
+        return '{{ params.batch_id }}'
+
+    def release() -> str:
+        return '{{ params.release }}'
+
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-    def color_k8s_resource(name: str) -> str:
-        return name + '{% if params.color|length %}-{{ params.color }}{% endif %}'
-
-    def color_es_index(name: str) -> str:
-        return f'clin_{environment}_' + '{% if params.color|length %}{{ params.color }}_{% endif %}' + name
 
     with TaskGroup(group_id='cleanup') as cleanup:
 
         fhir_pause = K8sDeploymentPauseOperator(
             task_id='fhir_pause',
-            deployment=color_k8s_resource('fhir-server'),
+            deployment='fhir-server' + color('-'),
         )
 
-        db_tables_delete = postgres_task(
+        db_tables_delete = PostgresOperator(
             task_id='db_tables_delete',
             k8s_context=K8sContext.DEFAULT,
-            dash_color=color('-'),
+            color=color(),
             cmds=[
                 'psql', '-d', 'fhir' + color('_'), '-c',
                 '''
@@ -55,7 +55,7 @@ with DAG(
                     r RECORD;
                 BEGIN
                     FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
+                        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                     END LOOP;
                 END$$$;
                 ''',
@@ -64,15 +64,15 @@ with DAG(
 
         fhir_resume = K8sDeploymentResumeOperator(
             task_id='fhir_resume',
-            deployment=color_k8s_resource('fhir-server'),
+            deployment='fhir-server' + color('-'),
         )
 
         fhir_restart = K8sDeploymentRestartOperator(
             task_id='fhir_restart',
-            deployment=color_k8s_resource('fhir-server'),
+            deployment='fhir-server' + color('-'),
         )
 
-        es_indices_delete = curl_task(
+        es_indices_delete = CurlOperator(
             task_id='es_indices_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -85,7 +85,7 @@ with DAG(
             ],
         )
 
-        s3_download_files_delete = aws_task(
+        s3_download_files_delete = AwsOperator(
             task_id='s3_download_files_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -95,7 +95,7 @@ with DAG(
             ],
         )
 
-        s3_datalake_files_delete = aws_task(
+        s3_datalake_files_delete = AwsOperator(
             task_id='s3_datalake_files_delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -108,30 +108,30 @@ with DAG(
             ],
         )
 
-        wait = BashOperator(
+        wait = WaitOperator(
             task_id='wait',
-            bash_command='sleep 120',
+            time='120',
         )
 
         fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> wait
 
     with TaskGroup(group_id='fhir_init') as fhir_init:
 
-        ig_publish = fhir_task(
+        ig_publish = FhirOperator(
             task_id='ig_publish',
             k8s_context=K8sContext.DEFAULT,
-            dash_color=color('-'),
+            color=color(),
         )
 
-        wait = BashOperator(
+        wait = WaitOperator(
             task_id='wait',
-            bash_command='sleep 20',
+            time='20',
         )
 
-        csv_import = fhir_csv_task(
+        csv_import = FhirCsvOperator(
             task_id='csv_import',
             k8s_context=K8sContext.DEFAULT,
-            dash_color=color('-'),
+            color=color(),
         )
 
         ig_publish >> wait >> csv_import
@@ -140,35 +140,32 @@ with DAG(
 
         parent_id = 'ingest'
 
-        file_import = pipeline_task(
+        file_import = PipelineOperator(
             task_id='file_import',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-files-import',
             color=color(),
-            dash_color=color('-'),
             arguments=[
                 'bio.ferlab.clin.etl.FileImport',
-                '{{ params.batch_id }}',
+                batch_id(),
                 'false',
                 'true',
             ],
         )
 
-        fhir_export = pipeline_task(
+        fhir_export = PipelineOperator(
             task_id='fhir_export',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-datalake',
             color=color(),
-            dash_color=color('-'),
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport',
                 'all',
             ],
         )
 
-        fhir_normalize = spark_task(
-            group_id='fhir_normalize',
-            parent_id=parent_id,
+        fhir_normalize = SparkOperator(
+            task_id='fhir_normalize',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
@@ -179,65 +176,60 @@ with DAG(
             ],
         )
 
-        vcf_snv = spark_task(
-            group_id='vcf_snv',
-            parent_id=parent_id,
+        vcf_snv = SparkOperator(
+            task_id='vcf_snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                '{{ params.batch_id }}',
+                batch_id(),
                 'snv',
             ],
         )
 
-        vcf_cnv = spark_task(
-            group_id='vcf_cnv',
-            parent_id=parent_id,
+        vcf_cnv = SparkOperator(
+            task_id='vcf_cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                '{{ params.batch_id }}',
+                batch_id(),
                 'cnv',
             ],
         )
 
-        vcf_variants = spark_task(
-            group_id='vcf_variants',
-            parent_id=parent_id,
+        vcf_variants = SparkOperator(
+            task_id='vcf_variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                '{{ params.batch_id }}',
+                batch_id(),
                 'variants',
             ],
         )
 
-        vcf_consequences = spark_task(
-            group_id='vcf_consequences',
-            parent_id=parent_id,
+        vcf_consequences = SparkOperator(
+            task_id='vcf_consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
                 f'config/{environment}.conf',
                 'default',
-                '{{ params.batch_id }}',
+                batch_id(),
                 'consequences',
             ],
         )
 
-        external_panels = spark_task(
-            group_id='external_panels',
-            parent_id=parent_id,
+        external_panels = SparkOperator(
+            task_id='external_panels',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -248,9 +240,8 @@ with DAG(
             ],
         )
 
-        external_mane_summary = spark_task(
-            group_id='external_mane_summary',
-            parent_id=parent_id,
+        external_mane_summary = SparkOperator(
+            task_id='external_mane_summary',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -261,9 +252,8 @@ with DAG(
             ],
         )
 
-        external_refseq_annotation = spark_task(
-            group_id='external_refseq_annotation',
-            parent_id=parent_id,
+        external_refseq_annotation = SparkOperator(
+            task_id='external_refseq_annotation',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -274,9 +264,8 @@ with DAG(
             ],
         )
 
-        external_refseq_feature = spark_task(
-            group_id='external_refseq_feature',
-            parent_id=parent_id,
+        external_refseq_feature = SparkOperator(
+            task_id='external_refseq_feature',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -287,9 +276,8 @@ with DAG(
             ],
         )
 
-        # varsome = spark_task(
-        #     group_id='varsome',
-        #     parent_id=parent_id,
+        # varsome = SparkOperator(
+        #     task_id='varsome',
         #     k8s_context=K8sContext.ETL,
         #     spark_class='bio.ferlab.clin.etl.varsome.Varsome',
         #     spark_config='varsome-etl',
@@ -301,9 +289,8 @@ with DAG(
         #     ],
         # )
 
-        gene_tables = spark_task(
-            group_id='gene_tables',
-            parent_id=parent_id,
+        gene_tables = SparkOperator(
+            task_id='gene_tables',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.CreateGenesTable',
             spark_config='genes-tables-creation',
@@ -313,9 +300,8 @@ with DAG(
             ],
         )
 
-        # public_tables = spark_task(
-        #     group_id='public_tables',
-        #     parent_id=parent_id,
+        # public_tables = SparkOperator(
+        #     task_id='public_tables',
         #     k8s_context=K8sContext.ETL,
         #     spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
         #     spark_config='public-tables-creation-etl',
@@ -331,9 +317,8 @@ with DAG(
 
         parent_id = 'enrich'
 
-        variants = spark_task(
-            group_id='variants',
-            parent_id=parent_id,
+        variants = SparkOperator(
+            task_id='variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -344,9 +329,8 @@ with DAG(
             ],
         )
 
-        consequences = spark_task(
-            group_id='consequences',
-            parent_id=parent_id,
+        consequences = SparkOperator(
+            task_id='consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -357,9 +341,8 @@ with DAG(
             ],
         )
 
-        cnv = spark_task(
-            group_id='cnv',
-            parent_id=parent_id,
+        cnv = SparkOperator(
+            task_id='cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -376,9 +359,8 @@ with DAG(
 
         parent_id = 'prepare'
 
-        gene_centric = spark_task(
-            group_id='gene_centric',
-            parent_id=parent_id,
+        gene_centric = SparkOperator(
+            task_id='gene_centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -386,13 +368,12 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'gene_centric',
-                '{{ params.release }}',
+                release(),
             ],
         )
 
-        gene_suggestions = spark_task(
-            group_id='gene_suggestions',
-            parent_id=parent_id,
+        gene_suggestions = SparkOperator(
+            task_id='gene_suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -400,13 +381,12 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'gene_suggestions',
-                '{{ params.release }}',
+                release(),
             ],
         )
 
-        variant_centric = spark_task(
-            group_id='variant_centric',
-            parent_id=parent_id,
+        variant_centric = SparkOperator(
+            task_id='variant_centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -414,13 +394,12 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'variant_centric',
-                '{{ params.release }}',
+                release(),
             ],
         )
 
-        variant_suggestions = spark_task(
-            group_id='variant_suggestions',
-            parent_id=parent_id,
+        variant_suggestions = SparkOperator(
+            task_id='variant_suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -428,13 +407,12 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'variant_suggestions',
-                '{{ params.release }}',
+                release(),
             ],
         )
 
-        cnv_centric = spark_task(
-            group_id='cnv_centric',
-            parent_id=parent_id,
+        cnv_centric = SparkOperator(
+            task_id='cnv_centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -442,7 +420,7 @@ with DAG(
                 f'config/{environment}.conf',
                 'initial',
                 'cnv_centric',
-                '{{ params.release }}',
+                release(),
             ],
         )
 
@@ -452,16 +430,15 @@ with DAG(
 
         parent_id = 'index'
 
-        gene_centric = spark_task(
-            group_id='gene_centric',
-            parent_id=parent_id,
+        gene_centric = SparkOperator(
+            task_id='gene_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('gene_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_gene_centric',
+                release(),
                 'gene_centric_template.json',
                 'gene_centric',
                 '1900-01-01 00:00:00',
@@ -469,16 +446,15 @@ with DAG(
             ],
         )
 
-        gene_suggestions = spark_task(
-            group_id='gene_suggestions',
-            parent_id=parent_id,
+        gene_suggestions = SparkOperator(
+            task_id='gene_suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('gene_suggestion'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_gene_suggestion',
+                release(),
                 'gene_suggestions_template.json',
                 'gene_suggestions',
                 '1900-01-01 00:00:00',
@@ -486,16 +462,15 @@ with DAG(
             ],
         )
 
-        variant_centric = spark_task(
-            group_id='variant_centric',
-            parent_id=parent_id,
+        variant_centric = SparkOperator(
+            task_id='variant_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('variant_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_variant_centric',
+                release(),
                 'variant_centric_template.json',
                 'variant_centric',
                 '1900-01-01 00:00:00',
@@ -503,16 +478,15 @@ with DAG(
             ],
         )
 
-        variant_suggestions = spark_task(
-            group_id='variant_suggestions',
-            parent_id=parent_id,
+        variant_suggestions = SparkOperator(
+            task_id='variant_suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('variant_suggestions'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_variant_suggestions',
+                release(),
                 'variant_suggestions_template.json',
                 'variant_suggestions',
                 '1900-01-01 00:00:00',
@@ -520,16 +494,15 @@ with DAG(
             ],
         )
 
-        cnv_centric = spark_task(
-            group_id='cnv_centric',
-            parent_id=parent_id,
+        cnv_centric = SparkOperator(
+            task_id='cnv_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('cnv_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_cnv_centric',
+                release(),
                 'cnv_centric_template.json',
                 'cnv_centric',
                 '1900-01-01 00:00:00',
@@ -543,68 +516,63 @@ with DAG(
 
         parent_id = 'publish'
 
-        gene_centric = spark_task(
-            group_id='gene_centric',
-            parent_id=parent_id,
+        gene_centric = SparkOperator(
+            task_id='gene_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('gene_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_gene_centric',
+                release(),
             ],
         )
 
-        gene_suggestions = spark_task(
-            group_id='gene_suggestions',
-            parent_id=parent_id,
+        gene_suggestions = SparkOperator(
+            task_id='gene_suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('gene_suggestions'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_gene_suggestions',
+                release(),
             ],
         )
 
-        variant_centric = spark_task(
-            group_id='variant_centric',
-            parent_id=parent_id,
+        variant_centric = SparkOperator(
+            task_id='variant_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('variant_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_variant_centric',
+                release(),
             ],
         )
 
-        variant_suggestions = spark_task(
-            group_id='variant_suggestions',
-            parent_id=parent_id,
+        variant_suggestions = SparkOperator(
+            task_id='variant_suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('variant_suggestion'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_variant_suggestion',
+                release(),
             ],
         )
 
-        cnv_centric = spark_task(
-            group_id='cnv_centric',
-            parent_id=parent_id,
+        cnv_centric = SparkOperator(
+            task_id='cnv_centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                color_es_index('cnv_centric'),
-                '{{ params.release }}',
+                f'clin_{environment}' + color('_') + '_cnv_centric',
+                release(),
             ],
         )
 
@@ -613,16 +581,16 @@ with DAG(
             deployment='arranger',
         )
 
-        wait = BashOperator(
+        wait = WaitOperator(
             task_id='wait',
-            bash_command='sleep 20',
+            time='20',
         )
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_restart >> wait
 
     with TaskGroup(group_id='rolling') as rolling:
 
-        es_indices_rolling = curl_task(
+        es_indices_rolling = CurlOperator(
             task_id='es_indices_rolling',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
@@ -631,27 +599,27 @@ with DAG(
                 '''
                 {{
                     "actions": [
-                        {{ "remove": {{ "index": "*", "alias": "clin-{environment}-analyses" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin-{environment}-sequencings" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_gene_centric" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_cnv_centric" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_gene_suggestions" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_variant_centric" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{environment}_variant_suggestions" }} }},
-                        {{ "add": {{ "index": "clin-{environment}-analyses{dash_color}", "alias": "clin-{environment}-analyses" }} }},
-                        {{ "add": {{ "index": "clin-{environment}-sequencings{dash_color}", "alias": "clin-{environment}-sequencings" }} }},
-                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_gene_centric_{release}", "alias": "clin_{environment}_gene_centric" }} }},
-                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_gene_suggestions_{release}", "alias": "clin_{environment}_gene_suggestions" }} }},
-                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_variant_centric_{release}", "alias": "clin_{environment}_variant_centric" }} }},
-                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_cnv_centric_{release}", "alias": "clin_{environment}_cnv_centric" }} }},
-                        {{ "add": {{ "index": "clin_{environment}{underscore_color}_variant_suggestions_{release}", "alias": "clin_{environment}_variant_suggestions" }} }}
+                        {{ "remove": {{ "index": "*", "alias": "clin-{env}-analyses" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin-{env}-sequencings" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_gene_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_cnv_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_gene_suggestions" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_variant_centric" }} }},
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_variant_suggestions" }} }},
+                        {{ "add": {{ "index": "clin-{env}-analyses{dash_color}", "alias": "clin-{env}-analyses" }} }},
+                        {{ "add": {{ "index": "clin-{env}-sequencings{dash_color}", "alias": "clin-{env}-sequencings" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_gene_centric_{release}", "alias": "clin_{env}_gene_centric" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_gene_suggestions_{release}", "alias": "clin_{env}_gene_suggestions" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_variant_centric_{release}", "alias": "clin_{env}_variant_centric" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_cnv_centric_{release}", "alias": "clin_{env}_cnv_centric" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_variant_suggestions_{release}", "alias": "clin_{env}_variant_suggestions" }} }}
                     ]
                 }}
                 '''.format(
-                    environment=environment,
+                    env=environment,
+                    release=release(),
                     dash_color=color('-'),
-                    underscore_color=color('_'),
-                    release='{{ params.release }}',
+                    under_color=color('_'),
                 ),
             ],
         )
@@ -661,21 +629,20 @@ with DAG(
             deployment='arranger',
         )
 
-        wait = BashOperator(
+        wait = WaitOperator(
             task_id='wait',
-            bash_command='sleep 20',
+            time='20',
         )
 
         es_indices_rolling >> arranger_restart >> wait
 
-    notify = pipeline_task(
+    notify = PipelineOperator(
         task_id='notify',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
-        dash_color=color('-'),
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier',
-            '{{ params.batch_id }}',
+            batch_id(),
         ],
     )
 
