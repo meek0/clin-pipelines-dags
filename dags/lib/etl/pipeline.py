@@ -40,7 +40,8 @@ class PipelineOperator(KubernetesPodOperator):
         self.cluster_context = k8s_context
         self.image = pipeline_image
         self.cmds = [
-            '/opt/entrypoint/entrypoint.sh', 'java -cp clin-pipelines.jar',
+            '/opt/entrypoint/entrypoint.sh',
+            'java', '-cp', 'clin-pipelines.jar',
         ]
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
@@ -81,6 +82,40 @@ class PipelineOperator(KubernetesPodOperator):
                         key='client-secret',
                     ),
                 ),
+            ),
+            k8s.V1EnvVar(
+                name='AWS_ACCESS_KEY',
+                value_from=k8s.V1EnvVarSource(
+                    secret_key_ref=k8s.V1SecretKeySelector(
+                        name='s3-files-processing-credentials',
+                        key='S3_ACCESS_KEY',
+                    ),
+                ),
+            ),
+            k8s.V1EnvVar(
+                name='AWS_SECRET_KEY',
+                value_from=k8s.V1EnvVarSource(
+                    secret_key_ref=k8s.V1SecretKeySelector(
+                        name='s3-files-processing-credentials',
+                        key='S3_SECRET_KEY',
+                    ),
+                ),
+            ),
+            k8s.V1EnvVar(
+                name='AWS_ENDPOINT',
+                value='https://s3.cqgc.hsj.rtss.qc.ca',
+            ),
+            k8s.V1EnvVar(
+                name='AWS_DEFAULT_REGION',
+                value='regionone',
+            ),
+            k8s.V1EnvVar(
+                name='AWS_OUTPUT_BUCKET_NAME',
+                value=f'cqgc-{environment}-app-download',
+            ),
+            k8s.V1EnvVar(
+                name='AWS_PREFIX',
+                value=self.color,
             ),
             k8s.V1EnvVar(
                 name='MAILER_HOST',
@@ -128,45 +163,11 @@ class PipelineOperator(KubernetesPodOperator):
         ]
 
         if self.aws_bucket:
-            self.env_vars.append([
-                k8s.V1EnvVar(
-                    name='AWS_ACCESS_KEY',
-                    value_from=k8s.V1EnvVarSource(
-                        secret_key_ref=k8s.V1SecretKeySelector(
-                            name='s3-files-processing-credentials',
-                            key='S3_ACCESS_KEY',
-                        ),
-                    ),
-                ),
-                k8s.V1EnvVar(
-                    name='AWS_SECRET_KEY',
-                    value_from=k8s.V1EnvVarSource(
-                        secret_key_ref=k8s.V1SecretKeySelector(
-                            name='s3-files-processing-credentials',
-                            key='S3_SECRET_KEY',
-                        ),
-                    ),
-                ),
-                k8s.V1EnvVar(
-                    name='AWS_ENDPOINT',
-                    value='https://s3.cqgc.hsj.rtss.qc.ca',
-                ),
-                k8s.V1EnvVar(
-                    name='AWS_DEFAULT_REGION',
-                    value='regionone',
-                ),
+            self.env_vars.append(
                 k8s.V1EnvVar(
                     name='AWS_BUCKET_NAME',
                     value=self.aws_bucket,
-                ),
-                k8s.V1EnvVar(
-                    name='AWS_OUTPUT_BUCKET_NAME',
-                    value=f'cqgc-{environment}-app-download',
-                ),
-                k8s.V1EnvVar(
-                    name='AWS_PREFIX',
-                    value=self.color,
-                ),
-            ])
+                )
+            )
 
         super().execute(**kwargs)
