@@ -132,6 +132,7 @@ with DAG(
             task_id='csv_import',
             k8s_context=K8sContext.DEFAULT,
             color=color(),
+            arguments=['-f', 'nanuq.yml'],
         )
 
         ig_publish >> wait >> csv_import
@@ -146,10 +147,7 @@ with DAG(
             aws_bucket=f'cqgc-{environment}-app-files-import',
             color=color(),
             arguments=[
-                'bio.ferlab.clin.etl.FileImport',
-                batch_id(),
-                'false',
-                'true',
+                'bio.ferlab.clin.etl.FileImport', batch_id(), 'false', 'true',
             ],
         )
 
@@ -159,8 +157,7 @@ with DAG(
             aws_bucket=f'cqgc-{environment}-app-datalake',
             color=color(),
             arguments=[
-                'bio.ferlab.clin.etl.FhirExport',
-                'all',
+                'bio.ferlab.clin.etl.FhirExport', 'all',
             ],
         )
 
@@ -170,9 +167,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'all',
+                f'config/{environment}.conf', 'initial', 'all',
             ],
         )
 
@@ -182,10 +177,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                batch_id(),
-                'snv',
+                f'config/{environment}.conf', 'default', batch_id(), 'snv',
             ],
         )
 
@@ -195,10 +187,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                batch_id(),
-                'cnv',
+                f'config/{environment}.conf', 'default', batch_id(), 'cnv',
             ],
         )
 
@@ -208,10 +197,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                batch_id(),
-                'variants',
+                f'config/{environment}.conf', 'default', batch_id(), 'variants',
             ],
         )
 
@@ -221,10 +207,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                batch_id(),
-                'consequences',
+                f'config/{environment}.conf', 'default', batch_id(), 'consequences',
             ],
         )
 
@@ -234,9 +217,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'panels',
+                f'config/{environment}.conf', 'initial', 'panels',
             ],
         )
 
@@ -246,9 +227,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'mane-summary',
+                f'config/{environment}.conf', 'initial', 'mane-summary',
             ],
         )
 
@@ -258,9 +237,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'refseq-annotation',
+                f'config/{environment}.conf', 'initial', 'refseq-annotation',
             ],
         )
 
@@ -270,9 +247,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'refseq-feature',
+                f'config/{environment}.conf', 'initial', 'refseq-feature',
             ],
         )
 
@@ -283,9 +258,7 @@ with DAG(
         #     spark_config='varsome-etl',
         #     spark_secret='varsome',
         #     arguments=[
-        #         f'config/{environment}.conf',
-        #         'initial',
-        #         'all',
+        #         f'config/{environment}.conf', 'initial', 'all',
         #     ],
         # )
 
@@ -295,8 +268,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.external.CreateGenesTable',
             spark_config='genes-tables-creation',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
+                f'config/{environment}.conf', 'initial',
             ],
         )
 
@@ -306,8 +278,7 @@ with DAG(
         #     spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
         #     spark_config='public-tables-creation-etl',
         #     arguments=[
-        #         f'config/{environment}.conf',
-        #         'initial',
+        #         f'config/{environment}.conf', 'initial',
         #     ],
         # )
 
@@ -323,9 +294,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                'variants',
+                f'config/{environment}.conf', 'default', 'variants',
             ],
         )
 
@@ -335,9 +304,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                'consequences',
+                f'config/{environment}.conf', 'default', 'consequences',
             ],
         )
 
@@ -347,9 +314,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'default',
-                'cnv',
+                f'config/{environment}.conf', 'default', 'cnv',
             ],
         )
 
@@ -365,10 +330,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'gene_centric',
-                release(),
+                f'config/{environment}.conf', 'initial', 'gene_centric', release(),
             ],
         )
 
@@ -378,10 +340,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'gene_suggestions',
-                release(),
+                f'config/{environment}.conf', 'initial', 'gene_suggestions', release(),
             ],
         )
 
@@ -391,10 +350,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'variant_centric',
-                release(),
+                f'config/{environment}.conf', 'initial', 'variant_centric', release(),
             ],
         )
 
@@ -404,10 +360,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'variant_suggestions',
-                release(),
+                f'config/{environment}.conf', 'initial', 'variant_suggestions', release(),
             ],
         )
 
@@ -417,10 +370,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf',
-                'initial',
-                'cnv_centric',
-                release(),
+                f'config/{environment}.conf', 'initial', 'cnv_centric', release(),
             ],
         )
 
@@ -641,8 +591,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         arguments=[
-            'bio.ferlab.clin.etl.LDMNotifier',
-            batch_id(),
+            'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
     )
 
