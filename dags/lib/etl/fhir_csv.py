@@ -2,6 +2,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from kubernetes.client import models as k8s
 from lib.etl import config
 from lib.utils import join
+from typing import List
 
 
 class FhirCsvOperator(KubernetesPodOperator):
@@ -14,6 +15,7 @@ class FhirCsvOperator(KubernetesPodOperator):
         self,
         k8s_context: str,
         color: str = '',
+        arguments: List[str] = [],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -22,6 +24,7 @@ class FhirCsvOperator(KubernetesPodOperator):
         )
         self.k8s_context = k8s_context
         self.color = color
+        self.arguments = arguments
 
     def execute(self, **kwargs):
         environment = config.environment
