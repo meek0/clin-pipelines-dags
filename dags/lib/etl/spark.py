@@ -138,18 +138,12 @@ class SparkOperator(KubernetesPodOperator):
             field_selector=f'metadata.name={self.pod.metadata.name}-driver',
             limit=1,
         )
-        if not pod.items:
-            raise AirflowFailException('Spark pod not found')
-
-        try:
+        if pod.items:
             k8s_client.delete_namespaced_pod(
                 name=f'{self.pod.metadata.name}-driver',
                 namespace=self.pod.metadata.namespace,
             )
-        except:
-            raise AirflowFailException('Spark pod delete failed')
-
-        if pod.items[0].status.phase != 'Succeeded':
-            raise AirflowFailException('Spark job failed')
+            if pod.items[0].status.phase != 'Succeeded':
+                raise AirflowFailException('Spark job failed')
 
         return result
