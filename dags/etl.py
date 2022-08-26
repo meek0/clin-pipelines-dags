@@ -34,12 +34,14 @@ with DAG(
 
     def _params_validate(batch_id, release, color):
         if batch_id == '':
-            raise AirflowFailException('DAG param "batch_id" is needed')
+            raise AirflowFailException('DAG param "batch_id" is required')
         if release == '':
-            raise AirflowFailException('DAG param "release" is needed')
+            raise AirflowFailException('DAG param "release" is required')
         if environment == 'qa':
             if color == '':
-                raise AirflowFailException('DAG param "color" is needed')
+                raise AirflowFailException(
+                    f'DAG param "color" is required in {environment} environment'
+                )
         else:
             if color != '':
                 raise AirflowFailException(

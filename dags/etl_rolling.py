@@ -29,10 +29,14 @@ with DAG(
 
     def _params_validate(release, color):
         if release == '':
-            raise AirflowFailException('DAG param "release" is needed')
+            raise AirflowFailException(
+                'DAG param "release" is required'
+            )
         if environment == 'qa':
             if color == '':
-                raise AirflowFailException('DAG param "color" is needed')
+                raise AirflowFailException(
+                    f'DAG param "color" is required in {environment} environment'
+                )
         else:
             raise AirflowFailException(
                 f'DAG run is forbidden in {environment} environment'

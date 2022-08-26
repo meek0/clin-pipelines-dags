@@ -33,7 +33,9 @@ with DAG(
     def _params_validate(color):
         if environment == 'qa':
             if color == '':
-                raise AirflowFailException('DAG param "color" is needed')
+                raise AirflowFailException(
+                    f'DAG param "color" is required in {environment} environment'
+                )
         else:
             raise AirflowFailException(
                 f'DAG run is forbidden in {environment} environment'
