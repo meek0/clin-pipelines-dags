@@ -554,17 +554,7 @@ with DAG(
             ],
         )
 
-        arranger_restart = K8sDeploymentRestartOperator(
-            task_id='arranger_restart',
-            deployment='arranger',
-        )
-
-        wait = WaitOperator(
-            task_id='wait',
-            time='20',
-        )
-
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_restart >> wait
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
     with TaskGroup(group_id='rolling') as rolling:
 
@@ -608,12 +598,7 @@ with DAG(
             deployment='arranger',
         )
 
-        wait = WaitOperator(
-            task_id='wait',
-            time='20',
-        )
-
-        es_indices_swap >> arranger_restart >> wait
+        es_indices_swap >> arranger_restart
 
     notify = PipelineOperator(
         task_id='notify',
