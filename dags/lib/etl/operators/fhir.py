@@ -21,15 +21,12 @@ class FhirOperator(KubernetesPodOperator):
         self.color = color
 
     def execute(self, **kwargs):
-        environment = config.environment
-        k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[self.k8s_context]
-        fhir_image = config.fhir_image
+        env = config.environment
 
         self.is_delete_operator_pod = True
-        self.namespace = k8s_namespace
-        self.cluster_context = k8s_context
-        self.image = fhir_image
+        self.namespace = config.k8s_namespace
+        self.cluster_context = config.k8s_context[self.k8s_context]
+        self.image = config.fhir_image
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
@@ -39,11 +36,11 @@ class FhirOperator(KubernetesPodOperator):
             k8s.V1EnvVar(
                 name='BASE_URL',
                 value='https://' + join('-', ['fhir', self.color]) +
-                f'.{environment}.cqgc.hsj.rtss.qc.ca/fhir',
+                f'.{env}.cqgc.hsj.rtss.qc.ca/fhir',
             ),
             k8s.V1EnvVar(
                 name='OAUTH_URL',
-                value=f'https://auth.{environment}.cqgc.hsj.rtss.qc.ca/auth/realms/clin/protocol/openid-connect/token',
+                value=f'https://auth.{env}.cqgc.hsj.rtss.qc.ca/auth/realms/clin/protocol/openid-connect/token',
             ),
             k8s.V1EnvVar(
                 name='OAUTH_CLIENT_ID',

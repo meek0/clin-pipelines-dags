@@ -25,20 +25,20 @@ with DAG(
     },
 ) as dag:
 
-    environment = config.environment
+    env = config.environment
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def _params_validate(color):
-        if environment == 'qa':
+        if env == 'qa':
             if color == '':
                 raise AirflowFailException(
-                    f'DAG param "color" is required in {environment} environment'
+                    f'DAG param "color" is required in {env} environment'
                 )
         else:
             raise AirflowFailException(
-                f'DAG run is forbidden in {environment} environment'
+                f'DAG run is forbidden in {env} environment'
             )
 
     params_validate = PythonOperator(
@@ -87,10 +87,10 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         arguments=[
             '-f', '-X', 'DELETE',
-            f'http://elasticsearch:9200/clin-{environment}-prescriptions' + color('-') +
-            f',clin-{environment}-patients' + color('-') +
-            f',clin-{environment}-analyses' + color('-') +
-            f',clin-{environment}-sequencings' + color('-') +
+            f'http://elasticsearch:9200/clin-{env}-prescriptions' + color('-') +
+            f',clin-{env}-patients' + color('-') +
+            f',clin-{env}-analyses' + color('-') +
+            f',clin-{env}-sequencings' + color('-') +
             '?ignore_unavailable=true',
         ],
     )
@@ -101,7 +101,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         arguments=[
             's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-            f's3://cqgc-{environment}-app-download' + color('/') + '/',
+            f's3://cqgc-{env}-app-download' + color('/') + '/',
             '--recursive',
         ],
     )
@@ -112,7 +112,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         arguments=[
             's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-            f's3://cqgc-{environment}-app-datalake/', '--recursive', '--exclude', '"*"',
+            f's3://cqgc-{env}-app-datalake/', '--recursive', '--exclude', '"*"',
             '--include', '"normalized/*"',
             '--include', '"enriched/*"',
             '--include', '"raw/landing/fhir/*"',

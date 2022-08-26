@@ -12,15 +12,13 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    environment = config.environment
-
     test_spark_log = SparkOperator(
         task_id='test_spark_log',
         name='test-spark-log',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fail.Fail',
         spark_config='raw-fhir-etl',
-        arguments=[f'config/{environment}.conf', 'initial', 'all'],
+        arguments=[f'config/{config.environment}.conf', 'initial', 'all'],
     )
 
     test_spark_log

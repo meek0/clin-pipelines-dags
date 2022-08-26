@@ -21,15 +21,12 @@ class PostgresOperator(KubernetesPodOperator):
         self.color = color
 
     def execute(self, **kwargs):
-        environment = config.environment
-        k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[self.k8s_context]
-        postgres_image = config.postgres_image
+        env = config.environment
 
         self.is_delete_operator_pod = True
-        self.namespace = k8s_namespace
-        self.cluster_context = k8s_context
-        self.image = postgres_image
+        self.namespace = config.k8s_namespace
+        self.cluster_context = config.k8s_context[self.k8s_context]
+        self.image = config.postgres_image
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
@@ -40,7 +37,7 @@ class PostgresOperator(KubernetesPodOperator):
                 name='PGUSER',
                 value_from=k8s.V1EnvVarSource(
                     secret_key_ref=k8s.V1SecretKeySelector(
-                        name=f'cqgc-{environment}-postgres-credentials',
+                        name=f'cqgc-{env}-postgres-credentials',
                         key='PGUSER',
                     ),
                 ),
@@ -49,7 +46,7 @@ class PostgresOperator(KubernetesPodOperator):
                 name='PGPASSWORD',
                 value_from=k8s.V1EnvVarSource(
                     secret_key_ref=k8s.V1SecretKeySelector(
-                        name=f'cqgc-{environment}-postgres-credentials',
+                        name=f'cqgc-{env}-postgres-credentials',
                         key='PGPASSWORD',
                     ),
                 ),
@@ -68,7 +65,7 @@ class PostgresOperator(KubernetesPodOperator):
             k8s.V1Volume(
                 name='ca-certificate',
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name=f'cqgc-{environment}-postgres-ca-cert',
+                    name=f'cqgc-{env}-postgres-ca-cert',
                     default_mode=0o555,
                 ),
             ),

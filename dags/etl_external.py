@@ -11,7 +11,7 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    environment = config.environment
+    env = config.environment
 
     panels = SparkOperator(
         task_id='panels',
@@ -20,7 +20,7 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.external.ImportExternal',
         spark_config='raw-import-external-etl',
         arguments=[
-            f'config/{environment}.conf', 'initial', 'panels',
+            f'config/{env}.conf', 'initial', 'panels',
         ],
     )
 
@@ -31,7 +31,7 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.external.ImportExternal',
         spark_config='raw-import-external-etl',
         arguments=[
-            f'config/{environment}.conf', 'initial', 'mane-summary',
+            f'config/{env}.conf', 'initial', 'mane-summary',
         ],
     )
 
@@ -42,7 +42,7 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.external.ImportExternal',
         spark_config='raw-import-external-etl',
         arguments=[
-            f'config/{environment}.conf', 'initial', 'refseq-annotation',
+            f'config/{env}.conf', 'initial', 'refseq-annotation',
         ],
     )
 
@@ -53,7 +53,7 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.external.ImportExternal',
         spark_config='raw-import-external-etl',
         arguments=[
-            f'config/{environment}.conf', 'initial', 'refseq-feature',
+            f'config/{env}.conf', 'initial', 'refseq-feature',
         ],
     )
 
@@ -64,7 +64,7 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.external.CreateGenesTable',
         spark_config='genes-tables-creation',
         arguments=[
-            f'config/{environment}.conf', 'initial',
+            f'config/{env}.conf', 'initial',
         ],
     )
 
@@ -75,7 +75,7 @@ with DAG(
     #     spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
     #     spark_config='public-tables-creation-etl',
     #     arguments=[
-    #         f'config/{environment}.conf', 'initial',
+    #         f'config/{env}.conf', 'initial',
     #     ],
     # )
 
@@ -87,7 +87,7 @@ with DAG(
     #     spark_config='varsome-etl',
     #     spark_secret='varsome',
     #     arguments=[
-    #         f'config/{environment}.conf', 'initial', 'all',
+    #         f'config/{env}.conf', 'initial', 'all',
     #     ],
     # )
 

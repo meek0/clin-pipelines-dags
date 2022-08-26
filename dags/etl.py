@@ -21,7 +21,7 @@ with DAG(
     },
 ) as dag:
 
-    environment = config.environment
+    env = config.environment
 
     def batch_id() -> str:
         return '{{ params.batch_id }}'
@@ -37,15 +37,15 @@ with DAG(
             raise AirflowFailException('DAG param "batch_id" is required')
         if release == '':
             raise AirflowFailException('DAG param "release" is required')
-        if environment == 'qa':
+        if env == 'qa':
             if color == '':
                 raise AirflowFailException(
-                    f'DAG param "color" is required in {environment} environment'
+                    f'DAG param "color" is required in {env} environment'
                 )
         else:
             if color != '':
                 raise AirflowFailException(
-                    f'DAG param "color" is forbidden in {environment} environment'
+                    f'DAG param "color" is forbidden in {env} environment'
                 )
 
     params_validate = PythonOperator(
@@ -60,7 +60,7 @@ with DAG(
             task_id='file_import',
             name='etl-ingest-file-import',
             k8s_context=K8sContext.DEFAULT,
-            aws_bucket=f'cqgc-{environment}-app-files-import',
+            aws_bucket=f'cqgc-{env}-app-files-import',
             color=color(),
             arguments=[
                 'bio.ferlab.clin.etl.FileImport', batch_id(), 'false', 'true',
@@ -71,7 +71,7 @@ with DAG(
             task_id='fhir_export',
             name='etl-ingest-fhir-export',
             k8s_context=K8sContext.DEFAULT,
-            aws_bucket=f'cqgc-{environment}-app-datalake',
+            aws_bucket=f'cqgc-{env}-app-datalake',
             color=color(),
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport', 'all',
@@ -85,7 +85,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'all',
+                f'config/{env}.conf', 'initial', 'all',
             ],
         )
 
@@ -96,7 +96,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', batch_id(), 'snv',
+                f'config/{env}.conf', 'default', batch_id(), 'snv',
             ],
         )
 
@@ -107,7 +107,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', batch_id(), 'cnv',
+                f'config/{env}.conf', 'default', batch_id(), 'cnv',
             ],
         )
 
@@ -118,7 +118,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', batch_id(), 'variants',
+                f'config/{env}.conf', 'default', batch_id(), 'variants',
             ],
         )
 
@@ -129,7 +129,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', batch_id(), 'consequences',
+                f'config/{env}.conf', 'default', batch_id(), 'consequences',
             ],
         )
 
@@ -144,7 +144,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', 'variants',
+                f'config/{env}.conf', 'default', 'variants',
             ],
         )
 
@@ -155,7 +155,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', 'consequences',
+                f'config/{env}.conf', 'default', 'consequences',
             ],
         )
 
@@ -166,7 +166,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{environment}.conf', 'default', 'cnv',
+                f'config/{env}.conf', 'default', 'cnv',
             ],
         )
 
@@ -181,7 +181,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'gene_centric', release(),
+                f'config/{env}.conf', 'initial', 'gene_centric', release(),
             ],
         )
 
@@ -192,7 +192,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'gene_suggestions', release(),
+                f'config/{env}.conf', 'initial', 'gene_suggestions', release(),
             ],
         )
 
@@ -203,7 +203,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'variant_centric', release(),
+                f'config/{env}.conf', 'initial', 'variant_centric', release(),
             ],
         )
 
@@ -214,7 +214,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'variant_suggestions', release(),
+                f'config/{env}.conf', 'initial', 'variant_suggestions', release(),
             ],
         )
 
@@ -225,7 +225,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{environment}.conf', 'initial', 'cnv_centric', release(),
+                f'config/{env}.conf', 'initial', 'cnv_centric', release(),
             ],
         )
 
@@ -241,12 +241,12 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_gene_centric',
+                f'clin_{env}' + color('_') + '_gene_centric',
                 release(),
                 'gene_centric_template.json',
                 'gene_centric',
                 '1900-01-01 00:00:00',
-                f'config/{environment}.conf',
+                f'config/{env}.conf',
             ],
         )
 
@@ -258,12 +258,12 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_gene_suggestion',
+                f'clin_{env}' + color('_') + '_gene_suggestion',
                 release(),
                 'gene_suggestions_template.json',
                 'gene_suggestions',
                 '1900-01-01 00:00:00',
-                f'config/{environment}.conf',
+                f'config/{env}.conf',
             ],
         )
 
@@ -275,12 +275,12 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_variant_centric',
+                f'clin_{env}' + color('_') + '_variant_centric',
                 release(),
                 'variant_centric_template.json',
                 'variant_centric',
                 '1900-01-01 00:00:00',
-                f'config/{environment}.conf',
+                f'config/{env}.conf',
             ],
         )
 
@@ -292,12 +292,12 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_variant_suggestions',
+                f'clin_{env}' + color('_') + '_variant_suggestions',
                 release(),
                 'variant_suggestions_template.json',
                 'variant_suggestions',
                 '1900-01-01 00:00:00',
-                f'config/{environment}.conf',
+                f'config/{env}.conf',
             ],
         )
 
@@ -309,12 +309,12 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_cnv_centric',
+                f'clin_{env}' + color('_') + '_cnv_centric',
                 release(),
                 'cnv_centric_template.json',
                 'cnv_centric',
                 '1900-01-01 00:00:00',
-                f'config/{environment}.conf',
+                f'config/{env}.conf',
             ],
         )
 
@@ -330,7 +330,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_gene_centric',
+                f'clin_{env}' + color('_') + '_gene_centric',
                 release(),
             ],
         )
@@ -343,7 +343,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_gene_suggestions',
+                f'clin_{env}' + color('_') + '_gene_suggestions',
                 release(),
             ],
         )
@@ -356,7 +356,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_variant_centric',
+                f'clin_{env}' + color('_') + '_variant_centric',
                 release(),
             ],
         )
@@ -369,7 +369,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_variant_suggestion',
+                f'clin_{env}' + color('_') + '_variant_suggestion',
                 release(),
             ],
         )
@@ -382,7 +382,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{environment}' + color('_') + '_cnv_centric',
+                f'clin_{env}' + color('_') + '_cnv_centric',
                 release(),
             ],
         )

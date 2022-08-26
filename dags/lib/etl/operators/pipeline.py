@@ -24,15 +24,12 @@ class PipelineOperator(KubernetesPodOperator):
         self.color = color
 
     def execute(self, **kwargs):
-        environment = config.environment
-        k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[self.k8s_context]
-        pipeline_image = config.pipeline_image
+        env = config.environment
 
         self.is_delete_operator_pod = True
-        self.namespace = k8s_namespace
-        self.cluster_context = k8s_context
-        self.image = pipeline_image
+        self.namespace = config.k8s_namespace
+        self.cluster_context = config.k8s_context[self.k8s_context]
+        self.image = config.pipeline_image
         self.cmds = [
             '/opt/entrypoint/entrypoint.sh',
             'java', '-cp', 'clin-pipelines.jar',
@@ -45,20 +42,20 @@ class PipelineOperator(KubernetesPodOperator):
         self.env_vars = [
             k8s.V1EnvVar(
                 name='CLIN_URL',
-                value=f'https://portail.{environment}.cqgc.hsj.rtss.qc.ca',
+                value=f'https://portail.{env}.cqgc.hsj.rtss.qc.ca',
             ),
             k8s.V1EnvVar(
                 name='FERLOAD_URL',
-                value=f'https://ferload.{environment}.cqgc.hsj.rtss.qc.ca',
+                value=f'https://ferload.{env}.cqgc.hsj.rtss.qc.ca',
             ),
             k8s.V1EnvVar(
                 name='FHIR_URL',
                 value='https://' + join('-', ['fhir', self.color]) +
-                f'.{environment}.cqgc.hsj.rtss.qc.ca/fhir',
+                f'.{env}.cqgc.hsj.rtss.qc.ca/fhir',
             ),
             k8s.V1EnvVar(
                 name='KEYCLOAK_URL',
-                value=f'https://auth.{environment}.cqgc.hsj.rtss.qc.ca/auth',
+                value=f'https://auth.{env}.cqgc.hsj.rtss.qc.ca/auth',
             ),
             k8s.V1EnvVar(
                 name='KEYCLOAK_AUTHORIZATION_AUDIENCE',
@@ -105,7 +102,7 @@ class PipelineOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='AWS_OUTPUT_BUCKET_NAME',
-                value=f'cqgc-{environment}-app-download',
+                value=f'cqgc-{env}-app-download',
             ),
             k8s.V1EnvVar(
                 name='AWS_PREFIX',

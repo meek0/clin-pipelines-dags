@@ -14,14 +14,10 @@ class AwsOperator(KubernetesPodOperator):
         self.k8s_context = k8s_context
 
     def execute(self, **kwargs):
-        k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[self.k8s_context]
-        aws_image = config.aws_image
-
         self.is_delete_operator_pod = True
-        self.namespace = k8s_namespace
-        self.cluster_context = k8s_context
-        self.image = aws_image
+        self.namespace = config.k8s_namespace
+        self.cluster_context = config.k8s_context[self.k8s_context]
+        self.image = config.aws_image
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',

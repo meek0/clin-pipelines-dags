@@ -29,17 +29,11 @@ class SparkOperator(KubernetesPodOperator):
         self.spark_secret = spark_secret
 
     def execute(self, **kwargs):
-        k8s_namespace = config.k8s_namespace
-        k8s_context = config.k8s_context[self.k8s_context]
-        k8s_service_account = config.k8s_service_account
-        spark_image = config.spark_image
-        spark_jar = config.spark_jar
-
         self.is_delete_operator_pod = True
-        self.namespace = k8s_namespace
-        self.cluster_context = k8s_context
-        self.service_account_name = k8s_service_account
-        self.image = spark_image
+        self.namespace = config.k8s_namespace
+        self.cluster_context = config.k8s_context[self.k8s_context]
+        self.service_account_name = config.k8s_service_account
+        self.image = config.spark_image
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
@@ -57,7 +51,7 @@ class SparkOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='SPARK_JAR',
-                value=spark_jar,
+                value=config.spark_jar,
             ),
             k8s.V1EnvVar(
                 name='SPARK_CLASS',

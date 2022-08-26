@@ -19,7 +19,7 @@ with DAG(
     },
 ) as dag:
 
-    environment = config.environment
+    env = config.environment
 
     def release() -> str:
         return '{{ params.release }}'
@@ -32,14 +32,14 @@ with DAG(
             raise AirflowFailException(
                 'DAG param "release" is required'
             )
-        if environment == 'qa':
+        if env == 'qa':
             if color == '':
                 raise AirflowFailException(
-                    f'DAG param "color" is required in {environment} environment'
+                    f'DAG param "color" is required in {env} environment'
                 )
         else:
             raise AirflowFailException(
-                f'DAG run is forbidden in {environment} environment'
+                f'DAG run is forbidden in {env} environment'
             )
 
     params_validate = PythonOperator(
@@ -75,7 +75,7 @@ with DAG(
                 ]
             }}
             '''.format(
-                env=environment,
+                env=env,
                 release=release(),
                 dash_color=color('-'),
                 under_color=color('_'),
