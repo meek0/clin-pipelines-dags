@@ -11,7 +11,9 @@ from lib.etl.fhir import FhirOperator
 from lib.etl.fhir_csv import FhirCsvOperator
 from lib.etl.postgres import PostgresOperator
 from lib.etl.wait import WaitOperator
-from lib.k8s import K8sDeploymentPauseOperator, K8sDeploymentResumeOperator, K8sDeploymentRestartOperator
+from lib.k8s.operators.deployment_pause import K8sDeploymentPauseOperator
+from lib.k8s.operators.deployment_restart import K8sDeploymentRestartOperator
+from lib.k8s.operators.deployment_resume import K8sDeploymentResumeOperator
 
 
 with DAG(

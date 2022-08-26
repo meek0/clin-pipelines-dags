@@ -6,7 +6,7 @@ from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
 from lib.etl.curl import CurlOperator
-from lib.k8s import K8sDeploymentRestartOperator
+from lib.k8s.operators.deployment_restart import K8sDeploymentRestartOperator
 
 
 with DAG(

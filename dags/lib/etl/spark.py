@@ -3,7 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib.etl import config
-from lib.k8s import k8s_load_config
+from lib.k8s.config import k8s_load_config
 
 
 class SparkOperator(KubernetesPodOperator):
