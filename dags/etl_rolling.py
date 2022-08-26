@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
-from lib.etl.curl import CurlOperator
+from lib.etl.operators.curl import CurlOperator
 from lib.k8s.operators.deployment_restart import K8sDeploymentRestartOperator
 
 
