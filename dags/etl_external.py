@@ -2,7 +2,7 @@ from airflow import DAG
 from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
-from lib.etl.spark import SparkOperator
+from lib.etl.operators.spark import SparkOperator
 
 
 with DAG(

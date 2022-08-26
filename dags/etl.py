@@ -6,8 +6,8 @@ from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
-from lib.etl.pipeline import PipelineOperator
-from lib.etl.spark import SparkOperator
+from lib.etl.operators.pipeline import PipelineOperator
+from lib.etl.operators.spark import SparkOperator
 
 
 with DAG(
