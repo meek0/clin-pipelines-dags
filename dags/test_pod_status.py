@@ -8,7 +8,7 @@ from lib.k8s import k8s_load_config
 
 
 with DAG(
-    dag_id='k8s_pod_status',
+    dag_id='test_pod_status',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
 ) as dag:

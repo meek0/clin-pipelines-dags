@@ -38,10 +38,14 @@ def batchInformations(ds, **kwargs):
 
 
 # DAG
-with DAG(dag_id="clin_genomic_data_pipeline",
-         schedule_interval="@daily",
-         default_args=default_args,
-         catchup=False) as dag:
+with DAG(
+    dag_id='test_genomic_data_pipeline',
+    start_date=datetime(2022, 1, 1),
+    schedule_interval=None,
+    default_args=default_args,
+    catchup=False
+) as dag:
+
     start = DummyOperator(task_id='start')
 
     sensor = S3KeySensor(
@@ -67,7 +71,8 @@ with DAG(dag_id="clin_genomic_data_pipeline",
         bash_command="echo {{ task_instance.xcom_pull(task_ids='extract_batch_informations').key }}",
         dag=dag)
 
-    env_vars = [k8s.V1EnvVar(name='SERVICE_ENDPOINT', value='http://192.168.0.16:9000')]
+    env_vars = [k8s.V1EnvVar(name='SERVICE_ENDPOINT',
+                             value='http://192.168.0.16:9000')]
 
     # Replace the following by S3Sensor - check for _success file to launch the flow
     checkDataTaskStatus = KubernetesPodOperator(
@@ -133,7 +138,9 @@ with DAG(dag_id="clin_genomic_data_pipeline",
     checkDataTaskStatus.set_downstream(loadDataIntoHapiFhirTaskStatus)
 
     loadDataIntoHapiFhirTaskStatus.set_upstream(checkDataTaskStatus)
-    loadDataIntoHapiFhirTaskStatus.set_downstream(extractNDJsonFromHapiFhirTaskStatus)
+    loadDataIntoHapiFhirTaskStatus.set_downstream(
+        extractNDJsonFromHapiFhirTaskStatus)
 
-    extractNDJsonFromHapiFhirTaskStatus.set_upstream(loadDataIntoHapiFhirTaskStatus)
+    extractNDJsonFromHapiFhirTaskStatus.set_upstream(
+        loadDataIntoHapiFhirTaskStatus)
     extractNDJsonFromHapiFhirTaskStatus.set_downstream(end)

@@ -3,16 +3,11 @@ from airflow.models.param import Param
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
-from lib.etl.aws import AwsOperator
 from lib.etl.config import K8sContext
 from lib.etl.curl import CurlOperator
-from lib.etl.fhir import FhirOperator
-from lib.etl.fhir_csv import FhirCsvOperator
 from lib.etl.pipeline import PipelineOperator
-from lib.etl.postgres import PostgresOperator
 from lib.etl.spark import SparkOperator
-from lib.etl.wait import WaitOperator
-from lib.k8s import K8sDeploymentPauseOperator, K8sDeploymentResumeOperator, K8sDeploymentRestartOperator
+from lib.k8s import K8sDeploymentRestartOperator
 
 
 with DAG(
@@ -20,9 +15,9 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
-        'batch_id':  Param('201106_A00516_0169_AHFM3HDSXY', type='string', minLength=1),
-        'release': Param('re_000', type='string', minLength=1),
-        'color': Param('green', enum=['', 'blue', 'green']),
+        'batch_id':  Param('', type='string'),
+        'release': Param('', type='string'),
+        'color': Param('', enum=['', 'blue', 'green']),
     },
 ) as dag:
 
@@ -36,112 +31,6 @@ with DAG(
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-    with TaskGroup(group_id='cleanup') as cleanup:
-
-        fhir_pause = K8sDeploymentPauseOperator(
-            task_id='fhir_pause',
-            deployment='fhir-server' + color('-'),
-        )
-
-        db_tables_delete = PostgresOperator(
-            task_id='db_tables_delete',
-            name='etl-cleanup-db-tables-delete',
-            k8s_context=K8sContext.DEFAULT,
-            color=color(),
-            cmds=[
-                'psql', '-d', 'fhir' + color('_'), '-c',
-                '''
-                DO $$$DECLARE
-                    r RECORD;
-                BEGIN
-                    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-                        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                    END LOOP;
-                END$$$;
-                ''',
-            ],
-        )
-
-        fhir_resume = K8sDeploymentResumeOperator(
-            task_id='fhir_resume',
-            deployment='fhir-server' + color('-'),
-        )
-
-        fhir_restart = K8sDeploymentRestartOperator(
-            task_id='fhir_restart',
-            deployment='fhir-server' + color('-'),
-        )
-
-        es_indices_delete = CurlOperator(
-            task_id='es_indices_delete',
-            name='etl-cleanup-es-indices-delete',
-            k8s_context=K8sContext.DEFAULT,
-            arguments=[
-                '-f', '-X', 'DELETE',
-                f'http://elasticsearch:9200/clin-{environment}-prescriptions' + color('-') +
-                f',clin-{environment}-patients' + color('-') +
-                f',clin-{environment}-analyses' + color('-') +
-                f',clin-{environment}-sequencings' + color('-') +
-                '?ignore_unavailable=true',
-            ],
-        )
-
-        s3_download_delete = AwsOperator(
-            task_id='s3_download_delete',
-            name='etl-cleanup-s3-download-delete',
-            k8s_context=K8sContext.DEFAULT,
-            arguments=[
-                's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-                f's3://cqgc-{environment}-app-download' + color('/') + '/',
-                '--recursive',
-            ],
-        )
-
-        s3_datalake_delete = AwsOperator(
-            task_id='s3_datalake_delete',
-            name='etl-cleanup-s3-datalake-delete',
-            k8s_context=K8sContext.DEFAULT,
-            arguments=[
-                's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-                f's3://cqgc-{environment}-app-datalake/', '--recursive', '--exclude', '"*"',
-                '--include', '"normalized/*"',
-                '--include', '"enriched/*"',
-                '--include', '"raw/landing/fhir/*"',
-                '--include', '"es_index/*"',
-            ],
-        )
-
-        wait = WaitOperator(
-            task_id='wait',
-            time='120',
-        )
-
-        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait
-
-    with TaskGroup(group_id='fhir_init') as fhir_init:
-
-        ig_publish = FhirOperator(
-            task_id='ig_publish',
-            name='etl-fhir-init-ig-publish',
-            k8s_context=K8sContext.DEFAULT,
-            color=color(),
-        )
-
-        wait = WaitOperator(
-            task_id='wait',
-            time='20',
-        )
-
-        csv_import = FhirCsvOperator(
-            task_id='csv_import',
-            name='etl-fhir-init-csv-import',
-            k8s_context=K8sContext.DEFAULT,
-            color=color(),
-            arguments=['-f', 'nanuq.yml'],
-        )
-
-        ig_publish >> wait >> csv_import
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -610,4 +499,4 @@ with DAG(
         ],
     )
 
-    cleanup >> fhir_init >> ingest >> enrich >> prepare >> index >> publish >> rolling >> notify
+    ingest >> enrich >> prepare >> index >> publish >> rolling >> notify
