@@ -13,7 +13,7 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    def pod_status():
+    def _test_pod_status():
         k8s_load_config()
         k8s_client = kubernetes.client.CoreV1Api()
         list = k8s_client.list_namespaced_pod(
@@ -24,9 +24,9 @@ with DAG(
         for item in list.items:
             logging.info(f'{item.metadata.name} ({item.status.phase})')
 
-    k8s_pod_status = PythonOperator(
+    test_pod_status = PythonOperator(
         task_id='pod_status',
-        python_callable=pod_status,
+        python_callable=_test_pod_status,
     )
 
-    k8s_pod_status
+    test_pod_status

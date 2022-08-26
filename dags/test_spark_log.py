@@ -1,4 +1,3 @@
-import logging
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime
@@ -15,13 +14,13 @@ with DAG(
 
     environment = config.environment
 
-    spark_job_fail = SparkOperator(
-        task_id='spark_job_fail',
-        name='etl-test-spark-log',
+    test_spark_log = SparkOperator(
+        task_id='test_spark_log',
+        name='test-spark-log',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fail.Fail',
         spark_config='raw-fhir-etl',
         arguments=[f'config/{environment}.conf', 'initial', 'all'],
     )
 
-    spark_job_fail
+    test_spark_log
