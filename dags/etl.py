@@ -1,5 +1,7 @@
 from airflow import DAG
+from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
+from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib.etl import config
@@ -31,6 +33,26 @@ with DAG(
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def _params_validate(batch_id, release, color):
+        if batch_id == '':
+            raise AirflowFailException('DAG param "batch_id" is needed')
+        if release == '':
+            raise AirflowFailException('DAG param "release" is needed')
+        if environment == 'qa':
+            if color == '':
+                raise AirflowFailException('DAG param "color" is needed')
+        else:
+            if color != '':
+                raise AirflowFailException(
+                    f'DAG param "color" is forbidden in {environment} environment'
+                )
+
+    params_validate = PythonOperator(
+        task_id='params_validate',
+        op_args=[batch_id(), release(), color()],
+        python_callable=_params_validate,
+    )
 
     with TaskGroup(group_id='ingest') as ingest:
 
@@ -421,4 +443,4 @@ with DAG(
         ],
     )
 
-    ingest >> enrich >> prepare >> index >> publish >> rolling >> notify
+    params_validate >> ingest >> enrich >> prepare >> index >> publish >> rolling >> notify
