@@ -15,8 +15,8 @@ with DAG(
 
     environment = config.environment
 
-    spark_fail_job = SparkOperator(
-        task_id='log',
+    spark_job_fail = SparkOperator(
+        task_id='spark_job_fail',
         name='etl-test-spark-log',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fail.Fail',
@@ -24,4 +24,4 @@ with DAG(
         arguments=[f'config/{environment}.conf', 'initial', 'all'],
     )
 
-    spark_fail_job
+    spark_job_fail
