@@ -1,7 +1,6 @@
 import kubernetes
 import logging
 from airflow import DAG
-from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from airflow.utils.dates import days_ago

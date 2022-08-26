@@ -16,10 +16,7 @@ class FhirOperator(KubernetesPodOperator):
         color: str = '',
         **kwargs,
     ) -> None:
-        super().__init__(
-            name='fhir-operator',
-            **kwargs,
-        )
+        super().__init__(**kwargs)
         self.k8s_context = k8s_context
         self.color = color
 

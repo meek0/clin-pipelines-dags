@@ -20,9 +20,9 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
-        'batch_id':  Param('BATCHID', type='string', minLength=1),
+        'batch_id':  Param('201106_A00516_0169_AHFM3HDSXY', type='string', minLength=1),
         'release': Param('re_000', type='string', minLength=1),
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('green', enum=['', 'blue', 'green']),
     },
 ) as dag:
 
@@ -46,6 +46,7 @@ with DAG(
 
         db_tables_delete = PostgresOperator(
             task_id='db_tables_delete',
+            name='etl-cleanup-db-tables-delete',
             k8s_context=K8sContext.DEFAULT,
             color=color(),
             cmds=[
@@ -74,6 +75,7 @@ with DAG(
 
         es_indices_delete = CurlOperator(
             task_id='es_indices_delete',
+            name='etl-cleanup-es-indices-delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 '-f', '-X', 'DELETE',
@@ -85,8 +87,9 @@ with DAG(
             ],
         )
 
-        s3_download_files_delete = AwsOperator(
-            task_id='s3_download_files_delete',
+        s3_download_delete = AwsOperator(
+            task_id='s3_download_delete',
+            name='etl-cleanup-s3-download-delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
@@ -95,8 +98,9 @@ with DAG(
             ],
         )
 
-        s3_datalake_files_delete = AwsOperator(
-            task_id='s3_datalake_files_delete',
+        s3_datalake_delete = AwsOperator(
+            task_id='s3_datalake_delete',
+            name='etl-cleanup-s3-datalake-delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
@@ -113,12 +117,13 @@ with DAG(
             time='120',
         )
 
-        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_files_delete >> s3_datalake_files_delete >> wait
+        fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait
 
     with TaskGroup(group_id='fhir_init') as fhir_init:
 
         ig_publish = FhirOperator(
             task_id='ig_publish',
+            name='etl-fhir-init-ig-publish',
             k8s_context=K8sContext.DEFAULT,
             color=color(),
         )
@@ -130,6 +135,7 @@ with DAG(
 
         csv_import = FhirCsvOperator(
             task_id='csv_import',
+            name='etl-fhir-init-csv-import',
             k8s_context=K8sContext.DEFAULT,
             color=color(),
             arguments=['-f', 'nanuq.yml'],
@@ -139,10 +145,9 @@ with DAG(
 
     with TaskGroup(group_id='ingest') as ingest:
 
-        parent_id = 'ingest'
-
         file_import = PipelineOperator(
             task_id='file_import',
+            name='etl-ingest-file-import',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-files-import',
             color=color(),
@@ -153,6 +158,7 @@ with DAG(
 
         fhir_export = PipelineOperator(
             task_id='fhir_export',
+            name='etl-ingest-fhir-export',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{environment}-app-datalake',
             color=color(),
@@ -163,6 +169,7 @@ with DAG(
 
         fhir_normalize = SparkOperator(
             task_id='fhir_normalize',
+            name='etl-ingest-fhir-normalize',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
@@ -173,6 +180,7 @@ with DAG(
 
         vcf_snv = SparkOperator(
             task_id='vcf_snv',
+            name='etl-ingest-vcf-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -183,6 +191,7 @@ with DAG(
 
         vcf_cnv = SparkOperator(
             task_id='vcf_cnv',
+            name='etl-ingest-vcf-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -193,6 +202,7 @@ with DAG(
 
         vcf_variants = SparkOperator(
             task_id='vcf_variants',
+            name='etl-ingest-vcf-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -203,6 +213,7 @@ with DAG(
 
         vcf_consequences = SparkOperator(
             task_id='vcf_consequences',
+            name='etl-ingest-vcf-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -213,6 +224,7 @@ with DAG(
 
         external_panels = SparkOperator(
             task_id='external_panels',
+            name='etl-ingest-external-panels',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -223,6 +235,7 @@ with DAG(
 
         external_mane_summary = SparkOperator(
             task_id='external_mane_summary',
+            name='etl-ingest-external-mane-summary',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -233,6 +246,7 @@ with DAG(
 
         external_refseq_annotation = SparkOperator(
             task_id='external_refseq_annotation',
+            name='etl-ingest-external-refseq-annotation',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -243,6 +257,7 @@ with DAG(
 
         external_refseq_feature = SparkOperator(
             task_id='external_refseq_feature',
+            name='etl-ingest-external-refseq-feature',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.ImportExternal',
             spark_config='raw-import-external-etl',
@@ -253,6 +268,7 @@ with DAG(
 
         # varsome = SparkOperator(
         #     task_id='varsome',
+        #     name='etl-ingest-varsome',
         #     k8s_context=K8sContext.ETL,
         #     spark_class='bio.ferlab.clin.etl.varsome.Varsome',
         #     spark_config='varsome-etl',
@@ -264,6 +280,7 @@ with DAG(
 
         gene_tables = SparkOperator(
             task_id='gene_tables',
+            name='etl-ingest-gene-tables',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.external.CreateGenesTable',
             spark_config='genes-tables-creation',
@@ -274,6 +291,7 @@ with DAG(
 
         # public_tables = SparkOperator(
         #     task_id='public_tables',
+        #     name='etl-ingest-public-tables',
         #     k8s_context=K8sContext.ETL,
         #     spark_class='bio.ferlab.clin.etl.external.CreatePublicTables',
         #     spark_config='public-tables-creation-etl',
@@ -286,10 +304,9 @@ with DAG(
 
     with TaskGroup(group_id='enrich') as enrich:
 
-        parent_id = 'enrich'
-
         variants = SparkOperator(
             task_id='variants',
+            name='etl-enrich-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -300,6 +317,7 @@ with DAG(
 
         consequences = SparkOperator(
             task_id='consequences',
+            name='etl-enrich-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -310,6 +328,7 @@ with DAG(
 
         cnv = SparkOperator(
             task_id='cnv',
+            name='etl-enrich-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
@@ -322,10 +341,9 @@ with DAG(
 
     with TaskGroup(group_id='prepare') as prepare:
 
-        parent_id = 'prepare'
-
         gene_centric = SparkOperator(
             task_id='gene_centric',
+            name='etl-prepare-gene-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -336,6 +354,7 @@ with DAG(
 
         gene_suggestions = SparkOperator(
             task_id='gene_suggestions',
+            name='etl-prepare-gene-suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -346,6 +365,7 @@ with DAG(
 
         variant_centric = SparkOperator(
             task_id='variant_centric',
+            name='etl-prepare-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -356,6 +376,7 @@ with DAG(
 
         variant_suggestions = SparkOperator(
             task_id='variant_suggestions',
+            name='etl-prepare-variant-suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -366,6 +387,7 @@ with DAG(
 
         cnv_centric = SparkOperator(
             task_id='cnv_centric',
+            name='etl-prepare-cnv-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
@@ -378,10 +400,9 @@ with DAG(
 
     with TaskGroup(group_id='index') as index:
 
-        parent_id = 'index'
-
         gene_centric = SparkOperator(
             task_id='gene_centric',
+            name='etl-index-variants',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -398,6 +419,7 @@ with DAG(
 
         gene_suggestions = SparkOperator(
             task_id='gene_suggestions',
+            name='etl-index-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -414,6 +436,7 @@ with DAG(
 
         variant_centric = SparkOperator(
             task_id='variant_centric',
+            name='etl-index-variant-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -430,6 +453,7 @@ with DAG(
 
         variant_suggestions = SparkOperator(
             task_id='variant_suggestions',
+            name='etl-index-variant-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -446,6 +470,7 @@ with DAG(
 
         cnv_centric = SparkOperator(
             task_id='cnv_centric',
+            name='etl-index-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -464,10 +489,9 @@ with DAG(
 
     with TaskGroup(group_id='publish') as publish:
 
-        parent_id = 'publish'
-
         gene_centric = SparkOperator(
             task_id='gene_centric',
+            name='etl-publish-gene-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
@@ -480,6 +504,7 @@ with DAG(
 
         gene_suggestions = SparkOperator(
             task_id='gene_suggestions',
+            name='etl-publish-gene-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
@@ -492,6 +517,7 @@ with DAG(
 
         variant_centric = SparkOperator(
             task_id='variant_centric',
+            name='etl-publish-variant-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
@@ -504,6 +530,7 @@ with DAG(
 
         variant_suggestions = SparkOperator(
             task_id='variant_suggestions',
+            name='etl-publish-variant-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
@@ -516,6 +543,7 @@ with DAG(
 
         cnv_centric = SparkOperator(
             task_id='cnv_centric',
+            name='etl-publish-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
@@ -540,8 +568,9 @@ with DAG(
 
     with TaskGroup(group_id='rolling') as rolling:
 
-        es_indices_rolling = CurlOperator(
-            task_id='es_indices_rolling',
+        es_indices_swap = CurlOperator(
+            task_id='es_indices_swap',
+            name='etl-rolling-es-indices-swap',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 '-f', '-X', 'POST', 'http://elasticsearch:9200/_aliases',
@@ -584,10 +613,11 @@ with DAG(
             time='20',
         )
 
-        es_indices_rolling >> arranger_restart >> wait
+        es_indices_swap >> arranger_restart >> wait
 
     notify = PipelineOperator(
         task_id='notify',
+        name='etl-notify',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         arguments=[

@@ -4,7 +4,6 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from kubernetes.client import models as k8s
 from lib.etl import config
 from lib.k8s import k8s_load_config
-from typing import List
 
 
 class SparkOperator(KubernetesPodOperator):
@@ -20,18 +19,13 @@ class SparkOperator(KubernetesPodOperator):
         spark_class: str,
         spark_config: str = '',
         spark_secret: str = '',
-        arguments: List[str] = [],
         **kwargs,
     ) -> None:
-        super().__init__(
-            name='spark-operator',
-            **kwargs,
-        )
+        super().__init__(**kwargs)
         self.k8s_context = k8s_context
         self.spark_class = spark_class
         self.spark_config = spark_config
         self.spark_secret = spark_secret
-        self.arguments = arguments
 
     def execute(self, **kwargs):
         k8s_namespace = config.k8s_namespace
@@ -139,10 +133,10 @@ class SparkOperator(KubernetesPodOperator):
             limit=1,
         )
         if pod.items:
-            k8s_client.delete_namespaced_pod(
-                name=f'{self.pod.metadata.name}-driver',
-                namespace=self.pod.metadata.namespace,
-            )
+            # k8s_client.delete_namespaced_pod(
+            #     name=f'{self.pod.metadata.name}-driver',
+            #     namespace=self.pod.metadata.namespace,
+            # )
             if pod.items[0].status.phase != 'Succeeded':
                 raise AirflowFailException('Spark job failed')
 
