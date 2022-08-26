@@ -15,15 +15,7 @@ with DAG(
 
     environment = config.environment
 
-    def _test():
-        logging.info('hello')
-
-    test = PythonOperator(
-        task_id='test',
-        python_callable=_test,
-    )
-
-    log = SparkOperator(
+    spark_fail_job = SparkOperator(
         task_id='log',
         name='etl-test-spark-log',
         k8s_context=K8sContext.ETL,
@@ -32,4 +24,4 @@ with DAG(
         arguments=[f'config/{environment}.conf', 'initial', 'all'],
     )
 
-    test >> log
+    spark_fail_job

@@ -138,13 +138,7 @@ class SparkOperator(KubernetesPodOperator):
                 name=f'{self.pod.metadata.name}-driver',
                 namespace=self.pod.metadata.namespace,
             )
-            logging.info(
-                '{label} (start) {separator}\n{log}\n{label} (end) {separator}'.format(
-                    label='Spark job log',
-                    separator='=' * 100,
-                    log=log,
-                )
-            )
+            logging.info(f'Spark job log:\n{log}')
             k8s_client.delete_namespaced_pod(
                 name=f'{self.pod.metadata.name}-driver',
                 namespace=self.pod.metadata.namespace,
