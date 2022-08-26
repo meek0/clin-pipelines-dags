@@ -1,3 +1,4 @@
+import logging
 import kubernetes
 from airflow.exceptions import AirflowFailException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
@@ -133,10 +134,21 @@ class SparkOperator(KubernetesPodOperator):
             limit=1,
         )
         if pod.items:
-            # k8s_client.delete_namespaced_pod(
-            #     name=f'{self.pod.metadata.name}-driver',
-            #     namespace=self.pod.metadata.namespace,
-            # )
+            log = k8s_client.read_namespaced_pod_log(
+                name=f'{self.pod.metadata.name}-driver',
+                namespace=self.pod.metadata.namespace,
+            )
+            logging.info(
+                '{label} (start) {separator}\n{log}\n{label} (end) {separator}'.format(
+                    label='Spark job log',
+                    separator='=' * 100,
+                    log=log,
+                )
+            )
+            k8s_client.delete_namespaced_pod(
+                name=f'{self.pod.metadata.name}-driver',
+                namespace=self.pod.metadata.namespace,
+            )
             if pod.items[0].status.phase != 'Succeeded':
                 raise AirflowFailException('Spark job failed')
 
