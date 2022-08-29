@@ -5,20 +5,20 @@ from lib.etl import config
 
 
 with DAG(
-    dag_id='test_debug',
+    dag_id='test_context_default',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
 ) as dag:
 
-    test_debug = KubernetesPodOperator(
-        task_id='test_debug',
+    test_context_default = KubernetesPodOperator(
         is_delete_operator_pod=False,
+        task_id='test_context_default',
         namespace=config.k8s_namespace,
         cluster_context=config.k8s_context.get('default'),
-        name='test-debug',
+        name='test-context-default',
         image='alpine',
-        cmds=['echo', 'hello'],
+        cmds=['echo', 'hello', 'default'],
         arguments=[],
     )
 
-    test_debug
+    test_context_default

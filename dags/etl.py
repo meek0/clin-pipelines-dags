@@ -57,7 +57,6 @@ with DAG(
     with TaskGroup(group_id='ingest') as ingest:
 
         file_import = PipelineOperator(
-            is_delete_operator_pod=False,
             task_id='file_import',
             name='etl-ingest-file-import',
             k8s_context=K8sContext.DEFAULT,
