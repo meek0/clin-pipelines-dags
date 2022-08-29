@@ -1,5 +1,4 @@
 from airflow import DAG
-from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib.etl import config
 from lib.etl.config import K8sContext
