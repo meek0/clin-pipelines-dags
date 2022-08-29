@@ -12,8 +12,8 @@ k8s_namespace = Variable.get('kubernetes_namespace')
 
 if environment == 'qa':
     k8s_context = {
-        K8sContext.DEFAULT: 'kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc',
-        K8sContext.ETL: 'kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc',
+        K8sContext.DEFAULT: 'airflow-cluster.qa.cqgc@cluster.qa.cqgc',
+        K8sContext.ETL: '',
     }
 elif environment == 'staging':
     k8s_context = {
