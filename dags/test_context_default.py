@@ -17,7 +17,7 @@ with DAG(
         cluster_context=config.k8s_context.get('default'),
         name='test-context-default',
         image='alpine',
-        cmds=['echo', 'hello', 'default'],
+        cmds=['echo', 'hello', 'default', config.k8s_namespace, config.k8s_context.get('default')],
         arguments=[],
     )
 
