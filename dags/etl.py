@@ -65,7 +65,6 @@ with DAG(
             arguments=[
                 'bio.ferlab.clin.etl.FileImport', batch_id(), 'false', 'true',
             ],
-            startup_timeout_seconds=600,
         )
 
         fhir_export = PipelineOperator(
