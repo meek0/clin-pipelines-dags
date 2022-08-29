@@ -13,9 +13,9 @@ with DAG(
     test_pod_operator = KubernetesPodOperator(
         task_id='test_pod_operator',
         is_delete_operator_pod=False,
-        # in_cluster=False,
-        config_file='/home/airflow/.kube/config',
-        cluster_context='airflow-cluster.qa.cqgc@cluster.qa.cqgc',
+        in_cluster=True,
+        # config_file='/home/airflow/.kube/config',
+        # cluster_context='airflow-cluster.qa.cqgc@cluster.qa.cqgc',
         namespace=config.k8s_namespace,
         name='test-pod-operator',
         image='alpine',

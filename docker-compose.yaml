@@ -18,9 +18,9 @@ x-airflow-common:
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
     - ${DAGS_DIR}:/opt/airflow/dags
+    - ${KUBE_CONFIG}:/home/airflow/.kube/config
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
-    - ~/.kube/config:/home/airflow/.kube/config
   user: "${UID}:0"
   depends_on:
     &airflow-common-depends-on
