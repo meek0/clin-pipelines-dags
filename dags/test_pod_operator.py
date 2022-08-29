@@ -12,9 +12,10 @@ with DAG(
 
     test_pod_operator = KubernetesPodOperator(
         task_id='test_pod_operator',
-        is_delete_operator_pod=True,
+        is_delete_operator_pod=False,
         namespace=config.k8s_namespace,
-        cluster_context=config.k8s_context.get('default'),
+        in_cluster=False,
+        cluster_context='airflow-cluster.qa.cqgc@cluster.qa.cqgc',
         name='test-pod-operator',
         image='alpine',
         cmds=['echo', 'hello'],
