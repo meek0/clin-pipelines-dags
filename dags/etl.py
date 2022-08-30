@@ -369,7 +369,7 @@ with DAG(
             spark_config='publish-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{env}' + color('_') + '_variant_suggestion',
+                f'clin_{env}' + color('_') + '_variant_suggestions',
                 release(),
             ],
         )
