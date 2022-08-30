@@ -1,7 +1,4 @@
 import re
-from datetime import datetime, timedelta
-from typing import Pattern
-
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
@@ -9,7 +6,10 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.amazon.aws.sensors.s3_key import S3KeySensor
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from datetime import datetime, timedelta
 from kubernetes.client import models as k8s
+from typing import Pattern
+
 
 # Global config
 default_args = {

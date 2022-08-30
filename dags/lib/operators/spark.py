@@ -1,10 +1,9 @@
-import logging
 import kubernetes
+import logging
 from airflow.exceptions import AirflowFailException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
-from lib.etl import config
-from lib.k8s.config import k8s_load_config
+from lib import config
 
 
 class SparkOperator(KubernetesPodOperator):
@@ -22,18 +21,22 @@ class SparkOperator(KubernetesPodOperator):
         spark_secret: str = '',
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(
+            is_delete_operator_pod=True,
+            in_cluster=config.k8s_in_cluster(k8s_context),
+            config_file=config.k8s_config_file(k8s_context),
+            cluster_context=config.k8s_cluster_context(k8s_context),
+            namespace=config.k8s_namespace,
+            service_account_name=config.k8s_service_account,
+            image=config.spark_image,
+            **kwargs,
+        )
         self.k8s_context = k8s_context
         self.spark_class = spark_class
         self.spark_config = spark_config
         self.spark_secret = spark_secret
 
     def execute(self, **kwargs):
-        self.is_delete_operator_pod = True
-        self.namespace = config.k8s_namespace
-        self.cluster_context = config.k8s_context[self.k8s_context]
-        self.service_account_name = config.k8s_service_account
-        self.image = config.spark_image
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
@@ -118,9 +121,9 @@ class SparkOperator(KubernetesPodOperator):
                 ),
             )
 
-        result = super().execute(**kwargs)
+        super().execute(**kwargs)
 
-        k8s_load_config()
+        config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.CoreV1Api()
         pod = k8s_client.list_namespaced_pod(
             namespace=self.pod.metadata.namespace,
@@ -139,5 +142,3 @@ class SparkOperator(KubernetesPodOperator):
             )
             if pod.items[0].status.phase != 'Succeeded':
                 raise AirflowFailException('Spark job failed')
-
-        return result

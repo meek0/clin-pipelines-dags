@@ -3,17 +3,17 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.etl import config
-from lib.etl.config import K8sContext
-from lib.etl.operators.aws import AwsOperator
-from lib.etl.operators.curl import CurlOperator
-from lib.etl.operators.fhir import FhirOperator
-from lib.etl.operators.fhir_csv import FhirCsvOperator
-from lib.etl.operators.postgres import PostgresOperator
-from lib.etl.operators.wait import WaitOperator
-from lib.k8s.operators.deployment_pause import K8sDeploymentPauseOperator
-from lib.k8s.operators.deployment_restart import K8sDeploymentRestartOperator
-from lib.k8s.operators.deployment_resume import K8sDeploymentResumeOperator
+from lib import config
+from lib.config import K8sContext
+from lib.operators.aws import AwsOperator
+from lib.operators.curl import CurlOperator
+from lib.operators.fhir import FhirOperator
+from lib.operators.fhir_csv import FhirCsvOperator
+from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
+from lib.operators.k8s_deployment_resume import K8sDeploymentResumeOperator
+from lib.operators.postgres import PostgresOperator
+from lib.operators.wait import WaitOperator
 
 
 with DAG(

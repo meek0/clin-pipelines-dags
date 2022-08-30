@@ -4,10 +4,10 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
-from lib.etl import config
-from lib.etl.config import K8sContext
-from lib.etl.operators.pipeline import PipelineOperator
-from lib.etl.operators.spark import SparkOperator
+from lib import config
+from lib.config import K8sContext
+from lib.operators.pipeline import PipelineOperator
+from lib.operators.spark import SparkOperator
 
 
 with DAG(

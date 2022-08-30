@@ -1,7 +1,8 @@
 from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from datetime import datetime
-from lib.etl import config
+from lib import config
+from lib.config import K8sContext
 
 
 with DAG(
@@ -12,12 +13,12 @@ with DAG(
 
     test_pod_operator_etl = KubernetesPodOperator(
         task_id='test_pod_operator_etl',
-        is_delete_operator_pod=False,
-        in_cluster=True,
-        # config_file='/home/airflow/.kube/config',
-        # cluster_context='airflow-cluster.qa.cqgc@cluster.qa.cqgc',
-        namespace=config.k8s_namespace,
         name='test-pod-operator-etl',
+        is_delete_operator_pod=True,
+        in_cluster=config.k8s_in_cluster(K8sContext.ETL),
+        config_file=config.k8s_config_file(K8sContext.ETL),
+        cluster_context=config.k8s_cluster_context(K8sContext.ETL),
+        namespace=config.k8s_namespace,
         image='alpine',
         cmds=['echo', 'hello'],
         arguments=[],

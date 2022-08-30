@@ -1,7 +1,7 @@
 import kubernetes
 from airflow.models.baseoperator import BaseOperator
 from datetime import datetime
-from lib.k8s.config import k8s_load_config, k8s_namespace
+from lib import config
 
 
 class K8sDeploymentRestartOperator(BaseOperator):
@@ -10,19 +10,21 @@ class K8sDeploymentRestartOperator(BaseOperator):
 
     def __init__(
         self,
+        k8s_context: str,
         deployment: str,
         **kwargs
     ) -> None:
         super().__init__(**kwargs)
+        self.k8s_context = k8s_context
         self.deployment = deployment
 
-    def execute(self, context):
+    def execute(self, _):
         now = str(datetime.utcnow().isoformat('T') + 'Z')
-        k8s_load_config()
+        config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
             name=self.deployment,
-            namespace=k8s_namespace,
+            namespace=config.k8s_namespace,
             body={
                 'spec': {
                     'template': {

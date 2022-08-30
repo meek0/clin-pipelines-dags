@@ -17,14 +17,14 @@ docker compose up
 Web UI credentials :
 
 - Username : `airflow`
-
 - Password : `airflow`
 
 Create Airflow variables :
 
-- `environment`
-
-- `kubernetes_namespace`
+- environment : `qa`
+- kubernetes_namespace : `cqgc-qa`
+- kubernetes_context_default : `kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc`
+- kubernetes_context_etl : `kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc`
 
 Get scheduler container shell :
 

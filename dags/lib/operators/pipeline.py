@@ -1,6 +1,6 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
-from lib.etl import config
+from lib import config
 from lib.utils import join
 
 
@@ -18,18 +18,21 @@ class PipelineOperator(KubernetesPodOperator):
         color: str = '',
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
-        self.k8s_context = k8s_context
+        super().__init__(
+            is_delete_operator_pod=True,
+            in_cluster=config.k8s_in_cluster(k8s_context),
+            config_file=config.k8s_config_file(k8s_context),
+            cluster_context=config.k8s_cluster_context(k8s_context),
+            namespace=config.k8s_namespace,
+            image=config.pipeline_image,
+            **kwargs,
+        )
         self.aws_bucket = aws_bucket
         self.color = color
 
     def execute(self, **kwargs):
         env = config.environment
 
-        self.is_delete_operator_pod = True
-        self.namespace = config.k8s_namespace
-        self.cluster_context = config.k8s_context[self.k8s_context]
-        self.image = config.pipeline_image
         self.cmds = [
             '/opt/entrypoint/entrypoint.sh',
             'java', '-cp', 'clin-pipelines.jar',

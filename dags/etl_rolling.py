@@ -3,10 +3,10 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.etl import config
-from lib.etl.config import K8sContext
-from lib.etl.operators.curl import CurlOperator
-from lib.k8s.operators.deployment_restart import K8sDeploymentRestartOperator
+from lib import config
+from lib.config import K8sContext
+from lib.operators.curl import CurlOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 
 
 with DAG(
