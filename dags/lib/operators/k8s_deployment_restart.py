@@ -18,7 +18,7 @@ class K8sDeploymentRestartOperator(BaseOperator):
         self.k8s_context = k8s_context
         self.deployment = deployment
 
-    def execute(self, _):
+    def execute(self, context):
         now = str(datetime.utcnow().isoformat('T') + 'Z')
         config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.AppsV1Api()

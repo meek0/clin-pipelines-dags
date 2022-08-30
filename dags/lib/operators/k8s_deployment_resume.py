@@ -17,7 +17,7 @@ class K8sDeploymentResumeOperator(BaseOperator):
         self.k8s_context = k8s_context
         self.deployment = deployment
 
-    def execute(self, _):
+    def execute(self, context):
         config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.AppsV1Api()
         k8s_client.patch_namespaced_deployment(
