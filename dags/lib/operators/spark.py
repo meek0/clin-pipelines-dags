@@ -22,7 +22,7 @@ class SparkOperator(KubernetesPodOperator):
         **kwargs,
     ) -> None:
         super().__init__(
-            is_delete_operator_pod=True,
+            is_delete_operator_pod=False, # TODO True
             in_cluster=config.k8s_in_cluster(k8s_context),
             config_file=config.k8s_config_file(k8s_context),
             cluster_context=config.k8s_cluster_context(k8s_context),
@@ -136,9 +136,10 @@ class SparkOperator(KubernetesPodOperator):
                 namespace=self.pod.metadata.namespace,
             )
             logging.info(f'Spark job log:\n{log}')
-            k8s_client.delete_namespaced_pod(
-                name=f'{self.pod.metadata.name}-driver',
-                namespace=self.pod.metadata.namespace,
-            )
+            # TODO uncomment
+            # k8s_client.delete_namespaced_pod(
+            #     name=f'{self.pod.metadata.name}-driver',
+            #     namespace=self.pod.metadata.namespace,
+            # )
             if pod.items[0].status.phase != 'Succeeded':
                 raise AirflowFailException('Spark job failed')
