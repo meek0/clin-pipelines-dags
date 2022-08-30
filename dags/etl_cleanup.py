@@ -123,9 +123,9 @@ with DAG(
         ],
     )
 
-    wait_120 = WaitOperator(
-        task_id='wait_120',
-        time='120',
+    wait_2m = WaitOperator(
+        task_id='wait_2m',
+        time='2m',
     )
 
     fhir_ig_publish = FhirOperator(
@@ -135,9 +135,9 @@ with DAG(
         color=color(),
     )
 
-    wait_30 = WaitOperator(
-        task_id='wait_30',
-        time='30',
+    wait_30s = WaitOperator(
+        task_id='wait_30s',
+        time='30s',
     )
 
     fhir_csv_import = FhirCsvOperator(
@@ -148,4 +148,4 @@ with DAG(
         arguments=['-f', 'nanuq.yml'],
     )
 
-    params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_120 >> fhir_ig_publish >> wait_30 >> fhir_csv_import
+    params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m >> fhir_ig_publish >> wait_30s >> fhir_csv_import
