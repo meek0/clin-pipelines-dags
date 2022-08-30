@@ -49,6 +49,7 @@ with DAG(
 
     fhir_pause = K8sDeploymentPauseOperator(
         task_id='fhir_pause',
+        k8s_context=K8sContext.DEFAULT,
         deployment='fhir-server' + color('-'),
     )
 
@@ -73,11 +74,13 @@ with DAG(
 
     fhir_resume = K8sDeploymentResumeOperator(
         task_id='fhir_resume',
+        k8s_context=K8sContext.DEFAULT,
         deployment='fhir-server' + color('-'),
     )
 
     fhir_restart = K8sDeploymentRestartOperator(
         task_id='fhir_restart',
+        k8s_context=K8sContext.DEFAULT,
         deployment='fhir-server' + color('-'),
     )
 

@@ -85,6 +85,7 @@ with DAG(
 
     arranger_restart = K8sDeploymentRestartOperator(
         task_id='arranger_restart',
+        k8s_context=K8sContext.DEFAULT,
         deployment='arranger',
     )
 
