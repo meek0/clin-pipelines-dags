@@ -14,7 +14,7 @@ with DAG(
         task_id='test_pod_operator_default',
         is_delete_operator_pod=False,
         in_cluster=False,
-        # config_file='/home/airflow/.kube/config',
+        config_file='/home/airflow/.kube/config',
         cluster_context='airflow-cluster.qa.cqgc@cluster.qa.cqgc',
         namespace=config.k8s_namespace,
         name='test-pod-operator-default',
