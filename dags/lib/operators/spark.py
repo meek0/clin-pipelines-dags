@@ -22,7 +22,7 @@ class SparkOperator(KubernetesPodOperator):
         **kwargs,
     ) -> None:
         super().__init__(
-            is_delete_operator_pod=False, # TODO True
+            is_delete_operator_pod=False,
             in_cluster=config.k8s_in_cluster(k8s_context),
             config_file=config.k8s_config_file(k8s_context),
             cluster_context=config.k8s_cluster_context(k8s_context),
@@ -125,21 +125,36 @@ class SparkOperator(KubernetesPodOperator):
 
         config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.CoreV1Api()
-        pod = k8s_client.list_namespaced_pod(
+
+        # Get driver pod log and delete driver pod
+        driver_pod = k8s_client.list_namespaced_pod(
             namespace=self.pod.metadata.namespace,
             field_selector=f'metadata.name={self.pod.metadata.name}-driver',
             limit=1,
         )
-        if pod.items:
+        if driver_pod.items:
             log = k8s_client.read_namespaced_pod_log(
                 name=f'{self.pod.metadata.name}-driver',
                 namespace=self.pod.metadata.namespace,
             )
             logging.info(f'Spark job log:\n{log}')
-            # TODO uncomment
-            # k8s_client.delete_namespaced_pod(
-            #     name=f'{self.pod.metadata.name}-driver',
-            #     namespace=self.pod.metadata.namespace,
-            # )
-            if pod.items[0].status.phase != 'Succeeded':
-                raise AirflowFailException('Spark job failed')
+            k8s_client.delete_namespaced_pod(
+                name=f'{self.pod.metadata.name}-driver',
+                namespace=self.pod.metadata.namespace,
+            )
+
+        # Delete pod
+        pod = k8s_client.list_namespaced_pod(
+            namespace=self.pod.metadata.namespace,
+            field_selector=f'metadata.name={self.pod.metadata.name}',
+            limit=1,
+        )
+        if pod.items:
+            k8s_client.delete_namespaced_pod(
+                name=self.pod.metadata.name,
+                namespace=self.pod.metadata.namespace,
+            )
+
+        # Fail task if driver pod failed
+        if driver_pod.items[0].status.phase != 'Succeeded':
+            raise AirflowFailException('Spark job failed')
