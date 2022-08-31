@@ -54,7 +54,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         arguments=[
             '-f', '-X', 'POST', 'http://elasticsearch:9200/_aliases',
-            '-H', '"Content-Type: application/json"', '-d',
+            '-H', 'Content-Type: application/json', '-d',
             '''
             {{
                 "actions": [
