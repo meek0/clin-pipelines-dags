@@ -115,11 +115,11 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         arguments=[
             's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
-            f's3://cqgc-{env}-app-datalake/', '--recursive', '--exclude', '"*"',
-            '--include', '"normalized/*"',
-            '--include', '"enriched/*"',
-            '--include', '"raw/landing/fhir/*"',
-            '--include', '"es_index/*"',
+            f's3://cqgc-{env}-app-datalake/', '--recursive', '--exclude', '*',
+            '--include', 'normalized/*',
+            '--include', 'enriched/*',
+            '--include', 'raw/landing/fhir/*',
+            '--include', 'es_index/*',
         ],
     )
 
