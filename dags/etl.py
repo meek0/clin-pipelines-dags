@@ -18,6 +18,7 @@ with DAG(
         'batch_id':  Param('', type='string'),
         'release': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
+        'notify': Param('yes', enum=['yes', 'no']),
     },
 ) as dag:
 
@@ -31,6 +32,9 @@ with DAG(
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def skip_notify() -> str:
+        return '{% if params.notify == "yes" %}{% else %}yes{% endif %}'
 
     def _params_validate(batch_id, release, color):
         if batch_id == '':
@@ -397,6 +401,7 @@ with DAG(
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
+        skip=skip_notify(),
     )
 
     params_validate >> ingest >> enrich >> prepare >> index >> publish >> notify

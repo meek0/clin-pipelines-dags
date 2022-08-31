@@ -1,3 +1,4 @@
+from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
@@ -9,6 +10,7 @@ class PipelineOperator(KubernetesPodOperator):
     template_fields = KubernetesPodOperator.template_fields + (
         'aws_bucket',
         'color',
+        'skip',
     )
 
     def __init__(
@@ -16,6 +18,7 @@ class PipelineOperator(KubernetesPodOperator):
         k8s_context: str,
         aws_bucket: str = '',
         color: str = '',
+        skip: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -29,8 +32,12 @@ class PipelineOperator(KubernetesPodOperator):
         )
         self.aws_bucket = aws_bucket
         self.color = color
+        self.skip = skip
 
     def execute(self, **kwargs):
+        if self.skip:
+            raise AirflowSkipException()
+
         env = config.environment
 
         self.cmds = [
