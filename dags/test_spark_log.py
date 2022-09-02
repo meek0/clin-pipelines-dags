@@ -16,8 +16,8 @@ with DAG(
         name='test-spark-log',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fail.Fail',
-        spark_config='raw-fhir-etl',
-        arguments=[f'config/{config.environment}.conf', 'initial', 'all'],
+        spark_config='enriched-etl',
+        arguments=[f'config/{config.environment}.conf', 'default'],
     )
 
     test_spark_log

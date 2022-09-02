@@ -35,10 +35,10 @@ class PipelineOperator(KubernetesPodOperator):
         self.skip = skip
 
     def execute(self, **kwargs):
+        env = config.environment
+
         if self.skip:
             raise AirflowSkipException()
-
-        env = config.environment
 
         self.cmds = [
             '/opt/entrypoint/entrypoint.sh',

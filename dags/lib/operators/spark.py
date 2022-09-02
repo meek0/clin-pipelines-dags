@@ -1,17 +1,14 @@
 import kubernetes
 import logging
 from airflow.exceptions import AirflowFailException
+from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
+from typing import List
 
 
 class SparkOperator(KubernetesPodOperator):
-
-    template_fields = KubernetesPodOperator.template_fields + (
-        'spark_config',
-        'spark_secret',
-    )
 
     def __init__(
         self,
@@ -19,6 +16,8 @@ class SparkOperator(KubernetesPodOperator):
         spark_class: str,
         spark_config: str = '',
         spark_secret: str = '',
+        skip_env: List[str] = [],
+        skip_fail_env: List[str] = [],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -35,8 +34,15 @@ class SparkOperator(KubernetesPodOperator):
         self.spark_class = spark_class
         self.spark_config = spark_config
         self.spark_secret = spark_secret
+        self.skip_env = skip_env
+        self.skip_fail_env = skip_fail_env
 
     def execute(self, **kwargs):
+        env = config.environment
+
+        if env in self.skip_env:
+            raise AirflowSkipException()
+
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
@@ -157,4 +163,7 @@ class SparkOperator(KubernetesPodOperator):
 
         # Fail task if driver pod failed
         if driver_pod.items[0].status.phase != 'Succeeded':
-            raise AirflowFailException('Spark job failed')
+            if env in self.skip_fail_env:
+                raise AirflowSkipException()
+            else:
+                raise AirflowFailException('Spark job failed')
