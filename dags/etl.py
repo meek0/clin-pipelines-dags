@@ -6,6 +6,7 @@ from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib import config
 from lib.config import K8sContext
+from lib.etl import qc_group
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -16,7 +17,7 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id':  Param('', type='string'),
-        'release': Param('', type='string'),
+        'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'notify': Param('yes', enum=['yes', 'no']),
     },
@@ -27,8 +28,8 @@ with DAG(
     def batch_id() -> str:
         return '{{ params.batch_id }}'
 
-    def release() -> str:
-        return '{{ params.release }}'
+    def release_id() -> str:
+        return '{{ params.release_id }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
@@ -36,11 +37,11 @@ with DAG(
     def skip_notify() -> str:
         return '{% if params.notify == "yes" %}{% else %}yes{% endif %}'
 
-    def _params_validate(batch_id, release, color):
+    def _params_validate(batch_id, release_id, color):
         if batch_id == '':
             raise AirflowFailException('DAG param "batch_id" is required')
-        if release == '':
-            raise AirflowFailException('DAG param "release" is required')
+        if release_id == '':
+            raise AirflowFailException('DAG param "release_id" is required')
         if env == 'qa':
             if color == '':
                 raise AirflowFailException(
@@ -54,7 +55,7 @@ with DAG(
 
     params_validate = PythonOperator(
         task_id='params_validate',
-        op_args=[batch_id(), release(), color()],
+        op_args=[batch_id(), release_id(), color()],
         python_callable=_params_validate,
     )
 
@@ -185,7 +186,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{env}.conf', 'initial', 'gene_centric', release(),
+                f'config/{env}.conf', 'initial', 'gene_centric', release_id(),
             ],
         )
 
@@ -196,7 +197,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{env}.conf', 'initial', 'gene_suggestions', release(),
+                f'config/{env}.conf', 'initial', 'gene_suggestions', release_id(),
             ],
         )
 
@@ -207,7 +208,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{env}.conf', 'initial', 'variant_centric', release(),
+                f'config/{env}.conf', 'initial', 'variant_centric', release_id(),
             ],
         )
 
@@ -218,7 +219,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{env}.conf', 'initial', 'variant_suggestions', release(),
+                f'config/{env}.conf', 'initial', 'variant_suggestions', release_id(),
             ],
         )
 
@@ -229,11 +230,16 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
             arguments=[
-                f'config/{env}.conf', 'initial', 'cnv_centric', release(),
+                f'config/{env}.conf', 'initial', 'cnv_centric', release_id(),
             ],
         )
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+
+    qc = qc_group(
+        group_id='qc',
+        release_id=release_id(),
+    )
 
     with TaskGroup(group_id='index') as index:
 
@@ -246,7 +252,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
-                release(),
+                release_id(),
                 'gene_centric_template.json',
                 'gene_centric',
                 '1900-01-01 00:00:00',
@@ -263,7 +269,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestion',
-                release(),
+                release_id(),
                 'gene_suggestions_template.json',
                 'gene_suggestions',
                 '1900-01-01 00:00:00',
@@ -280,7 +286,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
-                release(),
+                release_id(),
                 'variant_centric_template.json',
                 'variant_centric',
                 '1900-01-01 00:00:00',
@@ -297,7 +303,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
-                release(),
+                release_id(),
                 'variant_suggestions_template.json',
                 'variant_suggestions',
                 '1900-01-01 00:00:00',
@@ -314,7 +320,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
-                release(),
+                release_id(),
                 'cnv_centric_template.json',
                 'cnv_centric',
                 '1900-01-01 00:00:00',
@@ -335,7 +341,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
-                release(),
+                release_id(),
             ],
         )
 
@@ -348,7 +354,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
-                release(),
+                release_id(),
             ],
         )
 
@@ -361,7 +367,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
-                release(),
+                release_id(),
             ],
         )
 
@@ -374,7 +380,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
-                release(),
+                release_id(),
             ],
         )
 
@@ -387,7 +393,7 @@ with DAG(
             arguments=[
                 'http://elasticsearch:9200', '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
-                release(),
+                release_id(),
             ],
         )
 
@@ -404,4 +410,4 @@ with DAG(
         skip=skip_notify(),
     )
 
-    params_validate >> ingest >> enrich >> prepare >> index >> publish >> notify
+    params_validate >> ingest >> enrich >> prepare >> qc >> index >> publish >> notify

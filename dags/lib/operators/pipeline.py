@@ -35,15 +35,16 @@ class PipelineOperator(KubernetesPodOperator):
         self.skip = skip
 
     def execute(self, **kwargs):
+        env = config.environment
+
         if self.skip:
             raise AirflowSkipException()
-
-        env = config.environment
 
         self.cmds = [
             '/opt/entrypoint/entrypoint.sh',
             'java', '-cp', 'clin-pipelines.jar',
         ]
+        self.image_pull_policy = 'Always'
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
