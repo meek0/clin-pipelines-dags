@@ -44,6 +44,7 @@ class PipelineOperator(KubernetesPodOperator):
             '/opt/entrypoint/entrypoint.sh',
             'java', '-cp', 'clin-pipelines.jar',
         ]
+        self.image_pull_policy = 'Always'
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
