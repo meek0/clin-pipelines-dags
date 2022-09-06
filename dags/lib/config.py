@@ -28,7 +28,7 @@ fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
 spark_image = 'ferlabcrsj/spark:3.1.2'
-spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.15/clin-variant-etl.jar'
+spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.16/clin-variant-etl.jar'
 
 if environment == Env.QA:
     k8s_context = {
