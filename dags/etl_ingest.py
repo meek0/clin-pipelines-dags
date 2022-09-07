@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib import config
 from lib.config import Env
-from lib.etl import ingest_group
+from lib.groups.ingest import ingest
 
 
 env = config.environment
@@ -46,7 +46,7 @@ if env == Env.QA:
             python_callable=_params_validate,
         )
 
-        ingest = ingest_group(
+        ingest = ingest(
             group_id='ingest',
             batch_id=batch_id(),
             color=color(),

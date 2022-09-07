@@ -4,7 +4,7 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib import config
-from lib.etl import qc_group
+from lib.groups.qc import qc
 
 
 with DAG(
@@ -31,7 +31,7 @@ with DAG(
         python_callable=_params_validate,
     )
 
-    qc = qc_group(
+    qc = qc(
         group_id='qc',
         release_id=release_id(),
     )

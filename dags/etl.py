@@ -6,7 +6,8 @@ from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib import config
 from lib.config import Env, K8sContext
-from lib.etl import ingest_group, qc_group
+from lib.groups.ingest import ingest
+from lib.groups.qc import qc
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -59,7 +60,7 @@ with DAG(
         python_callable=_params_validate,
     )
 
-    ingest = ingest_group(
+    ingest = ingest(
         group_id='ingest',
         batch_id=batch_id(),
         color=color(),
@@ -161,7 +162,7 @@ with DAG(
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
-    qc = qc_group(
+    qc = qc(
         group_id='qc',
         release_id=release_id(),
     )
