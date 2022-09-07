@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib import config
-from lib.config import K8sContext
+from lib.config import Env, K8sContext
 from lib.etl import ingest_group, qc_group
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
@@ -42,7 +42,7 @@ with DAG(
             raise AirflowFailException('DAG param "batch_id" is required')
         if release_id == '':
             raise AirflowFailException('DAG param "release_id" is required')
-        if env == 'qa':
+        if env == Env.QA:
             if color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
