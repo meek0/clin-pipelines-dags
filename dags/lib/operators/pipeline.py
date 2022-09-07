@@ -1,5 +1,6 @@
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
 from lib.utils import join
@@ -22,6 +23,7 @@ class PipelineOperator(KubernetesPodOperator):
         **kwargs,
     ) -> None:
         super().__init__(
+            trigger_rule=TriggerRule.NONE_FAILED,
             is_delete_operator_pod=True,
             in_cluster=config.k8s_in_cluster(k8s_context),
             config_file=config.k8s_config_file(k8s_context),

@@ -1,5 +1,6 @@
 import kubernetes
 from airflow.models.baseoperator import BaseOperator
+from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib import config
 
@@ -14,7 +15,10 @@ class K8sDeploymentRestartOperator(BaseOperator):
         deployment: str,
         **kwargs
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(
+            trigger_rule=TriggerRule.NONE_FAILED,
+            **kwargs,
+        )
         self.k8s_context = k8s_context
         self.deployment = deployment
 
