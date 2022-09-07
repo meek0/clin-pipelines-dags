@@ -12,7 +12,7 @@ env = config.environment
 if env == Env.QA:
 
     with DAG(
-        dag_id='etl_qc',
+        dag_id='etl_ingest',
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         params={
