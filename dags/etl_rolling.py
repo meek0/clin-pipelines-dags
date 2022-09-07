@@ -89,4 +89,4 @@ with DAG(
         deployment='arranger',
     )
 
-    es_indices_swap >> arranger_restart
+    params_validate >> es_indices_swap >> arranger_restart
