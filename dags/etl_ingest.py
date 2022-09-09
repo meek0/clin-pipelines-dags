@@ -3,12 +3,10 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib import config
-from lib.config import Env
+from lib.config import env, Env
 from lib.groups.ingest import ingest
 
 
-env = config.environment
 if env == Env.QA:
 
     with DAG(
