@@ -1,6 +1,5 @@
 from airflow.utils.task_group import TaskGroup
-from lib import config
-from lib.config import K8sContext
+from lib.config import env, K8sContext
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -10,8 +9,6 @@ def ingest(
     batch_id: str,
     color: str,
 ) -> TaskGroup:
-
-    env = config.environment
 
     with TaskGroup(group_id=group_id) as group:
 

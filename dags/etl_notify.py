@@ -3,8 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib import config
-from lib.config import Env, K8sContext
+from lib.config import env, Env, K8sContext
 from lib.operators.pipeline import PipelineOperator
 
 
@@ -17,8 +16,6 @@ with DAG(
         'color': Param('', enum=['', 'blue', 'green']),
     },
 ) as dag:
-
-    env = config.environment
 
     def batch_id() -> str:
         return '{{ params.batch_id }}'

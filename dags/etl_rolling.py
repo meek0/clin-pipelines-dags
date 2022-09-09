@@ -3,13 +3,11 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib import config
-from lib.config import Env, K8sContext
+from lib.config import env, Env, K8sContext
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 
 
-env = config.environment
 if env == Env.QA:
 
     with DAG(

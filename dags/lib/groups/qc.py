@@ -1,6 +1,5 @@
 from airflow.utils.task_group import TaskGroup
-from lib import config
-from lib.config import Env, K8sContext
+from lib.config import env, Env, K8sContext
 from lib.operators.spark import SparkOperator
 
 
@@ -8,8 +7,6 @@ def qc(
     group_id: str,
     release_id: str,
 ) -> TaskGroup:
-
-    env = config.environment
 
     with TaskGroup(group_id=group_id) as group:
 

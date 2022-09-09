@@ -3,7 +3,6 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib import config
 from lib.groups.qc import qc
 
 
@@ -15,8 +14,6 @@ with DAG(
         'release_id': Param('', type='string'),
     },
 ) as dag:
-
-    env = config.environment
 
     def release_id() -> str:
         return '{{ params.release_id }}'

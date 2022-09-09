@@ -4,8 +4,7 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from datetime import datetime
-from lib import config
-from lib.config import Env, K8sContext
+from lib.config import env, Env, K8sContext
 from lib.groups.ingest import ingest
 from lib.groups.qc import qc
 from lib.operators.pipeline import PipelineOperator
@@ -23,8 +22,6 @@ with DAG(
         'notify': Param('yes', enum=['yes', 'no']),
     },
 ) as dag:
-
-    env = config.environment
 
     def batch_id() -> str:
         return '{{ params.batch_id }}'

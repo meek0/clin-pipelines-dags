@@ -6,6 +6,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
+from lib.config import env
 from typing import List
 
 
@@ -40,7 +41,6 @@ class SparkOperator(KubernetesPodOperator):
         self.skip_fail_env = skip_fail_env
 
     def execute(self, **kwargs):
-        env = config.environment
 
         if env in self.skip_env:
             raise AirflowSkipException()

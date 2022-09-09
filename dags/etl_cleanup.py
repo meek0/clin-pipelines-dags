@@ -3,8 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib import config
-from lib.config import Env, K8sContext
+from lib.config import env, Env, K8sContext
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
 from lib.operators.fhir import FhirOperator
@@ -16,7 +15,6 @@ from lib.operators.postgres import PostgresOperator
 from lib.operators.wait import WaitOperator
 
 
-env = config.environment
 if env != Env.PROD:
 
     with DAG(

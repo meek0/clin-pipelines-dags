@@ -2,6 +2,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
+from lib.config import env
 from lib.utils import join
 
 
@@ -30,7 +31,6 @@ class PostgresOperator(KubernetesPodOperator):
         self.color = color
 
     def execute(self, **kwargs):
-        env = config.environment
 
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(

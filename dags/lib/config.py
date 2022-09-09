@@ -14,7 +14,7 @@ class K8sContext:
     ETL = 'etl'
 
 
-environment = Variable.get('environment')
+env = Variable.get('environment')
 k8s_namespace = Variable.get('kubernetes_namespace')
 k8s_context_default = Variable.get('kubernetes_context_default', '')
 k8s_context_etl = Variable.get('kubernetes_context_etl', '')
@@ -30,23 +30,23 @@ postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d8411
 spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.16/clin-variant-etl.jar'
 
-if environment == Env.QA:
+if env == Env.QA:
     k8s_context = {
         K8sContext.DEFAULT: 'airflow-cluster.qa.cqgc@cluster.qa.cqgc',
         K8sContext.ETL: '',
     }
-elif environment == Env.STAGING:
+elif env == Env.STAGING:
     k8s_context = {
         K8sContext.DEFAULT: 'airflow-cluster.staging.cqgc@cluster.staging.cqgc',
         K8sContext.ETL: '',
     }
-elif environment == Env.PROD:
+elif env == Env.PROD:
     k8s_context = {
         K8sContext.DEFAULT: 'airflow-cluster.prod.cqgc@cluster.prod.cqgc',
         K8sContext.ETL: '',
     }
 else:
-    raise AirflowConfigException(f'Unexpected environment "{environment}"')
+    raise AirflowConfigException(f'Unexpected environment "{env}"')
 
 if k8s_context_default:
     k8s_context[K8sContext.DEFAULT] = k8s_context_default

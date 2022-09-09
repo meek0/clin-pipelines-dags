@@ -1,7 +1,6 @@
 from airflow import DAG
 from datetime import datetime
-from lib import config
-from lib.config import K8sContext
+from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 
 
@@ -10,8 +9,6 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
 ) as dag:
-
-    env = config.environment
 
     etl_reset_enrich_variants = SparkOperator(
         task_id='etl_reset_enrich_variants',
