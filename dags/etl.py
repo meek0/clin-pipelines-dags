@@ -48,11 +48,10 @@ with DAG(
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        else:
-            if color != '':
-                raise AirflowFailException(
-                    f'DAG param "color" is forbidden in {env} environment'
-                )
+        elif color != '':
+            raise AirflowFailException(
+                f'DAG param "color" is forbidden in {env} environment'
+            )
 
     params_validate = PythonOperator(
         task_id='params_validate',
