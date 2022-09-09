@@ -37,6 +37,11 @@ if env != Env.PROD:
                     raise AirflowFailException(
                         f'DAG param "color" is required in {env} environment'
                     )
+            elif env == Env.STAGING:
+                if color != '':
+                    raise AirflowFailException(
+                        f'DAG param "color" is forbidden in {env} environment'
+                    )
             else:
                 raise AirflowFailException(
                     f'DAG run is forbidden in {env} environment'
