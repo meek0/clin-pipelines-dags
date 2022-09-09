@@ -17,7 +17,7 @@ from lib.operators.wait import WaitOperator
 
 
 env = config.environment
-if env == Env.QA:
+if env != Env.PROD:
 
     with DAG(
         dag_id='etl_cleanup',
