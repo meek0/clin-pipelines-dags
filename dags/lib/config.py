@@ -21,6 +21,7 @@ k8s_context_etl = Variable.get('kubernetes_context_etl', '')
 
 k8s_config = '~/.kube/config'
 k8s_service_account = 'spark'
+arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
 curl_image = 'curlimages/curl'
 fhir_image = 'ferlabcrsj/clin-fhir'

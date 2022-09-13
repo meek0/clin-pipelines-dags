@@ -7,6 +7,8 @@ from datetime import datetime
 from lib.config import env, Env, K8sContext
 from lib.groups.ingest import ingest
 from lib.groups.qc import qc
+from lib.operators.arranger import ArrangerOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -19,7 +21,7 @@ with DAG(
         'batch_id':  Param('', type='string'),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
-        'notify': Param('yes', enum=['yes', 'no']),
+        'notify': Param('no', enum=['yes', 'no']),
     },
 ) as dag:
 
@@ -319,17 +321,36 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+        arranger_remove_project = ArrangerOperator(
+            task_id='arranger_remove_project',
+            name='etl-publish-arranger-remove-project',
+            k8s_context=K8sContext.DEFAULT,
+            cmds=[
+                'node',
+                '--experimental-modules=node',
+                '--es-module-specifier-resolution=node',
+                'cmd/remove_project.js',
+                env,
+            ],
+        )
+
+        arranger_restart = K8sDeploymentRestartOperator(
+            task_id='arranger_restart',
+            k8s_context=K8sContext.DEFAULT,
+            deployment='arranger',
+        )
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_remove_project >> arranger_restart
 
     notify = PipelineOperator(
         task_id='notify',
         name='etl-notify',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
+        skip=skip_notify(),
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
-        skip=skip_notify(),
     )
 
     params_validate >> ingest >> enrich >> prepare >> qc >> index >> publish >> notify
