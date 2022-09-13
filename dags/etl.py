@@ -21,7 +21,7 @@ with DAG(
         'batch_id':  Param('', type='string'),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
-        'notify': Param('yes', enum=['yes', 'no']),
+        'notify': Param('no', enum=['yes', 'no']),
     },
 ) as dag:
 
@@ -347,10 +347,10 @@ with DAG(
         name='etl-notify',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
+        skip=skip_notify(),
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
-        skip=skip_notify(),
     )
 
     params_validate >> ingest >> enrich >> prepare >> qc >> index >> publish >> notify
