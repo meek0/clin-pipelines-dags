@@ -7,6 +7,8 @@ from datetime import datetime
 from lib.config import env, Env, K8sContext
 from lib.groups.ingest import ingest
 from lib.groups.qc import qc
+from lib.operators.arranger import ArrangerOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -319,7 +321,26 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+        arranger_remove_project = ArrangerOperator(
+            task_id='arranger_remove_project',
+            name='etl-publish-arranger-remove-project',
+            k8s_context=K8sContext.DEFAULT,
+            cmds=[
+                'node',
+                '--experimental-modules=node',
+                '--es-module-specifier-resolution=node',
+                'cmd/remove_project.js',
+                env,
+            ],
+        )
+
+        arranger_restart = K8sDeploymentRestartOperator(
+            task_id='arranger_restart',
+            k8s_context=K8sContext.DEFAULT,
+            deployment='arranger',
+        )
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_remove_project >> arranger_restart
 
     notify = PipelineOperator(
         task_id='notify',
