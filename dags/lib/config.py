@@ -15,12 +15,20 @@ class K8sContext:
 
 
 env = Variable.get('environment')
-k8s_namespace = Variable.get('kubernetes_namespace')
-k8s_context_default = Variable.get('kubernetes_context_default', '')
-k8s_context_etl = Variable.get('kubernetes_context_etl', '')
 
-k8s_config = '~/.kube/config'
-k8s_service_account = 'spark'
+if env not in [Env.QA, Env.STAGING, Env.PROD]:
+    raise AirflowConfigException(f'Unexpected environment "{env}"')
+
+k8s_namespace = Variable.get('kubernetes_namespace')
+k8s_context = {
+    K8sContext.DEFAULT: Variable.get('kubernetes_context_default', f'airflow-cluster.{env}.cqgc@cluster.{env}.cqgc'),
+    K8sContext.ETL: Variable.get('kubernetes_context_etl', None),
+}
+
+spark_service_account = 'spark'
+spark_image = 'ferlabcrsj/spark:3.1.2'
+spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.16/clin-variant-etl.jar'
+
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
 curl_image = 'curlimages/curl'
@@ -28,51 +36,25 @@ fhir_image = 'ferlabcrsj/clin-fhir'
 fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
-spark_image = 'ferlabcrsj/spark:3.1.2'
-spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.16/clin-variant-etl.jar'
-
-if env == Env.QA:
-    k8s_context = {
-        K8sContext.DEFAULT: 'airflow-cluster.qa.cqgc@cluster.qa.cqgc',
-        K8sContext.ETL: '',
-    }
-elif env == Env.STAGING:
-    k8s_context = {
-        K8sContext.DEFAULT: 'airflow-cluster.staging.cqgc@cluster.staging.cqgc',
-        K8sContext.ETL: '',
-    }
-elif env == Env.PROD:
-    k8s_context = {
-        K8sContext.DEFAULT: 'airflow-cluster.prod.cqgc@cluster.prod.cqgc',
-        K8sContext.ETL: '',
-    }
-else:
-    raise AirflowConfigException(f'Unexpected environment "{env}"')
-
-if k8s_context_default:
-    k8s_context[K8sContext.DEFAULT] = k8s_context_default
-
-if k8s_context_etl:
-    k8s_context[K8sContext.ETL] = k8s_context_etl
 
 
 def k8s_in_cluster(context: str) -> bool:
-    return True if k8s_context[context] == '' else False
+    return not k8s_context[context]
 
 
 def k8s_config_file(context: str) -> str:
-    return k8s_config if k8s_context[context] != '' else None
+    return None if not k8s_context[context] else '~/.kube/config'
 
 
 def k8s_cluster_context(context: str) -> str:
-    return k8s_context[context] if k8s_context[context] != '' else None
+    return k8s_context[context]
 
 
 def k8s_load_config(context: str) -> None:
-    if k8s_context[context] == '':
+    if not k8s_context[context]:
         kubernetes.config.load_incluster_config()
     else:
         kubernetes.config.load_kube_config(
-            config_file=k8s_config,
+            config_file=k8s_config_file(context),
             context=k8s_context[context],
         )

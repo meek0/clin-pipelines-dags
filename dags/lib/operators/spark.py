@@ -29,7 +29,7 @@ class SparkOperator(KubernetesPodOperator):
             config_file=config.k8s_config_file(k8s_context),
             cluster_context=config.k8s_cluster_context(k8s_context),
             namespace=config.k8s_namespace,
-            service_account_name=config.k8s_service_account,
+            service_account_name=config.spark_service_account,
             image=config.spark_image,
             **kwargs,
         )
