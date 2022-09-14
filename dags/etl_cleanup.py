@@ -6,8 +6,6 @@ from datetime import datetime
 from lib.config import env, Env, K8sContext
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
-from lib.operators.fhir import FhirOperator
-from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.k8s_deployment_resume import K8sDeploymentResumeOperator
@@ -132,24 +130,4 @@ if env != Env.PROD:
             time='2m',
         )
 
-        fhir_ig_publish = FhirOperator(
-            task_id='fhir_ig_publish',
-            name='etl-cleanup-fhir-init-ig-publish',
-            k8s_context=K8sContext.DEFAULT,
-            color=color(),
-        )
-
-        wait_30s = WaitOperator(
-            task_id='wait_30s',
-            time='30s',
-        )
-
-        fhir_csv_import = FhirCsvOperator(
-            task_id='fhir_csv_import',
-            name='etl-cleanup-fhir-csv-import',
-            k8s_context=K8sContext.DEFAULT,
-            color=color(),
-            arguments=['-f', 'nanuq.yml'],
-        )
-
-        params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m >> fhir_ig_publish >> wait_30s >> fhir_csv_import
+        params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m
