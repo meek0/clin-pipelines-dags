@@ -45,7 +45,7 @@ with DAG(
 
     fhir_ig_publish = FhirOperator(
         task_id='fhir_ig_publish',
-        name='etl-import-fhir-init-ig-publish',
+        name='etl-import-fhir-ig-publish',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
     )
