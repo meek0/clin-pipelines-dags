@@ -27,7 +27,7 @@ k8s_context = {
 
 spark_service_account = 'spark'
 spark_image = 'ferlabcrsj/spark:3.1.2'
-spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.16/clin-variant-etl.jar'
+spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.17/clin-variant-etl.jar'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
