@@ -25,6 +25,7 @@ Create Airflow variables (in the UI => Admin => Variables):
 - kubernetes_namespace : `cqgc-qa`
 - kubernetes_context_default : `kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc`
 - kubernetes_context_etl : `kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc`
+- show_test_dags : `yes`
 
 Get scheduler container shell :
 

@@ -25,6 +25,8 @@ k8s_context = {
     K8sContext.ETL: Variable.get('kubernetes_context_etl', None),
 }
 
+show_test_dags = Variable.get('show_test_dags', None) == 'yes'
+
 spark_service_account = 'spark'
 spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.17/clin-variant-etl.jar'

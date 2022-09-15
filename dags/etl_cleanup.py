@@ -13,7 +13,7 @@ from lib.operators.postgres import PostgresOperator
 from lib.operators.wait import WaitOperator
 
 
-if env != Env.PROD:
+if env in [Env.QA, Env.STAGING]:
 
     with DAG(
         dag_id='etl_cleanup',
