@@ -192,7 +192,7 @@ with DAG(
             spark_config='index-elasticsearch-etl',
             arguments=[
                 'http://elasticsearch:9200', '', '',
-                f'clin_{env}' + color('_') + '_gene_suggestion',
+                f'clin_{env}' + color('_') + '_gene_suggestions',
                 release_id(),
                 'gene_suggestions_template.json',
                 'gene_suggestions',
