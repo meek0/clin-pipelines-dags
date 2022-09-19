@@ -5,7 +5,7 @@ from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 
 
-if(config.show_test_dags):
+if (config.show_test_dags):
 
     with DAG(
         dag_id='test_spark_fail',
