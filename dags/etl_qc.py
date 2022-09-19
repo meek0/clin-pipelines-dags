@@ -3,11 +3,13 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
+from lib.doc import qc as doc
 from lib.groups.qc import qc
 
 
 with DAG(
     dag_id='etl_qc',
+    doc_md=doc.etl_qc,
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={

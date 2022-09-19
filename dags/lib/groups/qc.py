@@ -1,5 +1,6 @@
 from airflow.utils.task_group import TaskGroup
 from lib.config import env, Env, K8sContext
+from lib.doc import qc as doc
 from lib.operators.spark import SparkOperator
 
 
@@ -12,6 +13,7 @@ def qc(
 
         no_dup_snv = SparkOperator(
             task_id='no_dup_snv',
+            doc_md=doc.no_dup_snv,
             name='etl-qc-no-dup-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationSNV',
@@ -29,6 +31,7 @@ def qc(
             arguments=[f'clin_{env}', release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
+
         no_dup_variants = SparkOperator(
             task_id='no_dup_variants',
             name='etl-qc-no_dup_variants',

@@ -5,7 +5,7 @@ from lib import config
 from lib.config import K8sContext
 
 
-if(config.show_test_dags):
+if (config.show_test_dags):
 
     with DAG(
         dag_id='test_pod_operator_etl',
