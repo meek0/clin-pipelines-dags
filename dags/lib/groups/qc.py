@@ -24,7 +24,7 @@ def qc(
 
         no_dup_nor_variants = SparkOperator(
             task_id='no_dup_nor_variants',
-            name='etl-qc-no_dup_nor_variants',
+            name='etl-qc-no-dup-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
             spark_config='enriched-etl',
@@ -34,7 +34,7 @@ def qc(
 
         no_dup_variants = SparkOperator(
             task_id='no_dup_variants',
-            name='etl-qc-no_dup_variants',
+            name='etl-qc-no-dup-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariants',
             spark_config='enriched-etl',
@@ -54,7 +54,7 @@ def qc(
 
         same_list_snv_nor_variants = SparkOperator(
             task_id='same_list_snv_nor_variants',
-            name='etl-qc-same_list_snv_nor_variants',
+            name='etl-qc-same-list-snv-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndNorVariants',
             spark_config='enriched-etl',
@@ -74,7 +74,7 @@ def qc(
 
         same_list_variants_variant_centric = SparkOperator(
             task_id='same_list_variants_variant_centric',
-            name='etl-qc-same_list_variants_variant_centric',
+            name='etl-qc-same-list-variants-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenVariantsAndVariantCentric',
             spark_config='enriched-etl',
