@@ -39,7 +39,7 @@ if env not in [Env.QA, Env.STAGING, Env.PROD]:
 
 
 def environment(prefix: str = '') -> str:
-    return prefix + (env if env in [Env.QA, Env.STAGING] else None)
+    return (prefix + env if env in [Env.QA, Env.STAGING] else None)
 
 
 def k8s_in_cluster(context: str) -> bool:
