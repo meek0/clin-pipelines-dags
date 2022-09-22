@@ -1,11 +1,4 @@
 __pycache__
 .env
-.idea
-*.iml
-docker/esdata/*
-docker/kubeconfig/*.crt
-docker/kubeconfig/*.key
-docker/logs/*
 logs
 plugins
-venv
