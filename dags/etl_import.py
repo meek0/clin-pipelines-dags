@@ -1,4 +1,3 @@
-import csv
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
