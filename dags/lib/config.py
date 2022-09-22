@@ -38,6 +38,10 @@ if env not in [Env.QA, Env.STAGING, Env.PROD]:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
 
+def environment(prefix: str = '') -> str:
+    return prefix + (env if env in [Env.QA, Env.STAGING] else None)
+
+
 def k8s_in_cluster(context: str) -> bool:
     return not k8s_context[context]
 
