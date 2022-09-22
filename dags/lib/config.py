@@ -42,6 +42,10 @@ def environment(prefix: str = '') -> str:
     return (prefix + env if env in [Env.QA, Env.STAGING] else '')
 
 
+def csv_file_name() -> str:
+    return ('nanuq' if env in [Env.QA, Env.STAGING] else 'prod')
+
+
 def k8s_in_cluster(context: str) -> bool:
     return not k8s_context[context]
 
