@@ -44,7 +44,7 @@ def environment(prefix: str = '') -> str:
 def csv_file_name() -> str:
     return ('nanuq' if env in [Env.QA, Env.STAGING] else 'prod')
 
-def spark_jar_version() -> str:
+def spark_jar() -> str:
     version = ''
     if env == Env.QA:
         version = 'v2.3.23'
@@ -52,7 +52,7 @@ def spark_jar_version() -> str:
         version = 'v2.3.22'
     elif env == Env.PROD:
         version = 'v2.3.22'
-    return 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/' + version + '/clin-variant-etl.jar'
+    return f'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/{version}/clin-variant-etl.jar'
 
 def k8s_in_cluster(context: str) -> bool:
     return not k8s_context[context]
