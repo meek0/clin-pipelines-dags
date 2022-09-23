@@ -46,6 +46,7 @@ class SparkOperator(KubernetesPodOperator):
             raise AirflowSkipException()
 
         self.cmds = ['/opt/client-entrypoint.sh']
+        self.image_pull_policy = 'Always'
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
