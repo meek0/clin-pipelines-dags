@@ -62,7 +62,7 @@ class SparkOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='SPARK_JAR',
-                value=config.spark_jar,
+                value=config.spark_jar(),
             ),
             k8s.V1EnvVar(
                 name='SPARK_CLASS',

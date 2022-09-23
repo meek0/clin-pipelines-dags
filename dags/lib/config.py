@@ -30,13 +30,29 @@ fhir_image = 'ferlabcrsj/clin-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
 spark_image = 'ferlabcrsj/spark:3.1.2'
-spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.22/clin-variant-etl.jar'
 spark_service_account = 'spark'
 
 
 if env not in [Env.QA, Env.STAGING, Env.PROD]:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
+
+def environment(prefix: str = '') -> str:
+    return (prefix + env if env in [Env.QA, Env.STAGING] else '')
+
+
+def csv_file_name() -> str:
+    return ('nanuq' if env in [Env.QA, Env.STAGING] else 'prod')
+
+def spark_jar() -> str:
+    version = ''
+    if env == Env.QA:
+        version = 'v2.3.23'
+    elif env == Env.STAGING:
+        version = 'v2.3.22'
+    elif env == Env.PROD:
+        version = 'v2.3.22'
+    return f'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/{version}/clin-variant-etl.jar'
 
 def k8s_in_cluster(context: str) -> bool:
     return not k8s_context[context]

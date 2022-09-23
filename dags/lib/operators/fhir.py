@@ -2,7 +2,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import env
+from lib.config import env, environment
 from lib.utils import join
 
 
@@ -41,11 +41,12 @@ class FhirOperator(KubernetesPodOperator):
             k8s.V1EnvVar(
                 name='BASE_URL',
                 value='https://' + join('-', ['fhir', self.color]) +
-                f'.{env}.cqgc.hsj.rtss.qc.ca/fhir',
+                environment('.') + '.cqgc.hsj.rtss.qc.ca/fhir',
             ),
             k8s.V1EnvVar(
                 name='OAUTH_URL',
-                value=f'https://auth.{env}.cqgc.hsj.rtss.qc.ca/auth/realms/clin/protocol/openid-connect/token',
+                value='https://auth' + environment('.') +
+                '.cqgc.hsj.rtss.qc.ca/auth/realms/clin/protocol/openid-connect/token',
             ),
             k8s.V1EnvVar(
                 name='OAUTH_CLIENT_ID',

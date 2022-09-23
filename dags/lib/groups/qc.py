@@ -1,5 +1,5 @@
 from airflow.utils.task_group import TaskGroup
-from lib.config import env, Env, K8sContext
+from lib.config import env, environment, Env, K8sContext
 from lib.doc import qc as doc
 from lib.operators.spark import SparkOperator
 
@@ -18,7 +18,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationSNV',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -29,7 +29,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -40,7 +40,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariants',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -51,7 +51,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariantCentric',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -62,7 +62,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndNorVariants',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -73,7 +73,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndVariants',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
@@ -84,7 +84,7 @@ def qc(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenVariantsAndVariantCentric',
             spark_config='enriched-etl',
-            arguments=[f'clin_{env}', release_id],
+            arguments=['clin' + environment('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING],
         )
 
