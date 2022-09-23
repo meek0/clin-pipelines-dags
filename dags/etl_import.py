@@ -3,7 +3,8 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.config import env, Env, K8sContext, csv_file_name
+from lib import config
+from lib.config import env, Env, K8sContext
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.wait import WaitOperator
@@ -55,7 +56,7 @@ with DAG(
         name='etl-import-fhir-csv-import',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
-        arguments=['-f', f'{csv_file_name()}.yml'],
+        arguments=['-f', config.fhir_csv_file],
     )
 
     params_validate >> fhir_ig_publish >> wait_30s >> fhir_csv_import
