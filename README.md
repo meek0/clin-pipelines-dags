@@ -42,9 +42,15 @@ Login to MinIO console :
 - Username : `minioadmin`
 - Password : `minioadmin`
 
+Create Bucket :
+
+- Bucket Name : `cqgc-qa-app-datalake`
+
 Create Airflow connection (Airflow UI => Admin => Connections) :
 
-- foo : `bar`
+- Connection Id : `minio`
+- Connection Type : `Amazon S3`
+- Extra : `{"host": "http://minio:9000", "aws_access_key_id": "minioadmin", "aws_secret_access_key": "minioadmin"}`
 
 ## Troubleshooting
 
