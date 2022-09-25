@@ -1,5 +1,25 @@
 # CLIN Pipelines Dags
 
+## Python virtual environment
+
+Create venv :
+
+```
+python -m venv venv
+```
+
+Activate venv :
+
+```
+source venv/bin/activate
+```
+
+Install requirements :
+
+```
+pip install -r requirements
+```
+
 ## Airflow dev stack
 
 Create `.env` file :
@@ -42,15 +62,18 @@ Login to MinIO console :
 - Username : `minioadmin`
 - Password : `minioadmin`
 
-Create Bucket :
-
-- Bucket Name : `cqgc-qa-app-datalake`
-
 Create Airflow connection (Airflow UI => Admin => Connections) :
 
 - Connection Id : `minio`
 - Connection Type : `Amazon S3`
-- Extra : `{"host": "http://minio:9000", "aws_access_key_id": "minioadmin", "aws_secret_access_key": "minioadmin"}`
+- Extra :
+```
+{
+    "host": "http://minio:9000",
+    "aws_access_key_id": "minioadmin",
+    "aws_secret_access_key": "minioadmin"
+}
+```
 
 ## Troubleshooting
 
