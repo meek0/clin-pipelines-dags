@@ -29,6 +29,7 @@ fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 fhir_image = 'ferlabcrsj/clin-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
+s3_conn_id = 'minio'
 spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 
