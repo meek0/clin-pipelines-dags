@@ -47,7 +47,7 @@ def csv_file_name() -> str:
 def spark_jar() -> str:
     version = ''
     if env == Env.QA:
-        version = 'v2.3.23'
+        version = 'v2.3.24'
     elif env == Env.STAGING:
         version = 'v2.3.22'
     elif env == Env.PROD:
