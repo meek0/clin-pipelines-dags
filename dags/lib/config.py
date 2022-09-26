@@ -30,12 +30,12 @@ fhir_image = 'ferlabcrsj/clin-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
 s3_conn_id = 'minio'
-spark_image = 'ferlabcrsj/spark:10e8c56adb2f1cbd22cc023f0ab1201931e6fc82'
+spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 
 if env == Env.QA:
     fhir_csv_file = 'nanuq.yml'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.23/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.24/clin-variant-etl.jar'
 elif env == Env.STAGING:
     fhir_csv_file = 'nanuq.yml'
     spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.22/clin-variant-etl.jar'
