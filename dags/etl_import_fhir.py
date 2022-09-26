@@ -3,14 +3,15 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.config import env, Env, K8sContext, csv_file_name
+from lib import config
+from lib.config import env, Env, K8sContext
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.wait import WaitOperator
 
 
 with DAG(
-    dag_id='etl_import',
+    dag_id='etl_import_fhir',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
@@ -38,8 +39,8 @@ with DAG(
         python_callable=_params_validate,
     )
 
-    fhir_ig_publish = FhirOperator(
-        task_id='fhir_ig_publish',
+    ig_publish = FhirOperator(
+        task_id='ig_publish',
         name='etl-import-fhir-ig-publish',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
@@ -50,12 +51,12 @@ with DAG(
         time='30s',
     )
 
-    fhir_csv_import = FhirCsvOperator(
-        task_id='fhir_csv_import',
+    csv_import = FhirCsvOperator(
+        task_id='csv_import',
         name='etl-import-fhir-csv-import',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
-        arguments=['-f', f'{csv_file_name()}.yml'],
+        arguments=['-f', config.fhir_csv_file],
     )
 
-    params_validate >> fhir_ig_publish >> wait_30s >> fhir_csv_import
+    params_validate >> ig_publish >> wait_30s >> csv_import

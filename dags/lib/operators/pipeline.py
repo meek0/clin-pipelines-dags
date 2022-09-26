@@ -3,7 +3,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import env, environment
+from lib.config import env, env_url
 from lib.utils import join
 
 
@@ -55,23 +55,23 @@ class PipelineOperator(KubernetesPodOperator):
         self.env_vars = [
             k8s.V1EnvVar(
                 name='CLIN_URL',
-                value='https://portail' + environment('.') +
+                value='https://portail' + env_url('.') +
                 '.cqgc.hsj.rtss.qc.ca',
             ),
             k8s.V1EnvVar(
                 name='FERLOAD_URL',
-                value='https://ferload' + environment('.') +
+                value='https://ferload' + env_url('.') +
                 '.cqgc.hsj.rtss.qc.ca',
             ),
             k8s.V1EnvVar(
                 name='FHIR_URL',
-                value='https://' + join('-', ['fhir', self.color]) +
-                environment('.') + '.cqgc.hsj.rtss.qc.ca/fhir',
+                value='https://' + join('-', ['fhir', self.color]) + env_url('.') +
+                '.cqgc.hsj.rtss.qc.ca/fhir',
             ),
             k8s.V1EnvVar(
                 name='KEYCLOAK_URL',
-                value='https://auth' +
-                environment('.') + '.cqgc.hsj.rtss.qc.ca/auth',
+                value='https://auth' + env_url('.') +
+                '.cqgc.hsj.rtss.qc.ca/auth',
             ),
             k8s.V1EnvVar(
                 name='KEYCLOAK_AUTHORIZATION_AUDIENCE',

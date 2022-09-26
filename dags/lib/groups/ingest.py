@@ -12,9 +12,9 @@ def ingest(
 
     with TaskGroup(group_id=group_id) as group:
 
-        file_import = PipelineOperator(
-            task_id='file_import',
-            name='etl-ingest-file-import',
+        fhir_import = PipelineOperator(
+            task_id='fhir_import',
+            name='etl-ingest-fhir-import',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{env}-app-files-import',
             color=color,
@@ -45,9 +45,9 @@ def ingest(
             ],
         )
 
-        vcf_snv = SparkOperator(
-            task_id='vcf_snv',
-            name='etl-ingest-vcf-snv',
+        snv = SparkOperator(
+            task_id='snv',
+            name='etl-ingest-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -56,9 +56,9 @@ def ingest(
             ],
         )
 
-        vcf_cnv = SparkOperator(
-            task_id='vcf_cnv',
-            name='etl-ingest-vcf-cnv',
+        cnv = SparkOperator(
+            task_id='cnv',
+            name='etl-ingest-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -67,9 +67,9 @@ def ingest(
             ],
         )
 
-        vcf_variants = SparkOperator(
-            task_id='vcf_variants',
-            name='etl-ingest-vcf-variants',
+        variants = SparkOperator(
+            task_id='variants',
+            name='etl-ingest-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -78,9 +78,9 @@ def ingest(
             ],
         )
 
-        vcf_consequences = SparkOperator(
-            task_id='vcf_consequences',
-            name='etl-ingest-vcf-consequences',
+        consequences = SparkOperator(
+            task_id='consequences',
+            name='etl-ingest-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
@@ -89,6 +89,6 @@ def ingest(
             ],
         )
 
-        file_import >> fhir_export >> fhir_normalize >> vcf_snv >> vcf_cnv >> vcf_variants >> vcf_consequences
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences
 
     return group

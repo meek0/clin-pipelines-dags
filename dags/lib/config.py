@@ -20,6 +20,7 @@ k8s_context = {
     K8sContext.ETL: Variable.get('kubernetes_context_etl', None),
 }
 k8s_namespace = Variable.get('kubernetes_namespace')
+s3_conn_id = Variable.get('s3_conn_id')
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
@@ -32,27 +33,22 @@ postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d8411
 spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 
-
-if env not in [Env.QA, Env.STAGING, Env.PROD]:
+if env == Env.QA:
+    fhir_csv_file = 'nanuq.yml'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.26/clin-variant-etl.jar'
+elif env == Env.STAGING:
+    fhir_csv_file = 'nanuq.yml'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.22/clin-variant-etl.jar'
+elif env == Env.PROD:
+    fhir_csv_file = 'prod.yml'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.22/clin-variant-etl.jar'
+else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
 
-def environment(prefix: str = '') -> str:
-    return (prefix + env if env in [Env.QA, Env.STAGING] else '')
+def env_url(prefix: str = '') -> str:
+    return f'{prefix}{env}' if env in [Env.QA, Env.STAGING] else ''
 
-
-def csv_file_name() -> str:
-    return ('nanuq' if env in [Env.QA, Env.STAGING] else 'prod')
-
-def spark_jar() -> str:
-    version = ''
-    if env == Env.QA:
-        version = 'v2.3.25'
-    elif env == Env.STAGING:
-        version = 'v2.3.22'
-    elif env == Env.PROD:
-        version = 'v2.3.22'
-    return f'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/{version}/clin-variant-etl.jar'
 
 def k8s_in_cluster(context: str) -> bool:
     return not k8s_context[context]
