@@ -20,6 +20,7 @@ k8s_context = {
     K8sContext.ETL: Variable.get('kubernetes_context_etl', None),
 }
 k8s_namespace = Variable.get('kubernetes_namespace')
+s3_conn_id = Variable.get('s3_conn_id')
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
@@ -29,7 +30,6 @@ fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 fhir_image = 'ferlabcrsj/clin-fhir'
 pipeline_image = 'ferlabcrsj/clin-pipelines'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
-s3_conn_id = 'minio'
 spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 

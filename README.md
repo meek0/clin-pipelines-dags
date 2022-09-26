@@ -46,6 +46,7 @@ Create Airflow variables (Airflow UI => Admin => Variables) :
 - kubernetes_namespace : `cqgc-qa`
 - kubernetes_context_default : `kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc`
 - kubernetes_context_etl : `kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc`
+- s3_conn_id : `minio`
 - show_test_dags : `yes`
 
 Test one task :
