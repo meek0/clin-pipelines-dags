@@ -7,10 +7,10 @@ class WaitOperator(BashOperator):
     def __init__(
         self,
         time: str,
+        trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
         super().__init__(
-            trigger_rule=TriggerRule.NONE_FAILED,
             bash_command=f'sleep {time}',
             **kwargs,
         )
