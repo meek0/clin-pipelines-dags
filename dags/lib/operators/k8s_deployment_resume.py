@@ -13,9 +13,7 @@ class K8sDeploymentResumeOperator(BaseOperator):
         trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
-        super().__init__(
-            **kwargs,
-        )
+        super().__init__(**kwargs)
         self.k8s_context = k8s_context
         self.deployment = deployment
 
