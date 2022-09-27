@@ -10,8 +10,8 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    etl_reset_enrich_variants = SparkOperator(
-        task_id='etl_reset_enrich_variants',
+    reset_enrich_variants = SparkOperator(
+        task_id='reset_enrich_variants',
         name='etl-reset-enrich-variants',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
