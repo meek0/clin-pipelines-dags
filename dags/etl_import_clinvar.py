@@ -27,7 +27,7 @@ with DAG(
         s3_bucket = f'cqgc-{env}-app-datalake'
         s3_key = f'raw/landing/clinvar/{clinvar_file}'
 
-        # Get MD5 hash
+        # Get MD5 checksum
         md5_text = http_get_text(f'{clinvar_url}/{clinvar_file}.md5')
         md5_hash = re.search('^([0-9a-f]+)', md5_text).group(1)
 
@@ -58,11 +58,11 @@ with DAG(
         s3.load_string(
             latest_ver, f'{s3_key}.version', s3_bucket, replace=True
         )
+        logging.info(f'New ClinVar imported version: {latest_ver}')
 
     file = PythonOperator(
         task_id='file',
         python_callable=_file,
-        trigger_rule=TriggerRule.NONE_FAILED,
     )
 
     table = SparkOperator(
@@ -72,6 +72,7 @@ with DAG(
         spark_class='bio.ferlab.datalake.spark3.public.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=['clinvar'],
+        trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
     file >> table
