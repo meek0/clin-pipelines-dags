@@ -25,5 +25,3 @@ if (config.show_test_dags):
             cmds=['echo', 'hello'],
             arguments=[],
         )
-
-        test_pod_operator_default
