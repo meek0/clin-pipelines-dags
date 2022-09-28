@@ -3,7 +3,6 @@ import logging
 from airflow.exceptions import AirflowFailException
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
-from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
 from lib.config import env
@@ -20,7 +19,6 @@ class SparkOperator(KubernetesPodOperator):
         spark_secret: str = '',
         skip_env: List[str] = [],
         skip_fail_env: List[str] = [],
-        trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
         super().__init__(

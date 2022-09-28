@@ -1,6 +1,5 @@
 import kubernetes
 from airflow.models.baseoperator import BaseOperator
-from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 
 
@@ -10,7 +9,6 @@ class K8sDeploymentPauseOperator(BaseOperator):
         self,
         k8s_context: str,
         deployment: str,
-        trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)

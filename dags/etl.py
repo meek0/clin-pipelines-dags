@@ -3,6 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.config import env, Env, K8sContext
 from lib.groups.qc import qc
@@ -21,6 +22,9 @@ with DAG(
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'notify': Param('no', enum=['yes', 'no']),
+    },
+    default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
     },
 ) as dag:
 
