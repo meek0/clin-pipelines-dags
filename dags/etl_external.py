@@ -1,6 +1,7 @@
 from airflow import DAG
 from datetime import datetime
 from lib.config import env, K8sContext
+from lib.hooks.slack import SlackHook
 from lib.operators.spark import SparkOperator
 
 
@@ -8,6 +9,9 @@ with DAG(
     dag_id='etl_external',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
+    default_args={
+        'on_failure_callback': SlackHook.notify_task_failure,
+    },
 ) as dag:
 
     panels = SparkOperator(
@@ -63,6 +67,7 @@ with DAG(
         arguments=[
             f'config/{env}.conf', 'initial',
         ],
+        on_success_callback=SlackHook.notify_dag_success,
     )
 
     # public_tables = SparkOperator(

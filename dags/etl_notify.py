@@ -4,6 +4,7 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib.config import env, Env, K8sContext
+from lib.hooks.slack import SlackHook
 from lib.operators.pipeline import PipelineOperator
 
 
@@ -14,6 +15,9 @@ with DAG(
     params={
         'batch_id':  Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
+    },
+    default_args={
+        'on_failure_callback': SlackHook.notify_task_failure,
     },
 ) as dag:
 
@@ -50,6 +54,7 @@ with DAG(
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
+        on_success_callback=SlackHook.notify_dag_success,
     )
 
     params_validate >> notify

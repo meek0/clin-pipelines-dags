@@ -5,6 +5,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib import config
 from lib.config import env, Env, K8sContext
+from lib.hooks.slack import SlackHook
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.wait import WaitOperator
@@ -16,6 +17,9 @@ with DAG(
     schedule_interval=None,
     params={
         'color': Param('', enum=['', 'blue', 'green']),
+    },
+    default_args={
+        'on_failure_callback': SlackHook.notify_task_failure,
     },
 ) as dag:
 
@@ -57,6 +61,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         arguments=['-f', config.fhir_csv_file],
+        on_success_callback=SlackHook.notify_dag_success,
     )
 
     params_validate >> ig_publish >> wait_30s >> csv_import

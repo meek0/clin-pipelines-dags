@@ -46,7 +46,8 @@ Create Airflow variables (Airflow UI => Admin => Variables) :
 - kubernetes_namespace : `cqgc-qa`
 - kubernetes_context_default : `kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc`
 - kubernetes_context_etl : `kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc`
-- show_test_dags : `yes`
+- base_url (optional) : `http://localhost:50080`
+- show_test_dags (optional) : `yes`
 
 Test one task :
 
@@ -71,6 +72,7 @@ Create Airflow connection (Airflow UI => Admin => Connections) :
 - Connection Id : `minio`
 - Connection Type : `Amazon S3`
 - Extra :
+
 ```
 {
     "host": "http://minio:9000",
@@ -78,6 +80,12 @@ Create Airflow connection (Airflow UI => Admin => Connections) :
     "aws_secret_access_key": "minioadmin"
 }
 ```
+
+## Slack
+
+Create Airflow variable (Airflow UI => Admin => Variables) :
+
+- slack_hook_url : `https://hooks.slack.com/services/...`
 
 ## Troubleshooting
 

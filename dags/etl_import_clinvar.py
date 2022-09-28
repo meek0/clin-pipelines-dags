@@ -9,6 +9,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib import config
 from lib.config import env, K8sContext
+from lib.hooks.slack import SlackHook
 from lib.operators.spark import SparkOperator
 from lib.utils import file_md5, http_get, http_get_file
 
@@ -17,6 +18,9 @@ with DAG(
     dag_id='etl_import_clinvar',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
+    default_args={
+        'on_failure_callback': SlackHook.notify_task_failure,
+    },
 ) as dag:
 
     def _file():
@@ -73,6 +77,7 @@ with DAG(
         spark_config='enriched-etl',
         arguments=['clinvar'],
         trigger_rule=TriggerRule.ALL_SUCCESS,
+        on_success_callback=SlackHook.notify_dag_success,
     )
 
     file >> table

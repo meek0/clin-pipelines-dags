@@ -4,6 +4,7 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib.config import env, Env, K8sContext
+from lib.hooks.slack import SlackHook
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 
@@ -17,6 +18,9 @@ if env == Env.QA:
         params={
             'release_id': Param('', type='string'),
             'color': Param('', enum=['', 'blue', 'green']),
+        },
+        default_args={
+            'on_failure_callback': SlackHook.notify_task_failure,
         },
     ) as dag:
 
@@ -86,6 +90,7 @@ if env == Env.QA:
             task_id='arranger_restart',
             k8s_context=K8sContext.DEFAULT,
             deployment='arranger',
+            on_success_callback=SlackHook.notify_dag_success,
         )
 
         params_validate >> es_indices_swap >> arranger_restart
