@@ -8,7 +8,8 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib import config
-from lib.config import env
+from lib.config import env, K8sContext
+from lib.operators.spark import SparkOperator
 from lib.utils import file_md5, http_get_file, http_get_text
 
 
@@ -18,7 +19,7 @@ with DAG(
     schedule_interval=None,
 ) as dag:
 
-    def _import_clinvar():
+    def _file():
         clinvar_url = 'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38'
         clinvar_file = 'clinvar.vcf.gz'
 
@@ -26,7 +27,7 @@ with DAG(
         s3_bucket = f'cqgc-{env}-app-datalake'
         s3_key = f'raw/landing/clinvar/{clinvar_file}'
 
-        # Get MD5 hash
+        # Get MD5 checksum
         md5_text = http_get_text(f'{clinvar_url}/{clinvar_file}.md5')
         md5_hash = re.search('^([0-9a-f]+)', md5_text).group(1)
 
@@ -57,9 +58,21 @@ with DAG(
         s3.load_string(
             latest_ver, f'{s3_key}.version', s3_bucket, replace=True
         )
+        logging.info(f'New ClinVar imported version: {latest_ver}')
 
-    import_clinvar = PythonOperator(
-        task_id='import_clinvar',
-        python_callable=_import_clinvar,
-        trigger_rule=TriggerRule.NONE_FAILED,
+    file = PythonOperator(
+        task_id='file',
+        python_callable=_file,
     )
+
+    table = SparkOperator(
+        task_id='table',
+        name='etl-import-clinvar-table',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.public.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=['clinvar'],
+        trigger_rule=TriggerRule.ALL_SUCCESS,
+    )
+
+    file >> table

@@ -16,10 +16,10 @@ class FhirOperator(KubernetesPodOperator):
         self,
         k8s_context: str,
         color: str = '',
+        trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
         super().__init__(
-            trigger_rule=TriggerRule.NONE_FAILED,
             is_delete_operator_pod=True,
             in_cluster=config.k8s_in_cluster(k8s_context),
             config_file=config.k8s_config_file(k8s_context),
