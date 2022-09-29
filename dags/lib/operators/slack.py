@@ -1,5 +1,5 @@
 from airflow.models.baseoperator import BaseOperator
-from lib.hooks.slack import SlackHook
+from lib.slack import Slack
 
 
 class SlackOperator(BaseOperator):
@@ -7,7 +7,7 @@ class SlackOperator(BaseOperator):
     def __init__(
         self,
         markdown: str,
-        type=SlackHook.INFO,
+        type=Slack.INFO,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -15,4 +15,4 @@ class SlackOperator(BaseOperator):
         self.type = type
 
     def execute(self, context):
-        SlackHook.notify(self.markdown, self.type)
+        Slack.notify(self.markdown, self.type)

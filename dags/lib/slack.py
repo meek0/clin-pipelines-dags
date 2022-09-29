@@ -4,7 +4,7 @@ from lib import utils
 from lib.config import env
 
 
-class SlackHook:
+class Slack:
 
     SUCCESS = ':large_green_circle:'
     INFO = ':large_blue_circle:'
@@ -37,28 +37,28 @@ class SlackHook:
         dag_id = context['dag'].dag_id
         run_id = context['run_id']
         task_id = context['task'].task_id
-        task_url = SlackHook.airflow_url(dag_id, run_id, task_id)
-        SlackHook.notify(
+        task_url = Slack.airflow_url(dag_id, run_id, task_id)
+        Slack.notify(
             f'Task failure: <{task_url}|{dag_id}.{task_id}>',
-            SlackHook.ERROR,
+            Slack.ERROR,
         )
 
     def notify_dag_start(context):
         dag_id = context['dag'].dag_id
         run_id = context['run_id']
-        dag_url = SlackHook.airflow_url(dag_id, run_id)
-        SlackHook.notify(
+        dag_url = Slack.airflow_url(dag_id, run_id)
+        Slack.notify(
             f'DAG start: <{dag_url}|{dag_id}>',
-            SlackHook.INFO,
+            Slack.INFO,
         )
 
     def notify_dag_success(context):
         dag_id = context['dag'].dag_id
         run_id = context['run_id']
-        dag_url = SlackHook.airflow_url(dag_id, run_id)
-        SlackHook.notify(
+        dag_url = Slack.airflow_url(dag_id, run_id)
+        Slack.notify(
             f'DAG success: <{dag_url}|{dag_id}>',
-            SlackHook.SUCCESS,
+            Slack.SUCCESS,
         )
 
     def airflow_url(dag_id: str, run_id: str = '', task_id: str = ''):
