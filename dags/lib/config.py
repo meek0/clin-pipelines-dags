@@ -34,10 +34,10 @@ spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 
 if env == Env.QA:
-    fhir_csv_file = 'nanuq.yml'
+    fhir_csv_file = 'qa.yml'
     spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.26/clin-variant-etl.jar'
 elif env == Env.STAGING:
-    fhir_csv_file = 'nanuq.yml'
+    fhir_csv_file = 'staging.yml'
     spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.22/clin-variant-etl.jar'
 elif env == Env.PROD:
     fhir_csv_file = 'prod.yml'
