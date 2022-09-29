@@ -61,6 +61,7 @@ with DAG(
         task_id='params_validate',
         op_args=[batch_id(), release_id(), color()],
         python_callable=_params_validate,
+        on_execute_callback=SlackHook.notify_dag_start,
     )
 
     with TaskGroup(group_id='ingest') as ingest:

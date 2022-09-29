@@ -49,6 +49,7 @@ if env == Env.QA:
             task_id='params_validate',
             op_args=[release_id(), color()],
             python_callable=_params_validate,
+            on_execute_callback=SlackHook.notify_dag_start,
         )
 
         es_indices_swap = CurlOperator(

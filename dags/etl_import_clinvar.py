@@ -67,6 +67,7 @@ with DAG(
     file = PythonOperator(
         task_id='file',
         python_callable=_file,
+        on_execute_callback=SlackHook.notify_dag_start,
     )
 
     table = SparkOperator(

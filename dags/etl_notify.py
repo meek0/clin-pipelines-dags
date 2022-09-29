@@ -44,6 +44,7 @@ with DAG(
         task_id='params_validate',
         op_args=[batch_id(), color()],
         python_callable=_params_validate,
+        on_execute_callback=SlackHook.notify_dag_start,
     )
 
     notify = PipelineOperator(

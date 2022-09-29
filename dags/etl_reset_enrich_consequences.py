@@ -23,5 +23,6 @@ with DAG(
         arguments=[
             f'config/{env}.conf', 'initial', 'consequences',
         ],
+        on_execute_callback=SlackHook.notify_dag_start,
         on_success_callback=SlackHook.notify_dag_success,
     )

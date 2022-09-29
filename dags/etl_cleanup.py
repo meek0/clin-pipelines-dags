@@ -51,6 +51,7 @@ if env in [Env.QA, Env.STAGING]:
             task_id='params_validate',
             op_args=[color()],
             python_callable=_params_validate,
+            on_execute_callback=SlackHook.notify_dag_start,
         )
 
         fhir_pause = K8sDeploymentPauseOperator(

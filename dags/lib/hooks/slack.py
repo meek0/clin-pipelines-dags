@@ -43,9 +43,19 @@ class SlackHook:
             SlackHook.ERROR,
         )
 
+    def notify_dag_start(context):
+        dag_id = context['dag'].dag_id
+        run_id = context['run_id']
+        dag_url = SlackHook.airflow_url(dag_id, run_id)
+        SlackHook.notify(
+            f'DAG start: <{dag_url}|{dag_id}>',
+            SlackHook.INFO,
+        )
+
     def notify_dag_success(context):
         dag_id = context['dag'].dag_id
-        dag_url = SlackHook.airflow_url(dag_id)
+        run_id = context['run_id']
+        dag_url = SlackHook.airflow_url(dag_id, run_id)
         SlackHook.notify(
             f'DAG success: <{dag_url}|{dag_id}>',
             SlackHook.SUCCESS,

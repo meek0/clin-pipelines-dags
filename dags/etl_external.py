@@ -23,6 +23,7 @@ with DAG(
         arguments=[
             f'config/{env}.conf', 'initial', 'panels',
         ],
+        on_execute_callback=SlackHook.notify_dag_start,
     )
 
     mane_summary = SparkOperator(

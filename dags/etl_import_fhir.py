@@ -41,6 +41,7 @@ with DAG(
         task_id='params_validate',
         op_args=[color()],
         python_callable=_params_validate,
+        on_execute_callback=SlackHook.notify_dag_start,
     )
 
     ig_publish = FhirOperator(
