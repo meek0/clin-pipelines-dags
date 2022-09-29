@@ -3,6 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.config import env, Env, K8sContext
 from lib.groups.qc import qc
@@ -10,6 +11,7 @@ from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
+from lib.slack import Slack
 
 
 with DAG(
@@ -21,6 +23,10 @@ with DAG(
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'notify': Param('no', enum=['yes', 'no']),
+    },
+    default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
+        'on_failure_callback': Slack.notify_task_failure,
     },
 ) as dag:
 
@@ -55,6 +61,7 @@ with DAG(
         task_id='params_validate',
         op_args=[batch_id(), release_id(), color()],
         python_callable=_params_validate,
+        on_execute_callback=Slack.notify_dag_start,
     )
 
     with TaskGroup(group_id='ingest') as ingest:
@@ -412,6 +419,7 @@ with DAG(
             task_id='arranger_restart',
             k8s_context=K8sContext.DEFAULT,
             deployment='arranger',
+            on_success_callback=Slack.notify_dag_success,
         )
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_remove_project >> arranger_restart

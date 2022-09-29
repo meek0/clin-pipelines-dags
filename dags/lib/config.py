@@ -15,12 +15,14 @@ class K8sContext:
 
 
 env = Variable.get('environment')
+k8s_namespace = Variable.get('kubernetes_namespace')
 k8s_context = {
     K8sContext.DEFAULT: Variable.get('kubernetes_context_default', None),
     K8sContext.ETL: Variable.get('kubernetes_context_etl', None),
 }
-k8s_namespace = Variable.get('kubernetes_namespace')
-s3_conn_id = Variable.get('s3_conn_id')
+base_url = Variable.get('base_url', None)
+s3_conn_id = Variable.get('s3_conn_id', None)
+slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'

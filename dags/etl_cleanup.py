@@ -11,6 +11,7 @@ from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.k8s_deployment_resume import K8sDeploymentResumeOperator
 from lib.operators.postgres import PostgresOperator
 from lib.operators.wait import WaitOperator
+from lib.slack import Slack
 
 
 if env in [Env.QA, Env.STAGING]:
@@ -21,6 +22,9 @@ if env in [Env.QA, Env.STAGING]:
         schedule_interval=None,
         params={
             'color': Param('', enum=['', 'blue', 'green']),
+        },
+        default_args={
+            'on_failure_callback': Slack.notify_task_failure,
         },
     ) as dag:
 
@@ -47,6 +51,7 @@ if env in [Env.QA, Env.STAGING]:
             task_id='params_validate',
             op_args=[color()],
             python_callable=_params_validate,
+            on_execute_callback=Slack.notify_dag_start,
         )
 
         fhir_pause = K8sDeploymentPauseOperator(
@@ -128,6 +133,7 @@ if env in [Env.QA, Env.STAGING]:
         wait_2m = WaitOperator(
             task_id='wait_2m',
             time='2m',
+            on_success_callback=Slack.notify_dag_success,
         )
 
         params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m

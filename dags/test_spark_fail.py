@@ -21,5 +21,3 @@ if (config.show_test_dags):
             spark_config='enriched-etl',
             arguments=[f'config/{env}.conf', 'default'],
         )
-
-        test_spark_fail

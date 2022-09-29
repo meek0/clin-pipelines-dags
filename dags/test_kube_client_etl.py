@@ -30,5 +30,3 @@ if (config.show_test_dags):
             task_id='test_kube_client_etl',
             python_callable=_test_kube_client_etl,
         )
-
-        test_kube_client_etl

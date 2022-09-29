@@ -10,13 +10,17 @@ from datetime import datetime
 from lib import config
 from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
-from lib.utils import file_md5, http_get_file, http_get_text
+from lib.slack import Slack
+from lib.utils import file_md5, http_get, http_get_file
 
 
 with DAG(
     dag_id='etl_import_clinvar',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
+    default_args={
+        'on_failure_callback': Slack.notify_task_failure,
+    },
 ) as dag:
 
     def _file():
@@ -28,7 +32,7 @@ with DAG(
         s3_key = f'raw/landing/clinvar/{clinvar_file}'
 
         # Get MD5 checksum
-        md5_text = http_get_text(f'{clinvar_url}/{clinvar_file}.md5')
+        md5_text = http_get(f'{clinvar_url}/{clinvar_file}.md5').text
         md5_hash = re.search('^([0-9a-f]+)', md5_text).group(1)
 
         # Get latest version
@@ -63,6 +67,7 @@ with DAG(
     file = PythonOperator(
         task_id='file',
         python_callable=_file,
+        on_execute_callback=Slack.notify_dag_start,
     )
 
     table = SparkOperator(
@@ -73,6 +78,7 @@ with DAG(
         spark_config='enriched-etl',
         arguments=['clinvar'],
         trigger_rule=TriggerRule.ALL_SUCCESS,
+        on_success_callback=Slack.notify_dag_success,
     )
 
     file >> table

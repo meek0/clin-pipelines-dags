@@ -8,6 +8,7 @@ from lib.config import env, Env, K8sContext
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.wait import WaitOperator
+from lib.slack import Slack
 
 
 with DAG(
@@ -16,6 +17,9 @@ with DAG(
     schedule_interval=None,
     params={
         'color': Param('', enum=['', 'blue', 'green']),
+    },
+    default_args={
+        'on_failure_callback': Slack.notify_task_failure,
     },
 ) as dag:
 
@@ -37,6 +41,7 @@ with DAG(
         task_id='params_validate',
         op_args=[color()],
         python_callable=_params_validate,
+        on_execute_callback=Slack.notify_dag_start,
     )
 
     ig_publish = FhirOperator(
@@ -57,6 +62,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         arguments=['-f', config.fhir_csv_file],
+        on_success_callback=Slack.notify_dag_success,
     )
 
     params_validate >> ig_publish >> wait_30s >> csv_import

@@ -1,6 +1,5 @@
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
-from airflow.utils.trigger_rule import TriggerRule
 from kubernetes.client import models as k8s
 from lib import config
 from lib.config import env, env_url
@@ -21,7 +20,6 @@ class PipelineOperator(KubernetesPodOperator):
         aws_bucket: str = '',
         color: str = '',
         skip: bool = False,
-        trigger_rule=TriggerRule.NONE_FAILED,
         **kwargs,
     ) -> None:
         super().__init__(
