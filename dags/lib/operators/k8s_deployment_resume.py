@@ -5,6 +5,8 @@ from lib import config
 
 class K8sDeploymentResumeOperator(BaseOperator):
 
+    template_fields = ('deployment',)
+
     def __init__(
         self,
         k8s_context: str,
