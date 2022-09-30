@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 from lib import config
 from lib import utils
@@ -28,26 +29,29 @@ class Slack:
 
     def notify_task_failure(context):
         dag_id = context['dag'].dag_id
-        run_id = context['run_id']
         task_id = context['task'].task_id
-        airflow_dag_link = Slack.airflow_dag_link(
-            f'{dag_id}.{task_id}', dag_id, run_id, task_id
+        dag_link = Slack._dag_link(
+            f'{dag_id}.{task_id}', dag_id, context['run_id'], task_id,
         )
-        Slack.notify(f'Task {airflow_dag_link} failed.', Slack.ERROR)
+        Slack.notify(f'Task {dag_link} failed.', Slack.ERROR)
 
     def notify_dag_start(context):
         dag_id = context['dag'].dag_id
-        run_id = context['run_id']
-        airflow_dag_link = Slack.airflow_dag_link(dag_id, dag_id, run_id)
-        Slack.notify(f'DAG {airflow_dag_link} started.', Slack.INFO)
+        dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
+        dag_params = json.dumps(context['params'])
+        Slack.notify(
+            f'DAG {dag_link} started. Params: {dag_params}.', Slack.INFO,
+        )
 
     def notify_dag_complete(context):
         dag_id = context['dag'].dag_id
-        run_id = context['run_id']
-        airflow_dag_link = Slack.airflow_dag_link(dag_id, dag_id, run_id)
-        Slack.notify(f'DAG {airflow_dag_link} completed.', Slack.SUCCESS)
+        dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
+        dag_params = json.dumps(context['params'])
+        Slack.notify(
+            f'DAG {dag_link} completed. Params: {dag_params}.', Slack.SUCCESS,
+        )
 
-    def airflow_dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):
+    def _dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):
         if config.base_url:
             params = urllib.parse.urlencode({
                 'dag_run_id': run_id,
