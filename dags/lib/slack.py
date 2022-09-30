@@ -38,18 +38,14 @@ class Slack:
     def notify_dag_start(context):
         dag_id = context['dag'].dag_id
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
-        dag_params = json.dumps(context['params'])
-        Slack.notify(
-            f'DAG {dag_link} started.\nParams: {dag_params}.', Slack.INFO,
-        )
+        dag_params = Slack._dag_params(context['params'])
+        Slack.notify(f'DAG {dag_link} started.{dag_params}', Slack.INFO)
 
     def notify_dag_completion(context):
         dag_id = context['dag'].dag_id
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
-        dag_params = json.dumps(context['params'])
-        Slack.notify(
-            f'DAG {dag_link} completed.\nParams: {dag_params}.', Slack.SUCCESS,
-        )
+        dag_params = Slack._dag_params(context['params'])
+        Slack.notify(f'DAG {dag_link} completed.{dag_params}', Slack.SUCCESS)
 
     def _dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):
         if config.base_url:
@@ -59,3 +55,9 @@ class Slack:
             })
             return f'<{config.base_url}/dags/{dag_id}/grid?{params}|{text}>'
         return text
+
+    def _dag_params(params: dict):
+        if params:
+            params_json = json.dumps(params, indent=4)
+            return f'```{params_json}```'
+        return ''
