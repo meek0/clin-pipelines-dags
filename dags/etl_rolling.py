@@ -91,7 +91,7 @@ if env == Env.QA:
             task_id='arranger_restart',
             k8s_context=K8sContext.DEFAULT,
             deployment='arranger',
-            on_success_callback=Slack.notify_dag_success,
+            on_success_callback=Slack.notify_dag_complete,
         )
 
         params_validate >> es_indices_swap >> arranger_restart

@@ -133,7 +133,7 @@ if env in [Env.QA, Env.STAGING]:
         wait_2m = WaitOperator(
             task_id='wait_2m',
             time='2m',
-            on_success_callback=Slack.notify_dag_success,
+            on_success_callback=Slack.notify_dag_complete,
         )
 
         params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m

@@ -62,7 +62,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         arguments=['-f', config.fhir_csv_file],
-        on_success_callback=Slack.notify_dag_success,
+        on_success_callback=Slack.notify_dag_complete,
     )
 
     params_validate >> ig_publish >> wait_30s >> csv_import

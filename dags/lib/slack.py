@@ -40,19 +40,19 @@ class Slack:
         airflow_dag_link = Slack.airflow_dag_link(
             f'{dag_id}.{task_id}', dag_id, run_id, task_id
         )
-        Slack.notify(f'Task failure: {airflow_dag_link}', Slack.ERROR)
+        Slack.notify(f'Task {airflow_dag_link} failed.', Slack.ERROR)
 
     def notify_dag_start(context):
         dag_id = context['dag'].dag_id
         run_id = context['run_id']
         airflow_dag_link = Slack.airflow_dag_link(dag_id, dag_id, run_id)
-        Slack.notify(f'DAG start: {airflow_dag_link}', Slack.INFO)
+        Slack.notify(f'DAG {airflow_dag_link} started.', Slack.INFO)
 
-    def notify_dag_success(context):
+    def notify_dag_complete(context):
         dag_id = context['dag'].dag_id
         run_id = context['run_id']
         airflow_dag_link = Slack.airflow_dag_link(dag_id, dag_id, run_id)
-        Slack.notify(f'DAG success: {airflow_dag_link}', Slack.SUCCESS)
+        Slack.notify(f'DAG {airflow_dag_link} completed.', Slack.SUCCESS)
 
     def airflow_dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):
         if config.base_url:

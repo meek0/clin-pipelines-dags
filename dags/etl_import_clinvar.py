@@ -78,7 +78,7 @@ with DAG(
         spark_config='enriched-etl',
         arguments=['clinvar'],
         trigger_rule=TriggerRule.ALL_SUCCESS,
-        on_success_callback=Slack.notify_dag_success,
+        on_success_callback=Slack.notify_dag_complete,
     )
 
     file >> table
