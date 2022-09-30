@@ -82,7 +82,7 @@ with DAG(
             name='etl-ingest-fhir-export',
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{env}-app-datalake',
-            color=color,
+            color=color(),
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport', 'all',
             ],
