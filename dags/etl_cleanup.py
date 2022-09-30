@@ -3,7 +3,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.config import env, Env, K8sContext
+from lib.config import env, es_url, Env, K8sContext
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
@@ -97,7 +97,7 @@ if env in [Env.QA, Env.STAGING]:
             k8s_context=K8sContext.DEFAULT,
             arguments=[
                 '-f', '-X', 'DELETE',
-                f'http://elasticsearch:9200/clin-{env}-prescriptions' + color('-') +
+                f'{es_url}/clin-{env}-prescriptions' + color('-') +
                 f',clin-{env}-patients' + color('-') +
                 f',clin-{env}-analyses' + color('-') +
                 f',clin-{env}-sequencings' + color('-') +
