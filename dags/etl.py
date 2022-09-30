@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
-from lib.config import env, Env, K8sContext
+from lib.config import env, es_url, Env, K8sContext
 from lib.groups.qc import qc
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
@@ -255,7 +255,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
                 release_id(),
                 'gene_centric_template.json',
@@ -272,7 +272,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
                 release_id(),
                 'gene_suggestions_template.json',
@@ -289,7 +289,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
                 release_id(),
                 'variant_centric_template.json',
@@ -306,7 +306,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
                 release_id(),
                 'variant_suggestions_template.json',
@@ -323,7 +323,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
                 release_id(),
                 'cnv_centric_template.json',
@@ -344,7 +344,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
                 release_id(),
             ],
@@ -357,7 +357,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
                 release_id(),
             ],
@@ -370,7 +370,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
                 release_id(),
             ],
@@ -383,7 +383,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
                 release_id(),
             ],
@@ -396,7 +396,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             arguments=[
-                'http://elasticsearch:9200', '', '',
+                es_url, '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
                 release_id(),
             ],
