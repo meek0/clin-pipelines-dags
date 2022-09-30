@@ -20,7 +20,7 @@ class Slack:
                         'type': 'section',
                         'text': {
                             'type': 'mrkdwn',
-                            'text': f'{type} *{env.upper()}*{airflow_link}\n{markdown}',
+                            'text': f'{type} *{env.upper()}*{airflow_link} {markdown}',
                         },
                     },
                 ],
