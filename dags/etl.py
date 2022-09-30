@@ -419,7 +419,7 @@ with DAG(
             task_id='arranger_restart',
             k8s_context=K8sContext.DEFAULT,
             deployment='arranger',
-            on_success_callback=Slack.notify_dag_complete,
+            on_success_callback=Slack.notify_dag_completion,
         )
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_remove_project >> arranger_restart

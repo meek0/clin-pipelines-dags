@@ -68,7 +68,7 @@ with DAG(
         arguments=[
             f'config/{env}.conf', 'initial',
         ],
-        on_success_callback=Slack.notify_dag_complete,
+        on_success_callback=Slack.notify_dag_completion,
     )
 
     # public_tables = SparkOperator(

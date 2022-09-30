@@ -7,10 +7,10 @@ from lib.config import env
 
 class Slack:
 
-    SUCCESS = ':large_green_circle:'
-    INFO = ':large_blue_circle:'
-    WARNING = ':large_orange_circle:'
-    ERROR = ':red_circle:'
+    SUCCESS = ':large_green_square:'
+    INFO = ':large_blue_square:'
+    WARNING = ':large_orange_square:'
+    ERROR = ':large_red_square:'
 
     def notify(markdown: str, type=INFO):
         if config.slack_hook_url:
@@ -40,15 +40,15 @@ class Slack:
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
         dag_params = json.dumps(context['params'])
         Slack.notify(
-            f'DAG {dag_link} started. Params: {dag_params}.', Slack.INFO,
+            f'DAG {dag_link} started.\nParams: {dag_params}.', Slack.INFO,
         )
 
-    def notify_dag_complete(context):
+    def notify_dag_completion(context):
         dag_id = context['dag'].dag_id
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
         dag_params = json.dumps(context['params'])
         Slack.notify(
-            f'DAG {dag_link} completed. Params: {dag_params}.', Slack.SUCCESS,
+            f'DAG {dag_link} completed.\nParams: {dag_params}.', Slack.SUCCESS,
         )
 
     def _dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):

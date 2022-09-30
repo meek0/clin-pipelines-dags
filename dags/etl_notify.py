@@ -55,7 +55,7 @@ with DAG(
         arguments=[
             'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
         ],
-        on_success_callback=Slack.notify_dag_complete,
+        on_success_callback=Slack.notify_dag_completion,
     )
 
     params_validate >> notify
