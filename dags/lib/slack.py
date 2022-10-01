@@ -14,7 +14,7 @@ class Slack:
 
     def notify(markdown: str, type=INFO):
         if config.slack_hook_url:
-            airflow_link = f' [<{config.base_url}|Airflow>]' if config.base_url else ''
+            airflow_link = f' *[*<{config.base_url}|Airflow>*]*' if config.base_url else ''
             utils.http_post(config.slack_hook_url, {
                 'blocks': [
                     {
