@@ -6,7 +6,7 @@ from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.config import env, es_url, Env, K8sContext
-from lib.groups.qc import qc
+from lib.groups.qa import qa
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
@@ -241,8 +241,8 @@ with DAG(
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
-    qc = qc(
-        group_id='qc',
+    qa = qa(
+        group_id='qa',
         release_id=release_id(),
     )
 
@@ -435,4 +435,4 @@ with DAG(
         ],
     )
 
-    params_validate >> ingest >> enrich >> prepare >> qc >> index >> publish >> notify
+    params_validate >> ingest >> enrich >> prepare >> qa >> index >> publish >> notify
