@@ -241,8 +241,8 @@ with DAG(
 
         gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
 
-    qc = qc(
-        group_id='qc',
+    qa = qa(
+        group_id='qa',
         release_id=release_id(),
     )
 
@@ -435,4 +435,9 @@ with DAG(
         ],
     )
 
-    params_validate >> ingest >> enrich >> prepare >> qc >> index >> publish >> notify
+    qc = qc(
+        group_id='qc',
+        release_id=release_id(),
+    )
+
+    params_validate >> ingest >> enrich >> prepare >> qa >> index >> publish >> notify >> qc
