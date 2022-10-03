@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
+from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.doc import qa as doc
 from lib.groups.qa import qa
@@ -14,6 +15,9 @@ with DAG(
     schedule_interval=None,
     params={
         'release_id': Param('', type='string'),
+    },
+    default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
     },
 ) as dag:
 

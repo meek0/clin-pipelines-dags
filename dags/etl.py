@@ -6,7 +6,7 @@ from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.config import env, es_url, Env, K8sContext
-from lib.groups.qc import qc
+from lib.groups.qa import qa
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
@@ -435,9 +435,4 @@ with DAG(
         ],
     )
 
-    qc = qc(
-        group_id='qc',
-        release_id=release_id(),
-    )
-
-    params_validate >> ingest >> enrich >> prepare >> qa >> index >> publish >> notify >> qc
+    params_validate >> ingest >> enrich >> prepare >> qa >> index >> publish >> notify

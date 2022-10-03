@@ -7,8 +7,20 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
 Pour plus de détails sur chaque test, voir "Task Instance Details".
 '''
 
-no_dup_snv = '''
+filters_frequency_extra = '''
 ### Documentation
-- Test : Non duplication - Table normalized_snv
-- Objectif : Les variants doivent être unique par patient_id dans la table normalized_snv
+- Test : ...
+- Objectif : ...
+'''
+
+filters_frequency_missed = '''
+### Documentation
+- Test : ...
+- Objectif : ...
+'''
+
+filters_snv = '''
+### Documentation
+- Test : ...
+- Objectif : ...
 '''

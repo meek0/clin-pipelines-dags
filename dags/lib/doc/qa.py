@@ -54,6 +54,12 @@ no_dup_variant_centric = '''
 - Objectif : Les variants doivent être unique dans la table variant_centric
 '''
 
+no_dup_varsome = '''
+### Documentation
+- Test : ...
+- Objectif : ...
+'''
+
 same_list_snv_nor_variants = '''
 ### Documentation
 - Test : Liste des variants - Entre les tables normalized_snv et normalized_variants

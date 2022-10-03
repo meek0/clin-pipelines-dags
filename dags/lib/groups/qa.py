@@ -19,7 +19,7 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationSNV',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         no_dup_nor_variants = SparkOperator(
@@ -30,7 +30,7 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         no_dup_variants = SparkOperator(
@@ -41,7 +41,7 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariants',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         no_dup_variant_centric = SparkOperator(
@@ -52,7 +52,18 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariantCentric',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        no_dup_varsome = SparkOperator(
+            task_id='no_dup_varsome',
+            doc_md=doc.no_dup_varsome,
+            name='etl-qc-no-dup-varsome',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVarsome',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         same_list_snv_nor_variants = SparkOperator(
@@ -63,7 +74,7 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndNorVariants',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         same_list_snv_variants = SparkOperator(
@@ -74,7 +85,7 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndVariants',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
         same_list_variants_variant_centric = SparkOperator(
@@ -85,9 +96,9 @@ def qa(
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenVariantsAndVariantCentric',
             spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
+        no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> no_dup_varsome >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
 
     return group
