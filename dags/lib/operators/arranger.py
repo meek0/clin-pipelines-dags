@@ -66,7 +66,7 @@ class ArrangerOperator(KubernetesPodOperator):
             k8s.V1Volume(
                 name='ingress-ca-certificate',
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name='ingress-ca-certificate',
+                    name=config.ca_certificates,
                     default_mode=0o555,
                 ),
             ),
