@@ -61,7 +61,7 @@ with DAG(
         name='etl-import-fhir-csv-import',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
-        arguments=['-f', config.fhir_csv_file],
+        arguments=['-f', f'{env}.yml'],
         on_success_callback=Slack.notify_dag_completion,
     )
 
