@@ -36,17 +36,14 @@ spark_image = 'ferlabcrsj/spark:3.1.2'
 spark_service_account = 'spark'
 
 if env == Env.QA:
-    fhir_csv_file = 'qa.yml'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.28/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.29/clin-variant-etl.jar'
     ca_certificates = 'ingress-ca-certificate'
 elif env == Env.STAGING:
-    fhir_csv_file = 'staging.yml'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.221/clin-variant-etl.jar'
     ca_certificates = 'ingress-ca-certificate'
 elif env == Env.PROD:
-    fhir_csv_file = 'prod.yml'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.221/clin-variant-etl.jar'
     ca_certificates = 'ca-certificates-bundle'
