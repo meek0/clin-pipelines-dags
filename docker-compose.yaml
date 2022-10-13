@@ -166,10 +166,9 @@ services:
 
   minio:
     image: minio/minio
-    command: server /data --console-address ":9001"
+    command: server /data
     ports:
       - ${MINIO_PORT}:9000
-      - ${MINIO_UI_PORT}:9001
     volumes:
       - minio-data-volume:/data
 

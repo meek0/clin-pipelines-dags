@@ -59,7 +59,7 @@ docker-compose exec airflow-scheduler airflow tasks test <dag> <task> 2022-01-01
 
 Login to MinIO console :
 
-- URL : `http://localhost:59001`
+- URL : `http://localhost:59000`
 - Username : `minioadmin`
 - Password : `minioadmin`
 
