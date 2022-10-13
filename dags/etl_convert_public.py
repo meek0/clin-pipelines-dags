@@ -18,7 +18,7 @@ with DAG(
         task_id='convert_public',
         name='etl-convert-public',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.external.ImportExternal',
+        spark_class='bio.ferlab.clin.etl.migration.ConvertPublicTablesToDelta',
         spark_config='enriched-etl',
         arguments=[
             f'config/{env}.conf', 'initial',
