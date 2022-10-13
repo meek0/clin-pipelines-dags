@@ -26,17 +26,6 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
-    mane_summary = SparkOperator(
-        task_id='mane_summary',
-        name='etl-external-mane-summary',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.external.ImportExternal',
-        spark_config='raw-import-external-etl',
-        arguments=[
-            f'config/{env}.conf', 'initial', 'mane-summary',
-        ],
-    )
-
     refseq_annotation = SparkOperator(
         task_id='refseq_annotation',
         name='etl-external-refseq-annotation',
@@ -46,29 +35,6 @@ with DAG(
         arguments=[
             f'config/{env}.conf', 'initial', 'refseq-annotation',
         ],
-    )
-
-    refseq_feature = SparkOperator(
-        task_id='refseq_feature',
-        name='etl-external-refseq-feature',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.external.ImportExternal',
-        spark_config='raw-import-external-etl',
-        arguments=[
-            f'config/{env}.conf', 'initial', 'refseq-feature',
-        ],
-    )
-
-    gene_tables = SparkOperator(
-        task_id='gene_tables',
-        name='etl-external-gene-tables',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.external.CreateGenesTable',
-        spark_config='genes-tables-creation',
-        arguments=[
-            f'config/{env}.conf', 'initial',
-        ],
-        on_success_callback=Slack.notify_dag_completion,
     )
 
     # public_tables = SparkOperator(
@@ -94,4 +60,4 @@ with DAG(
     #     ],
     # )
 
-    panels >> mane_summary >> refseq_annotation >> refseq_feature >> gene_tables
+    panels >> refseq_annotation
