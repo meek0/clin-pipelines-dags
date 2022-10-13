@@ -37,11 +37,11 @@ spark_service_account = 'spark'
 
 if env == Env.QA:
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.29/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.30/clin-variant-etl.jar'
     ca_certificates = 'ingress-ca-certificate'
 elif env == Env.STAGING:
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.29/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.30/clin-variant-etl.jar'
     ca_certificates = 'ingress-ca-certificate'
 elif env == Env.PROD:
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
