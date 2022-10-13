@@ -7,8 +7,8 @@ def join(string: str, parts: List[str]) -> str:
     return string.join(filter(None, parts))
 
 
-def http_get(url: str) -> requests.Response:
-    with requests.get(url) as response:
+def http_get(url: str, headers: Any = None) -> requests.Response:
+    with requests.get(url, headers=headers) as response:
         response.raise_for_status()
     return response
 
