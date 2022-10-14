@@ -26,5 +26,21 @@ class CurlOperator(KubernetesPodOperator):
                 name='images-registry-credentials',
             ),
         ]
+        self.volumes = [
+            k8s.V1Volume(
+                name='ingress-ca-certificate',
+                config_map=k8s.V1ConfigMapVolumeSource(
+                    name=config.ca_certificates,
+                    default_mode=0o555,
+                ),
+            ),
+        ]
+        self.volume_mounts = [
+            k8s.V1VolumeMount(
+                name='ingress-ca-certificate',
+                mount_path='/opt/ingress-ca',
+                read_only=True,
+            ),
+        ]
 
         super().execute(**kwargs)
