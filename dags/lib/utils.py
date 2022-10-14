@@ -10,7 +10,7 @@ def join(string: str, parts: List[str]) -> str:
 def http_get(url: str) -> requests.Response:
     with requests.get(url) as response:
         response.raise_for_status()
-    return response
+        return response
 
 
 def http_get_file(url: str, path: str, chunk_size: int = 8192) -> None:
@@ -24,7 +24,7 @@ def http_get_file(url: str, path: str, chunk_size: int = 8192) -> None:
 def http_post(url: str, json: Any = None) -> requests.Response:
     with requests.post(url, json=json) as response:
         response.raise_for_status()
-    return response
+        return response
 
 
 def file_md5(path: str, chunk_size: int = 8192) -> str:
@@ -32,4 +32,4 @@ def file_md5(path: str, chunk_size: int = 8192) -> str:
     with open(path, 'rb') as file:
         for chunk in iter(lambda: file.read(chunk_size), b''):
             md5.update(chunk)
-    return md5.hexdigest()
+        return md5.hexdigest()
