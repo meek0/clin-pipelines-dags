@@ -54,7 +54,7 @@ class AwsOperator(KubernetesPodOperator):
             k8s.V1Volume(
                 name='minio-ca-certificate',
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name='minio-ca-certificate',
+                    name=config.minio_certificate,
                     default_mode=0o555,
                 ),
             ),
