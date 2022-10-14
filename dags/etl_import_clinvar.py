@@ -74,7 +74,7 @@ with DAG(
         task_id='table',
         name='etl-import-clinvar-table',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.datalake.spark3.public.ImportPublicTable',
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=['clinvar'],
         trigger_rule=TriggerRule.ALL_SUCCESS,
