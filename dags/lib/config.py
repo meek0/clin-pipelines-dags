@@ -45,7 +45,7 @@ elif env == Env.STAGING:
     ca_certificates = 'ingress-ca-certificate'
 elif env == Env.PROD:
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.221/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.30/clin-variant-etl.jar'
     ca_certificates = 'ca-certificates-bundle'
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
