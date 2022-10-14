@@ -103,7 +103,7 @@ if env in [Env.QA, Env.STAGING, Env.PROD]:
             name='etl-cleanup-es-indices-delete',
             k8s_context=K8sContext.DEFAULT,
             arguments=[
-                '-f', '-X', 'DELETE',
+                '--cacert', '/opt/ingress-ca/ca.cert', '-f', '-X', 'DELETE',
                 f'{es_url}/clin-{env}-prescriptions' + color('-') +
                 f',clin-{env}-patients' + color('-') +
                 f',clin-{env}-analyses' + color('-') +
