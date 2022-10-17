@@ -33,13 +33,13 @@ with DAG(
         # Get latest version
         html = http_get(refseq_url).text
         latest_ver = re.search('>GCF_(.+_GRCh38.+)/<', html).group(1)
-        logging.info(f'Refseq Annotation latest version: {latest_ver}')
+        logging.info(f'RefSeq Annotation latest version: {latest_ver}')
 
         # Get imported version
         imported_ver = None
         if s3.check_for_key(f'{s3_key}.version', s3_bucket):
             imported_ver = s3.read_key(f'{s3_key}.version', s3_bucket)
-        logging.info(f'Refseq Annotation imported version: {imported_ver}')
+        logging.info(f'RefSeq Annotation imported version: {imported_ver}')
 
         # Skip task if up to date
         if imported_ver == latest_ver:
@@ -55,7 +55,7 @@ with DAG(
         s3.load_string(
             latest_ver, f'{s3_key}.version', s3_bucket, replace=True
         )
-        logging.info(f'New Refseq Annotation imported version: {latest_ver}')
+        logging.info(f'New RefSeq Annotation imported version: {latest_ver}')
 
     file = PythonOperator(
         task_id='file',
