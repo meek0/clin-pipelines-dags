@@ -32,6 +32,6 @@ def load_to_s3_with_md5(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file
     s3.load_string(file_md5, f'{s3_key}.md5', s3_bucket, replace=True)
 
 
-def load_to_s3_with_md5_with_version(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file_version: str) -> None:
+def load_to_s3_with_version(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file_version: str) -> None:
     s3.load_file(file, s3_key, s3_bucket, replace=True)
     s3.load_string(file_version, f'{s3_key}.version', s3_bucket, replace=True)
