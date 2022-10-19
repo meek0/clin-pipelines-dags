@@ -11,6 +11,7 @@ from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get, http_get_file
+from lib.utils_import import get_s3_file_version, load_to_s3_with_version
 
 
 with DAG(
@@ -23,22 +24,20 @@ with DAG(
 ) as dag:
 
     def _file():
-        refseq_url = 'https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/annotation_releases/current'
-        refseq_file = 'GCF_GRCh38_genomic.gff.gz'
+        url = 'https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/annotation_releases/current'
+        file = 'GCF_GRCh38_genomic.gff.gz'
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/refseq/{refseq_file}'
+        s3_key = f'raw/landing/refseq/{file}'
 
         # Get latest version
-        html = http_get(refseq_url).text
+        html = http_get(url).text
         latest_ver = re.search('>GCF_(.+_GRCh38.+)/<', html).group(1)
         logging.info(f'RefSeq Annotation latest version: {latest_ver}')
 
         # Get imported version
-        imported_ver = None
-        if s3.check_for_key(f'{s3_key}.version', s3_bucket):
-            imported_ver = s3.read_key(f'{s3_key}.version', s3_bucket)
+        imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
         logging.info(f'RefSeq Annotation imported version: {imported_ver}')
 
         # Skip task if up to date
@@ -47,14 +46,11 @@ with DAG(
 
         # Download file
         http_get_file(
-            f'{refseq_url}/GCF_{latest_ver}/GCF_{latest_ver}_genomic.gff.gz', refseq_file
+            f'{url}/GCF_{latest_ver}/GCF_{latest_ver}_genomic.gff.gz', file
         )
 
         # Upload file to S3
-        s3.load_file(refseq_file, s3_key, s3_bucket, replace=True)
-        s3.load_string(
-            latest_ver, f'{s3_key}.version', s3_bucket, replace=True
-        )
+        load_to_s3_with_version(s3, s3_bucket, s3_key, file)
         logging.info(f'New RefSeq Annotation imported version: {latest_ver}')
 
     file = PythonOperator(
