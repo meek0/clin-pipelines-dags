@@ -10,7 +10,7 @@ from lib import config
 from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.utils import file_md5, http_get, http_get_file
+from lib.utils_import import get_s3_file_md5, download_and_check_md5, load_to_s3
 
 
 with DAG(
@@ -23,7 +23,7 @@ with DAG(
 ) as dag:
 
     def _file():
-        orphanet_url = 'https://www.orphadata.com/data/xml'
+        url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
 
@@ -33,42 +33,30 @@ with DAG(
         s3_key_diseases = f'raw/landing/orphanet/{diseases_file}'
 
         # Get latest s3 MD5 checksum
-        s3_md5_genes = None
-        if s3.check_for_key(f'{s3_key_genes}.md5', s3_bucket):
-            s3_md5_genes = s3.read_key(f'{s3_key_genes}.md5', s3_bucket)
-        logging.info(f'orphanet genes imported MD5 hash: {s3_md5_genes}')
+        s3_md5_genes = get_s3_file_md5(s3, s3_bucket, s3_key_genes)
+        logging.info(f'Current genes imported MD5 hash: {s3_md5_genes}')
 
-        s3_md5_diseases = None
-        if s3.check_for_key(f'{s3_key_diseases}.md5', s3_bucket):
-            s3_md5_diseases = s3.read_key(f'{s3_key_diseases}.md5', s3_bucket)
-        logging.info(f'orphanet diseases imported MD5 hash: {s3_md5_diseases}')
+        s3_md5_diseases = get_s3_file_md5(s3, s3_bucket, s3_key_diseases)
+        logging.info(f'Current diseases imported MD5 hash: {s3_md5_diseases}')
 
         # Download file
-        http_get_file(f'{orphanet_url}/{genes_file}', genes_file)
-        http_get_file(f'{orphanet_url}/{diseases_file}', diseases_file)
+        download_md5_genes = download_and_check_md5(url, genes_file, None)
+        download_md5_diseases = download_and_check_md5(url, diseases_file, None)
 
         # Verify MD5 checksum
         updated_genes = False
-        download_md5_hash_genes = file_md5(genes_file)
-        if download_md5_hash_genes != s3_md5_genes:
+        if download_md5_genes != s3_md5_genes:
             # Upload file to S3
-            s3.load_file(genes_file, s3_key_genes, s3_bucket, replace=True)
-            s3.load_string(
-                download_md5_hash_genes, f'{s3_key_genes}.md5', s3_bucket, replace=True
-            )
-            logging.info(f'New orphanet genes imported MD5 hash: {download_md5_hash_genes}')
+            load_to_s3(s3, s3_bucket, s3_key_genes, file, download_md5_genes)
+            logging.info(f'New genes imported MD5 hash: {download_md5_genes}')
             updated_genes = True
 
         # Verify MD5 checksum
         updated_diseases = False
-        download_md5_hash_diseases = file_md5(diseases_file)
-        if download_md5_hash_diseases != s3_md5_diseases:
+        if download_md5_diseases != s3_md5_diseases:
             # Upload file to S3
-            s3.load_file(diseases_file, s3_key_diseases, s3_bucket, replace=True)
-            s3.load_string(
-                download_md5_hash_diseases, f'{s3_key_diseases}.md5', s3_bucket, replace=True
-            )
-            logging.info(f'New orphanet diseases imported MD5 hash: {download_md5_hash_diseases}')
+            load_to_s3(s3, s3_bucket, s3_key_diseases, file, download_md5_diseases)
+            logging.info(f'New diseases imported MD5 hash: {download_md5_diseases}')
             updated_diseases = True
 
         if not updated_diseases and not updated_genes:
