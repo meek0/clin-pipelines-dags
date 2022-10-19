@@ -12,6 +12,7 @@ from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get, http_get_file
+from lib.utils_import import get_s3_file_version, load_to_s3_with_version
 
 
 with DAG(
@@ -24,23 +25,21 @@ with DAG(
 ) as dag:
 
     def _file():
-        cosmic_url = 'https://cancer.sanger.ac.uk/cosmic'
-        cosmic_path = 'file_download/GRCh38/cosmic'
-        cosmic_file = 'cancer_gene_census.csv'
+        url = 'https://cancer.sanger.ac.uk/cosmic'
+        path = 'file_download/GRCh38/cosmic'
+        file = 'cancer_gene_census.csv'
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/cosmic/{cosmic_file}'
+        s3_key = f'raw/landing/cosmic/{file}'
 
         # Get latest version
-        html = http_get(cosmic_url).text
+        html = http_get(url).text
         latest_ver = re.search('COSMIC (v[0-9]+),', html).group(1)
         logging.info(f'COSMIC latest version: {latest_ver}')
 
         # Get imported version
-        imported_ver = None
-        if s3.check_for_key(f'{s3_key}.version', s3_bucket):
-            imported_ver = s3.read_key(f'{s3_key}.version', s3_bucket)
+        imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
         logging.info(f'COSMIC imported version: {imported_ver}')
 
         # Skip task if up to date
@@ -54,18 +53,15 @@ with DAG(
 
         # Get download url
         download_url = http_get(
-            f'{cosmic_url}/{cosmic_path}/{latest_ver}/{cosmic_file}',
+            f'{url}/{path}/{latest_ver}/{file}',
             {'Authorization': f'Basic {credentials}'}
         ).json()['url']
 
         # Download file
-        http_get_file(download_url, cosmic_file)
+        http_get_file(download_url, file)
 
         # Upload file to S3
-        s3.load_file(cosmic_file, s3_key, s3_bucket, replace=True)
-        s3.load_string(
-            latest_ver, f'{s3_key}.version', s3_bucket, replace=True
-        )
+        load_to_s3_with_version(s3, s3_bucket, s3_key, file)
         logging.info(f'New COSMIC imported version: {latest_ver}')
 
     file = PythonOperator(
