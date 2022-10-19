@@ -1,5 +1,4 @@
 import logging
-import re
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
@@ -10,7 +9,7 @@ from lib import config
 from lib.config import env, K8sContext
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.utils_import import get_s3_file_md5, download_and_check_md5, load_to_s3
+from lib.utils_import import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
 
 
 with DAG(
@@ -42,7 +41,7 @@ with DAG(
             raise AirflowSkipException()
 
         # Upload file to S3
-        load_to_s3(s3, s3_bucket, s3_key, file, download_md5)
+        load_to_s3_with_md5(s3, s3_bucket, s3_key, file, download_md5)
         logging.info(f'New imported MD5 hash: {download_md5}')
 
     file = PythonOperator(
