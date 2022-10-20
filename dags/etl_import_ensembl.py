@@ -49,7 +49,7 @@ with DAG(
             s3_bucket = f'cqgc-{env}-app-datalake'
             s3_key = f'raw/landing/ensembl/{file}'
 
-            # Get latest s3 MD5 checksum
+            # Get latest s3 version
             s3_version = get_s3_file_version(s3, s3_bucket, s3_key)
             logging.info(f'Current {type} imported version: {s3_version}')
 
