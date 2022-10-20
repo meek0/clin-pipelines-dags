@@ -25,6 +25,7 @@ with DAG(
         url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
+        updated = False
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
@@ -43,22 +44,20 @@ with DAG(
         download_md5_diseases = download_and_check_md5(url, diseases_file, None)
 
         # Verify MD5 checksum
-        updated_genes = False
         if download_md5_genes != s3_md5_genes:
             # Upload file to S3
             load_to_s3_with_md5(s3, s3_bucket, s3_key_genes, file, download_md5_genes)
             logging.info(f'New genes imported MD5 hash: {download_md5_genes}')
-            updated_genes = True
+            updated = True
 
         # Verify MD5 checksum
-        updated_diseases = False
         if download_md5_diseases != s3_md5_diseases:
             # Upload file to S3
             load_to_s3_with_md5(s3, s3_bucket, s3_key_diseases, file, download_md5_diseases)
             logging.info(f'New diseases imported MD5 hash: {download_md5_diseases}')
-            updated_diseases = True
+            updated = True
 
-        if not updated_diseases and not updated_genes:
+        if not updated:
             raise AirflowSkipException()
        
 
