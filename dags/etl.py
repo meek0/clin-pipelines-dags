@@ -143,7 +143,20 @@ with DAG(
             ],
         )
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences
+        '''
+        varsome = SparkOperator(
+            task_id='varsome',
+            name='etl-ingest-varsome',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.varsome.Varsome',
+            spark_config='varsome-etl',
+            spark_secret='varsome',
+            arguments=[
+                f'config/{env}.conf', 'initial', 'all', batch_id()
+            ],
+        )
+        '''
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences # >> varsome
 
     with TaskGroup(group_id='enrich') as enrich:
 
