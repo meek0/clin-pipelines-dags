@@ -46,7 +46,7 @@ with DAG(
         http_get_file(f'{url}/{latest_ver}/{file}', file)
 
         # Upload file to S3
-        load_to_s3_with_version(s3, s3_bucket, s3_key, file)
+        load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New 1000 Genomes imported version: {latest_ver}')
 
     file = PythonOperator(
