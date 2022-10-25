@@ -7,7 +7,8 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from datetime import datetime
 from lib import config
-from lib.config import env
+from lib.config import env, K8sContext
+from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get, http_get_file
 from lib.utils_import import get_s3_file_version
@@ -41,7 +42,7 @@ with DAG(
 
         # Get imported version
         imported_ver = get_s3_file_version(
-            s3, s3_bucket, f'{s3_key_prefix}{file_prefix}{file_ext}'
+            s3, s3_bucket, f'{s3_key_prefix}{file_prefix}'
         )
         logging.info(f'TOPMed Bravo imported version: {imported_ver}')
 
@@ -49,6 +50,7 @@ with DAG(
         if imported_ver == latest_ver:
             raise AirflowSkipException()
 
+        # Send latest version to xcom
         return latest_ver
 
     init = PythonOperator(
@@ -57,31 +59,63 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
+    def file(latest_ver: str, chromosome: str, coverage: bool = False):
+        type_path = 'coverage' if coverage else 'vcf'
+        file_suffix = '.coverage' if coverage else '.coverage'
+
+        # Download file
+        http_get_file(
+            f'{url}/{latest_ver}/{path}/{type_path}/{chromosome}',
+            f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
+            {
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cookie': config.topmed_bravo_credentials,
+            },
+        )
+        logging.info('Download complete')
+
+        # Upload file to S3
+        s3.load_file(
+            f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
+            f'{s3_key_prefix}{file_prefix}{chromosome}{file_suffix}{file_ext}',
+            s3_bucket, replace=True,
+        )
+        logging.info('Upload to S3 complete')
+
     @task
-    def file(chromosome: str, **kwargs):
+    def file_variants(chromosome: str, **kwargs):
         latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
-        logging.info(latest_ver)
-        logging.info(chromosome)
+        file(latest_ver, chromosome)
 
-    files = file.expand(chromosome=chromosomes)
+    files_variants = file_variants.expand(chromosome=chromosomes)
 
-    def _release():
-        logging.info('release')
+    @task
+    def file_coverage(chromosome: str, **kwargs):
+        latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
+        file(latest_ver, chromosome, True)
+
+    files_coverage = file_coverage.expand(chromosome=chromosomes)
+
+    def _release(**kwargs):
+        latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
+        s3.load_string(
+            latest_ver, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
+        )
+        logging.info(f'New TOPMed Bravo imported version: {latest_ver}')
 
     release = PythonOperator(
         task_id='release',
         python_callable=_release,
     )
 
-    # table = SparkOperator(
-    #     task_id='table',
-    #     name='etl-import-topmed-bravo-table',
-    #     k8s_context=K8sContext.ETL,
-    #     spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-    #     spark_config='enriched-etl',
-    #     arguments=['topmed_bravo'],
-    #     trigger_rule=TriggerRule.ALL_SUCCESS,
-    #     on_success_callback=Slack.notify_dag_completion,
-    # )
+    table = SparkOperator(
+        task_id='table',
+        name='etl-import-topmed-bravo-table',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=['topmed_bravo'],
+        on_success_callback=Slack.notify_dag_completion,
+    )
 
-    init >> files >> release
+    init >> files_variants >> files_coverage >> release >> table

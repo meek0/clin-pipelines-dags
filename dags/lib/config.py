@@ -25,6 +25,7 @@ s3_conn_id = Variable.get('s3_conn_id', None)
 slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
+topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
