@@ -143,7 +143,6 @@ with DAG(
             ],
         )
 
-        '''
         varsome = SparkOperator(
             task_id='varsome',
             name='etl-ingest-varsome',
@@ -154,9 +153,11 @@ with DAG(
             arguments=[
                 f'config/{env}.conf', 'initial', 'all', batch_id()
             ],
+            # skip_env=[Env.QA, Env.STAGING],
+            skip_env=[Env.STAGING],
         )
-        '''
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences # >> varsome
+
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
 
     with TaskGroup(group_id='enrich') as enrich:
 
