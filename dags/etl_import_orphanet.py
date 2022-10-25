@@ -74,7 +74,6 @@ with DAG(
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=['orphanet'],
-        trigger_rule=TriggerRule.ALL_SUCCESS,
         on_success_callback=Slack.notify_dag_completion,
     )
 

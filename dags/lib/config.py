@@ -25,6 +25,7 @@ s3_conn_id = Variable.get('s3_conn_id', None)
 slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
+topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
@@ -38,7 +39,7 @@ spark_service_account = 'spark'
 
 if env == Env.QA:
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.45/clin-variant-etl.jar'
+    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.3.46/clin-variant-etl.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
