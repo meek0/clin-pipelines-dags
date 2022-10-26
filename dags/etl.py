@@ -153,8 +153,7 @@ with DAG(
             arguments=[
                 f'config/{env}.conf', 'initial', 'all', batch_id()
             ],
-            # skip_env=[Env.QA, Env.STAGING],
-            skip_env=[Env.STAGING],
+            skip_env=[Env.QA, Env.STAGING],
         )
 
         fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
