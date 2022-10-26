@@ -4,7 +4,6 @@ from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib import config
 from lib.config import env, K8sContext
