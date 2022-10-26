@@ -5,6 +5,7 @@ from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.task_group import TaskGroup
 from datetime import datetime
 from lib import config
 from lib.config import env, K8sContext
@@ -34,79 +35,84 @@ with DAG(
 
     chromosomes = list(range(1, 23)) + list('X')
 
-    def _init():
-        # Get latest version
-        html = http_get(url).text
-        latest_ver = re.search('bravo.sph.umich.edu/(.+)/hg38/', html).group(1)
-        logging.info(f'TOPMed Bravo latest version: {latest_ver}')
+    with TaskGroup(group_id='files') as files:
 
-        # Get imported version
-        imported_ver = get_s3_file_version(
-            s3, s3_bucket, f'{s3_key_prefix}{file_prefix}'
+        def _init():
+            # Get latest version
+            html = http_get(url).text
+            latest_ver = re.search(
+                'bravo.sph.umich.edu/(.+)/hg38/', html).group(1)
+            logging.info(f'TOPMed Bravo latest version: {latest_ver}')
+
+            # Get imported version
+            imported_ver = get_s3_file_version(
+                s3, s3_bucket, f'{s3_key_prefix}{file_prefix}'
+            )
+            logging.info(f'TOPMed Bravo imported version: {imported_ver}')
+
+            # Skip task if up to date
+            if imported_ver == latest_ver:
+                raise AirflowSkipException()
+
+            # Send latest version to xcom
+            return latest_ver
+
+        init = PythonOperator(
+            task_id='init',
+            python_callable=_init,
+            on_execute_callback=Slack.notify_dag_start,
         )
-        logging.info(f'TOPMed Bravo imported version: {imported_ver}')
 
-        # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        def transfer(latest_ver: str, chromosome: str, coverage: bool = False):
+            type_path = 'coverage' if coverage else 'vcf'
+            file_suffix = '.coverage' if coverage else '.coverage'
 
-        # Send latest version to xcom
-        return latest_ver
+            # Download file
+            http_get_file(
+                f'{url}/{latest_ver}/{path}/{type_path}/{chromosome}',
+                f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
+                {
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cookie': config.topmed_bravo_credentials,
+                },
+            )
+            logging.info('Download complete')
 
-    init = PythonOperator(
-        task_id='init',
-        python_callable=_init,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+            # Upload file to S3
+            s3.load_file(
+                f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
+                f'{s3_key_prefix}{file_prefix}{chromosome}{file_suffix}{file_ext}',
+                s3_bucket, replace=True,
+            )
+            logging.info('Upload to S3 complete')
 
-    def file(latest_ver: str, chromosome: str, coverage: bool = False):
-        type_path = 'coverage' if coverage else 'vcf'
-        file_suffix = '.coverage' if coverage else '.coverage'
+        @task
+        def files_variants(chromosome: str, **kwargs):
+            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
+            transfer(latest_ver, chromosome)
 
-        # Download file
-        http_get_file(
-            f'{url}/{latest_ver}/{path}/{type_path}/{chromosome}',
-            f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
-            {
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Cookie': config.topmed_bravo_credentials,
-            },
+        variants = files_variants.expand(chromosome=chromosomes)
+
+        @task
+        def files_coverage(chromosome: str, **kwargs):
+            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
+            transfer(latest_ver, chromosome, True)
+
+        coverage = files_coverage.expand(chromosome=chromosomes)
+
+        def _release(**kwargs):
+            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
+            s3.load_string(
+                latest_ver, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
+            )
+            logging.info(f'New TOPMed Bravo imported version: {latest_ver}')
+
+        release = PythonOperator(
+            task_id='release',
+            python_callable=_release,
         )
-        logging.info('Download complete')
 
-        # Upload file to S3
-        s3.load_file(
-            f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
-            f'{s3_key_prefix}{file_prefix}{chromosome}{file_suffix}{file_ext}',
-            s3_bucket, replace=True,
-        )
-        logging.info('Upload to S3 complete')
-
-    @task
-    def file_variants(chromosome: str, **kwargs):
-        latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
-        file(latest_ver, chromosome)
-
-    files_variants = file_variants.expand(chromosome=chromosomes)
-
-    @task
-    def file_coverage(chromosome: str, **kwargs):
-        latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
-        file(latest_ver, chromosome, True)
-
-    files_coverage = file_coverage.expand(chromosome=chromosomes)
-
-    def _release(**kwargs):
-        latest_ver = kwargs['ti'].xcom_pull(task_ids=['init'])[0]
-        s3.load_string(
-            latest_ver, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
-        )
-        logging.info(f'New TOPMed Bravo imported version: {latest_ver}')
-
-    release = PythonOperator(
-        task_id='release',
-        python_callable=_release,
-    )
+        init >> variants >> coverage >> release
 
     table = SparkOperator(
         task_id='table',
@@ -118,4 +124,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    init >> files_variants >> files_coverage >> release >> table
+    files >> table
