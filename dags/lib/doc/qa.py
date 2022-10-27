@@ -7,19 +7,20 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 
 ### Fonctionnement des tests
 - Regrouper les variants selon la clé (chromosome, start, reference, alternate) et un critère supplémentaire selon le cas
-- Afficher les variants dupliqués
+- Vérifier qu'aucun variant n'est dupliqué
 
 ### Différents tests
 - Table normalized_snv
 - Table normalized_variants
 - Table variants
 - Table variant_centric
+- Table varsome
 
 ## Série de tests comparant la liste des variants entre les tables
 
 ### Fonctionnement des tests
 - Lister les variants distincts selon la clé (chromosome, start, reference, alternate)
-- Comparer la liste de deux tables
+- Vérifier que la liste des variants des deux tables est identique
 
 ### Différents tests
 - Entre les tables normalized_snv et normalized_variants
@@ -56,8 +57,8 @@ no_dup_variant_centric = '''
 
 no_dup_varsome = '''
 ### Documentation
-- Test : ...
-- Objectif : ...
+- Test : Non duplication - Table varsome
+- Objectif : Les variants doivent être unique dans la table varsome
 '''
 
 same_list_snv_nor_variants = '''
