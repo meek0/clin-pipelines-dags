@@ -79,8 +79,8 @@ with DAG(
         name='etl-import-ensembl-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='ensembl_mapping',
-        arguments=['orphanet'],
+        spark_config='enriched-etl',
+        arguments=['ensembl_mapping'],
         on_success_callback=Slack.notify_dag_completion,
     )
 
