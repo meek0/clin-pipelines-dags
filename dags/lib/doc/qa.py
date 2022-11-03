@@ -3,6 +3,15 @@ etl_qa = '''
 
 L'échec d'un de ces tests bloque l'exécution du DAG.
 
+## Série de tests sur les tables
+
+### Fonctionnement des tests
+- Tester chaque table
+- Vérifier que les colonnes respectent le test
+
+### Différents tests
+- Tables non vides
+
 ## Série de tests sur la non duplication des variants dans les tables
 
 ### Fonctionnement des tests
@@ -29,6 +38,12 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 
 ---
 Pour plus de détails sur chaque test, voir "Task Instance Details".
+'''
+
+non_empty_tables = '''
+### Documentation
+- Test : Tables non vides
+- Objectif : Les tables ne doivent pas être vide
 '''
 
 no_dup_snv = '''

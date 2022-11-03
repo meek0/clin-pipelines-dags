@@ -143,6 +143,50 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric
+        variants_should_be_annotated = SparkOperator(
+            task_id='variants_should_be_annotated',
+            doc_md=doc.variants_should_be_annotated,
+            name='etl-qc-variants-should-be-annotated',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeAnnotated',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        variants_should_not_be_annotated = SparkOperator(
+            task_id='variants_should_not_be_annotated',
+            doc_md=doc.variants_should_not_be_annotated,
+            name='etl-qc-variants-should-not-be-annotated',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeAnnotated',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        variants_should_be_reannotated = SparkOperator(
+            task_id='variants_should_be_reannotated',
+            doc_md=doc.variants_should_be_reannotated,
+            name='etl-qc-variants-should-be-reannotated',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeReannotated',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        variants_should_not_be_reannotated = SparkOperator(
+            task_id='variants_should_not_be_reannotated',
+            doc_md=doc.variants_should_not_be_reannotated,
+            name='etl-qc-variants-should-not-be-reannotated',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeReannotated',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric >> variants_should_be_annotated >> variants_should_not_be_annotated >> variants_should_be_reannotated >> variants_should_not_be_reannotated
 
     return group

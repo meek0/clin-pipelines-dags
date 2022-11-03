@@ -41,6 +41,26 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
   - Table gene_centric
   - Table cnv_centric
 
+## Séries de tests sur l’annotation Varsome
+
+### Différentes règles
+- Annoter seulement les variants
+  - Appartenant à un panel de gènes
+  - Référence <= 200pb et Alternante <= 200pb
+  - Rares (freq <=0.01 dans gnomAD) **** TODO ****
+- Ne pas ré-annoter les variants déjà annotés, sauf si l'annotation date de plus de 7 jours
+
+### Fonctionnement des tests
+- Filtrer les variants appartenant ou non à un panel de gènes ainsi que la longueur de Référence et Alternate à partir de la table variants
+- Comparer avec les variants annotés de la table varsome
+- Vérifier au besoin les dates de création et/ou d'annotation
+
+### Différents tests
+- Les variants annotés
+- Les variants non annotés
+- Mise-à-jour de l'annotation après 7 jours
+- Mise-à-jour de l'annotation pas avant 7 jours
+
 ---
 Pour plus de détails sur chaque test, voir "Task Instance Details".
 '''
@@ -115,4 +135,28 @@ same_value_cnv_centric = '''
 ### Documentation
 - Test : Table cnv_centric - Les colonnes de données à valeur unique
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+variants_should_be_annotated = '''
+### Documentation
+- Test : Les variants annotés
+- Objectif : La liste des variants dans la table variants appartenant à un panel de gènes dont la longueur de reference ou alternate n'est pas plus grande que 200 est présente dans la table varsome
+'''
+
+variants_should_not_be_annotated = '''
+### Documentation
+- Test : Les variants non annotés
+- Objectif : La liste des variants dans la table variants n'appartenant pas à un panel de gènes ou dont la longueur de reference ou alternate est plus grande que 200 n'ont pas d'annotation
+'''
+
+variants_should_be_reannotated = '''
+### Documentation
+- Test : Mise-à-jour de l'annotation après 7 jours
+- Objectif : Les variants annotés n'ont pas un updated_on plus vieux que 7 jours
+'''
+
+variants_should_not_be_reannotated = '''
+### Documentation
+- Test : Mise-à-jour de l'annotation pas avant 7 jours
+- Objectif : Les nouveaux (<= 7 jours) variants dans la table variants n'ont pas été ré-annotés depuis leur création (created_on = updated_on)
 '''
