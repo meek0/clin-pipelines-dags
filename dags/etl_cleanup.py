@@ -14,7 +14,7 @@ from lib.operators.wait import WaitOperator
 from lib.slack import Slack
 
 
-if env in [Env.QA, Env.STAGING]:
+if env in [Env.QA, Env.STAGING, Env.PROD]:
 
     with DAG(
         dag_id='etl_cleanup',
