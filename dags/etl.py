@@ -20,6 +20,7 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id':  Param('', type='string'),
+        'skip_import': Param('no', enum=['yes', 'no']),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'notify': Param('no', enum=['yes', 'no']),
@@ -32,6 +33,9 @@ with DAG(
 
     def batch_id() -> str:
         return '{{ params.batch_id }}'
+
+    def skip_import() -> str:
+        return '{{ params.skip_import }}'
 
     def release_id() -> str:
         return '{{ params.release_id }}'
@@ -72,6 +76,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{env}-app-files-import',
             color=color(),
+            skip=skip_import(),
             arguments=[
                 'bio.ferlab.clin.etl.FileImport', batch_id(), 'false', 'true',
             ],
@@ -83,6 +88,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             aws_bucket=f'cqgc-{env}-app-datalake',
             color=color(),
+            skip=skip_import(),
             arguments=[
                 'bio.ferlab.clin.etl.FhirExport', 'all',
             ],
@@ -143,7 +149,6 @@ with DAG(
             ],
         )
 
-        '''
         varsome = SparkOperator(
             task_id='varsome',
             name='etl-ingest-varsome',
@@ -154,9 +159,11 @@ with DAG(
             arguments=[
                 f'config/{env}.conf', 'initial', 'all', batch_id()
             ],
+            skip_env=[Env.STAGING],
+            # skip_env=[Env.QA, Env.STAGING],
         )
-        '''
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences # >> varsome
+
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
 
     with TaskGroup(group_id='enrich') as enrich:
 

@@ -24,4 +24,5 @@ with DAG(
             f'config/{env}.conf', 'initial',
         ],
         on_execute_callback=Slack.notify_dag_start,
+        on_success_callback=Slack.notify_dag_completion,
     )
