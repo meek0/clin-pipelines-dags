@@ -21,7 +21,7 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=['omim'],
+        arguments=[f'config/{env}.conf', 'default', 'omim'],
         trigger_rule=TriggerRule.ALL_SUCCESS,
         on_execute_callback=Slack.notify_dag_start,
         on_success_callback=Slack.notify_dag_completion,

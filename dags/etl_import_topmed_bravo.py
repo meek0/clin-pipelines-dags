@@ -120,7 +120,7 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=['topmed_bravo'],
+        arguments=[f'config/{env}.conf', 'default', 'topmed_bravo'],
         on_success_callback=Slack.notify_dag_completion,
     )
 

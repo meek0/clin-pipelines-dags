@@ -60,7 +60,7 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=['1000genomes'],
+        arguments=[f'config/{env}.conf', 'default', '1000genomes'],
         on_success_callback=Slack.notify_dag_completion,
     )
 
