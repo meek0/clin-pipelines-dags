@@ -20,9 +20,9 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id':  Param('', type='string'),
-        'skip_import': Param('no', enum=['yes', 'no']),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
+        'import': Param('yes', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
     },
     default_args={
@@ -34,14 +34,14 @@ with DAG(
     def batch_id() -> str:
         return '{{ params.batch_id }}'
 
-    def skip_import() -> str:
-        return '{{ params.skip_import }}'
-
     def release_id() -> str:
         return '{{ params.release_id }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def skip_import() -> str:
+        return '{% if params.import == "yes" %}{% else %}yes{% endif %}'
 
     def skip_notify() -> str:
         return '{% if params.notify == "yes" %}{% else %}yes{% endif %}'
