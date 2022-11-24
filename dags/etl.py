@@ -20,9 +20,10 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id':  Param('', type='string'),
-        'skip_import': Param('no', enum=['yes', 'no']),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
+        'import': Param('yes', enum=['yes', 'no']),
+        'reset_consequences': Param('no', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
     },
     default_args={
@@ -34,14 +35,17 @@ with DAG(
     def batch_id() -> str:
         return '{{ params.batch_id }}'
 
-    def skip_import() -> str:
-        return '{{ params.skip_import }}'
-
     def release_id() -> str:
         return '{{ params.release_id }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def skip_import() -> str:
+        return '{% if params.import == "yes" %}{% else %}yes{% endif %}'
+
+    def consequences_steps() -> str:
+        return '{% if params.reset_consequences == "yes" %}initial{% else %}default{% endif %}'
 
     def skip_notify() -> str:
         return '{% if params.notify == "yes" %}{% else %}yes{% endif %}'
@@ -159,8 +163,7 @@ with DAG(
             arguments=[
                 f'config/{env}.conf', 'initial', 'all', batch_id()
             ],
-            skip_env=[Env.STAGING],
-            # skip_env=[Env.QA, Env.STAGING],
+            skip_env=[Env.QA, Env.STAGING],
         )
 
         fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
@@ -185,7 +188,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{env}.conf', 'default', 'consequences',
+                f'config/{env}.conf', consequences_steps(), 'consequences',
             ],
         )
 

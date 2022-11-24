@@ -11,6 +11,17 @@ def qa(
 
     with TaskGroup(group_id=group_id) as group:
 
+        non_empty_tables = SparkOperator(
+            task_id='non_empty_tables',
+            doc_md=doc.non_empty_tables,
+            name='etl-qc-non-empty-tables',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.tables.NonEmptyTables',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         no_dup_snv = SparkOperator(
             task_id='no_dup_snv',
             doc_md=doc.no_dup_snv,
@@ -99,6 +110,6 @@ def qa(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> no_dup_varsome >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
+        non_empty_tables >> no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> no_dup_varsome >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
 
     return group
