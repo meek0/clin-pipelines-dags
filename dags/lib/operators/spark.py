@@ -11,6 +11,10 @@ from typing import List
 
 class SparkOperator(KubernetesPodOperator):
 
+    template_fields = KubernetesPodOperator.template_fields + (
+        'skip',
+    )
+
     def __init__(
         self,
         k8s_context: str,
@@ -19,6 +23,7 @@ class SparkOperator(KubernetesPodOperator):
         spark_secret: str = '',
         skip_env: List[str] = [],
         skip_fail_env: List[str] = [],
+        skip: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -37,10 +42,14 @@ class SparkOperator(KubernetesPodOperator):
         self.spark_secret = spark_secret
         self.skip_env = skip_env
         self.skip_fail_env = skip_fail_env
+        self.skip = skip
 
     def execute(self, **kwargs):
 
         if env in self.skip_env:
+            raise AirflowSkipException()
+
+        if self.skip:
             raise AirflowSkipException()
 
         self.cmds = ['/opt/client-entrypoint.sh']
