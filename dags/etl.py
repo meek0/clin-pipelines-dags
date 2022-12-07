@@ -23,7 +23,6 @@ with DAG(
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
-        'reset_consequences': Param('no', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
     },
     default_args={
@@ -42,17 +41,18 @@ with DAG(
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def skip_import() -> str:
-        return '{% if params.import == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
-    def consequences_steps() -> str:
-        return '{% if params.reset_consequences == "yes" %}initial{% else %}default{% endif %}'
+    def skip_batch() -> str:
+        return '{% if params.batch_id|length %}{% else %}yes{% endif %}'
+
+    def default_or_initial() -> str:
+        return '{% if params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
 
     def skip_notify() -> str:
-        return '{% if params.notify == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id|length and params.notify == "yes" %}{% else %}yes{% endif %}'
 
-    def _params_validate(batch_id, release_id, color):
-        if batch_id == '':
-            raise AirflowFailException('DAG param "batch_id" is required')
+    def _params_validate(release_id, color):
         if release_id == '':
             raise AirflowFailException('DAG param "release_id" is required')
         if env == Env.QA:
@@ -67,7 +67,7 @@ with DAG(
 
     params_validate = PythonOperator(
         task_id='params_validate',
-        op_args=[batch_id(), release_id(), color()],
+        op_args=[release_id(), color()],
         python_callable=_params_validate,
         on_execute_callback=Slack.notify_dag_start,
     )
@@ -104,6 +104,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'all',
             ],
@@ -115,6 +116,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'default', batch_id(), 'snv',
             ],
@@ -126,6 +128,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'default', batch_id(), 'cnv',
             ],
@@ -137,6 +140,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'default', batch_id(), 'variants',
             ],
@@ -148,6 +152,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
             spark_config='raw-vcf-etl',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'default', batch_id(), 'consequences',
             ],
@@ -160,6 +165,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.varsome.Varsome',
             spark_config='varsome-etl',
             spark_secret='varsome',
+            skip=skip_batch(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'all', batch_id()
             ],
@@ -169,7 +175,6 @@ with DAG(
         fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
 
     with TaskGroup(group_id='enrich') as enrich:
-
         variants = SparkOperator(
             task_id='variants',
             name='etl-enrich-variants',
@@ -177,7 +182,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{env}.conf', 'default', 'variants',
+                f'config/{env}.conf', default_or_initial(), 'variants',
             ],
         )
 
@@ -188,7 +193,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{env}.conf', consequences_steps(), 'consequences',
+                f'config/{env}.conf', default_or_initial(), 'consequences',
             ],
         )
 
@@ -199,7 +204,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             arguments=[
-                f'config/{env}.conf', 'default', 'cnv',
+                f'config/{env}.conf', default_or_initial(), 'cnv',
             ],
         )
 
