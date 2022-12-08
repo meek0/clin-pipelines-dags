@@ -49,6 +49,8 @@ Create Airflow variables (Airflow UI => Admin => Variables) :
 - base_url (optional) : `http://localhost:50080`
 - show_test_dags (optional) : `yes`
 
+_For faster variable creation, upload the `variables.json` file in the Variables page._
+
 Test one task :
 
 ```
