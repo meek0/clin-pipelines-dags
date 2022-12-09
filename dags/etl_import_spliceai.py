@@ -39,7 +39,7 @@ with DAG(
             return f'raw/landing/spliceai/{file_name}'
 
         def url(id):
-            return f'http://api.basespace.illumina.com/v1pre3/files/{id}/content'
+            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content'
 
         for file_name, file_id in chain(indel.items(), snv.items()):
             # Get latest S3 MD5 checksum
