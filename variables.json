@@ -1,0 +1,11 @@
+{
+  "my_var": "test",
+  "your_var": "hello",
+  "environment": "qa",
+  "kubernetes_namespace": "cqgc-qa",
+  "kubernetes_context_default": "kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc",
+  "kubernetes_context_etl": "kubernetes-admin-cluster.etl.cqgc@cluster.etl.cqgc",
+  "base_url": "http://localhost:50080",
+  "show_test_dags": "yes",
+  "s3_conn_id": "minio"
+}
