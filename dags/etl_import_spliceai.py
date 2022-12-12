@@ -50,7 +50,8 @@ with DAG(
             http_get_file(
                 url(file_id),
                 file_name,
-                headers={'x-access-token': f'{basespace_illumina_credentials}'}
+                headers={'x-access-token': f'{basespace_illumina_credentials}'},
+                verify=False
             )
 
             # Verify MD5 checksum
