@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from itertools import chain
+from time import sleep
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
@@ -31,6 +32,7 @@ with DAG(
 ) as dag:
     def _file():
         # file_name -> file_id
+        sleep(500)
         indel = {
             "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
             "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
