@@ -40,11 +40,11 @@ with DAG(
         requests_log.addHandler(ch)
         # file_name -> file_id
         indel = {
-            "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
+            # "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
             "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
         }
         snv = {
-            "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
+            # "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
             "spliceai_scores.raw.snv.hg38.vcf.gz.tbi": 16525505189
         }
 
@@ -56,7 +56,7 @@ with DAG(
             return f'raw/landing/spliceai/{file_name}'
 
         def url(id):
-            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content'
+            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content?redirect=meta'
 
         for file_name, file_id in chain(indel.items(), snv.items()):
             # Get latest S3 MD5 checksum
@@ -70,6 +70,9 @@ with DAG(
                 verify=False
             )
             logging.info(response.headers)
+            logging.info(response.json())
+            download_url = response.json()['Response']['HrefContent']
+            http_get_file(download_url, file_name, verify=False)
             # http_get_file(
             #     url(file_id),
             #     file_name,
