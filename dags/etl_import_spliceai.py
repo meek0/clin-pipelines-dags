@@ -12,6 +12,15 @@ from lib.slack import Slack
 from lib.utils import http_get_file, file_md5
 from lib.utils_import import get_s3_file_md5, load_to_s3_with_md5
 
+# TODO: Remove after debugging
+import http.client as http_client
+http_client.HTTPConnection.debuglevel = 1
+
+logging.getLogger().setLevel(logging.DEBUG)
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.DEBUG)
+requests_log.propagate = True
+
 with DAG(
         dag_id='etl_import_spliceai',
         start_date=datetime(2022, 1, 1),
