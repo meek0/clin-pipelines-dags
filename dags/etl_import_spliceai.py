@@ -32,7 +32,6 @@ with DAG(
 ) as dag:
     def _file():
         # file_name -> file_id
-        sleep(500)
         indel = {
             "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
             "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
@@ -61,7 +60,10 @@ with DAG(
             http_get_file(
                 url(file_id),
                 file_name,
-                headers={'x-access-token': f'{basespace_illumina_credentials}'},
+                headers={
+                    'x-access-token': f'{basespace_illumina_credentials}',
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
+                },
                 verify=False
             )
 
