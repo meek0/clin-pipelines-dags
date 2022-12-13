@@ -14,6 +14,7 @@ def http_get(url: str, headers: Any = None) -> requests.Response:
 
 
 def http_get_file(url: str, path: str, headers: Any = None, chunk_size: int = 8192, **kwargs) -> None:
+    print(requests.get(url, headers=headers, stream=True, **kwargs).headers)
     with requests.get(url, headers=headers, stream=True, **kwargs) as response:
         response.raise_for_status()
         with open(path, 'wb') as file:
