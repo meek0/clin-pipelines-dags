@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
 from itertools import chain
-from time import sleep
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
@@ -17,10 +16,15 @@ from lib.utils_import import get_s3_file_md5, load_to_s3_with_md5
 import http.client as http_client
 http_client.HTTPConnection.debuglevel = 1
 
+logging.basicConfig()
 logging.getLogger().setLevel(logging.DEBUG)
-requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log = logging.getLogger("urllib3")
 requests_log.setLevel(logging.DEBUG)
 requests_log.propagate = True
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+requests_log.addHandler(ch)
 
 with DAG(
         dag_id='etl_import_spliceai',
