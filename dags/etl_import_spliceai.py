@@ -55,7 +55,7 @@ with DAG(
             )
             download_url = response.json()['Response']['HrefContent']
 
-            output = subprocess.run(args=["curl", "-k", download_url, "-o", file_name], capture_output=True, text=True)
+            output = subprocess.run(args=["curl", "-v", "-k", download_url, "-o", file_name], capture_output=True, text=True)
             print(output.stdout)
             print(output.stderr)
             output.check_returncode()
@@ -77,4 +77,5 @@ with DAG(
         task_id='file',
         python_callable=_file,
         on_execute_callback=Slack.notify_dag_start,
+        on_success_callback=Slack.notify_dag_completion
     )
