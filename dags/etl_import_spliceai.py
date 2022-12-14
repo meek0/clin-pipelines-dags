@@ -55,7 +55,9 @@ with DAG(
             )
             download_url = response.json()['Response']['HrefContent']
 
-            output = subprocess.run(args=["curl", download_url, "-o", file_name])
+            output = subprocess.run(args=["curl", "-k", download_url, "-o", file_name], capture_output=True, text=True)
+            print(output.stdout)
+            print(output.stderr)
             output.check_returncode()
 
             # Verify MD5 checksum
