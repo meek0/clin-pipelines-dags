@@ -72,6 +72,12 @@ with DAG(
             logging.info(response.headers)
             logging.info(response.json())
             download_url = response.json()['Response']['HrefContent']
+            response_s3 = requests.get(
+                download_url,
+                verify=False
+            )
+            logging.info(response_s3.headers)
+            logging.info(response_s3.json())
             http_get_file(download_url, file_name, verify=False)
             # http_get_file(
             #     url(file_id),
