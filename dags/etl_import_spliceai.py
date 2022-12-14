@@ -1,4 +1,5 @@
 import logging
+import subprocess
 from datetime import datetime
 from itertools import chain
 
@@ -10,12 +11,8 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib.config import env, s3_conn_id, basespace_illumina_credentials
 from lib.slack import Slack
-from lib.utils import http_get_file, file_md5
+from lib.utils import file_md5
 from lib.utils_import import get_s3_file_md5, load_to_s3_with_md5
-
-# TODO: Remove after debugging
-import http.client as http_client
-http_client.HTTPConnection.debuglevel = 1
 
 with DAG(
         dag_id='etl_import_spliceai',
@@ -26,25 +23,13 @@ with DAG(
         },
 ) as dag:
     def _file():
-        import http.client as http_client
-        http_client.HTTPConnection.debuglevel = 1
-
-        logging.basicConfig()
-        logging.getLogger().setLevel(logging.DEBUG)
-        requests_log = logging.getLogger("urllib3")
-        requests_log.setLevel(logging.DEBUG)
-        requests_log.propagate = True
-
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        requests_log.addHandler(ch)
         # file_name -> file_id
         indel = {
-            # "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
+            "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
             "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
         }
         snv = {
-            # "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
+            "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
             "spliceai_scores.raw.snv.hg38.vcf.gz.tbi": 16525505189
         }
 
@@ -67,27 +52,11 @@ with DAG(
             response = requests.get(
                 url(file_id),
                 headers={'x-access-token': f'{basespace_illumina_credentials}'},
-                verify=False
             )
-            logging.info(response.headers)
-            logging.info(response.json())
             download_url = response.json()['Response']['HrefContent']
-            response_s3 = requests.get(
-                download_url,
-                verify=False
-            )
-            logging.info(response_s3.headers)
-            logging.info(response_s3.json())
-            http_get_file(download_url, file_name, verify=False)
-            # http_get_file(
-            #     url(file_id),
-            #     file_name,
-            #     headers={
-            #         'x-access-token': f'{basespace_illumina_credentials}',
-            #         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
-            #     },
-            #     verify=False
-            # )
+
+            output = subprocess.run(args=["curl", download_url, "-o", file_name])
+            output.check_returncode()
 
             # Verify MD5 checksum
             download_md5 = file_md5(file_name)
