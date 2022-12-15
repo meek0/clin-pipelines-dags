@@ -9,8 +9,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib.config import env, s3_conn_id, basespace_illumina_credentials
 from lib.slack import Slack
-from lib.utils import file_md5, http_get_file
-from lib.utils_import import get_s3_file_md5, load_to_s3_with_md5
+from lib.utils_import import get_s3_file_md5, stream_upload_to_s3
 
 with DAG(
         dag_id='etl_import_spliceai',
@@ -44,21 +43,23 @@ with DAG(
         for file_name, file_id in chain(indel.items(), snv.items()):
             # Get latest S3 MD5 checksum
             s3_md5 = get_s3_file_md5(s3, s3_bucket, s3_key(file_name))
-            logging.info(f'Current {file_name} imported MD5 hash: {s3_md5}')
+            logging.info(f'Current file {file_name} imported MD5 hash: {s3_md5}')
 
             # Download file
-            http_get_file(
-                url(file_id),
-                file_name,
-                headers={'x-access-token': f'{basespace_illumina_credentials}'}
+            stream_upload_to_s3(
+                s3, s3_bucket, s3_key(file_name), url(file_id),
+                headers={'x-access-token': f'{basespace_illumina_credentials}'},
+                replace=True
             )
+            logging.info(f'File {file_name} uploaded to S3')
 
-            # Verify MD5 checksum
-            download_md5 = file_md5(file_name)
-            if download_md5 != s3_md5:
-                # Upload file to S3
-                load_to_s3_with_md5(s3, s3_bucket, s3_key(file_name), file_name, download_md5)
-                logging.info(f'New {file_name} imported MD5 hash: {download_md5}')
+            # Upload MD5 checksum to S3
+            new_s3_md5 = get_s3_file_md5(s3, s3_bucket, s3_key(file_name))
+            s3.load_string(new_s3_md5, f'{s3_key(file_name)}.md5', s3_bucket, replace=True)
+
+        # Verify MD5 checksum
+            if new_s3_md5 != s3_md5:
+                logging.info(f'New {file_name} imported MD5 hash: {new_s3_md5}')
                 updated = True
 
         # If no files have been updated, skip task

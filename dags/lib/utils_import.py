@@ -1,3 +1,6 @@
+from typing import Any
+
+import requests
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowFailException
 from lib.utils import file_md5, http_get_file
@@ -25,6 +28,13 @@ def download_and_check_md5(url: str, file: str, expected_md5: str) -> None:
     if expected_md5 is not None and md5 != expected_md5:
         raise AirflowFailException('MD5 checksum verification failed')
     return md5
+
+
+def stream_upload_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: str, headers: Any = None, replace: bool = False, **kwargs) -> None:
+    with requests.get(url, headers=headers, stream=True, **kwargs) as response:
+        response.raise_for_status()
+        with response as part:
+            s3.load_file_obj(part.raw, s3_key, s3_bucket, replace)
 
 
 def load_to_s3_with_md5(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file_md5: str) -> None:
