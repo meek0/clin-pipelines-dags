@@ -273,7 +273,7 @@ with DAG(
 
         gene_centric = SparkOperator(
             task_id='gene_centric',
-            name='etl-index-variants',
+            name='etl-index-gene-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
@@ -290,7 +290,7 @@ with DAG(
 
         gene_suggestions = SparkOperator(
             task_id='gene_suggestions',
-            name='etl-index-suggestions',
+            name='etl-index-gene-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
