@@ -1,9 +1,7 @@
 import logging
-import subprocess
 from datetime import datetime
 from itertools import chain
 
-import requests
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
@@ -11,7 +9,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib.config import env, s3_conn_id, basespace_illumina_credentials
 from lib.slack import Slack
-from lib.utils import file_md5
+from lib.utils import file_md5, http_get_file
 from lib.utils_import import get_s3_file_md5, load_to_s3_with_md5
 
 with DAG(
@@ -41,7 +39,7 @@ with DAG(
             return f'raw/landing/spliceai/{file_name}'
 
         def url(id):
-            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content?redirect=meta'
+            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content'
 
         for file_name, file_id in chain(indel.items(), snv.items()):
             # Get latest S3 MD5 checksum
@@ -49,16 +47,11 @@ with DAG(
             logging.info(f'Current {file_name} imported MD5 hash: {s3_md5}')
 
             # Download file
-            response = requests.get(
+            http_get_file(
                 url(file_id),
-                headers={'x-access-token': f'{basespace_illumina_credentials}'},
+                file_name,
+                headers={'x-access-token': f'{basespace_illumina_credentials}'}
             )
-            download_url = response.json()['Response']['HrefContent']
-
-            output = subprocess.run(args=["curl", "-v", "-k", download_url, "-o", file_name], capture_output=True, text=True)
-            print(output.stdout)
-            print(output.stderr)
-            output.check_returncode()
 
             # Verify MD5 checksum
             download_md5 = file_md5(file_name)
