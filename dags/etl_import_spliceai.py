@@ -25,11 +25,11 @@ with DAG(
     def _file():
         # file_name -> file_id
         indel = {
-            "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
+            # "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
             "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
         }
         snv = {
-            "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
+            # "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
             "spliceai_scores.raw.snv.hg38.vcf.gz.tbi": 16525505189
         }
 
