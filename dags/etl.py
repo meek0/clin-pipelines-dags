@@ -167,7 +167,7 @@ with DAG(
             spark_secret='varsome',
             skip=skip_batch(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'all', batch_id()
+                f'config/{env}.conf', 'default', 'all', batch_id()
             ],
             skip_env=[Env.QA, Env.STAGING],
         )
