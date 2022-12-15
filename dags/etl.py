@@ -161,7 +161,7 @@ with DAG(
             spark_config='varsome-etl',
             spark_secret='varsome',
             arguments=[
-                f'config/{env}.conf', 'initial', 'all', batch_id()
+                f'config/{env}.conf', 'default', 'all', batch_id()
             ],
             skip_env=[Env.QA, Env.STAGING],
         )
