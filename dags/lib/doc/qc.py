@@ -152,11 +152,11 @@ variants_should_not_be_annotated = '''
 variants_should_be_reannotated = '''
 ### Documentation
 - Test : Mise-à-jour de l'annotation après 7 jours
-- Objectif : Les variants annotés n'ont pas un updated_on plus vieux que 7 jours
+- Objectif : Les variants de la dernière batch (appartenant à un panel de gènes) n'ont pas un updated_on plus vieux que 7 jours dans la table varsome
 '''
 
 variants_should_not_be_reannotated = '''
 ### Documentation
 - Test : Mise-à-jour de l'annotation pas avant 7 jours
-- Objectif : Les nouveaux (<= 7 jours) variants dans la table variants n'ont pas été ré-annotés depuis leur création (created_on = updated_on)
+- Objectif : Les variants de la dernière batch (appartenant à un panel de gènes) n'ont pas été ré-annotés à l'intérieur de 7 jours depuis leur création (created_on = updated_on)
 '''
