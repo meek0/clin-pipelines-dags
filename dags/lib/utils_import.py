@@ -32,6 +32,7 @@ def download_and_check_md5(url: str, file: str, expected_md5: str) -> None:
 
 def stream_upload_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: str, headers: Any = None, replace: bool = False, **kwargs) -> None:
     with requests.get(url, headers=headers, stream=True, **kwargs) as response:
+        response.raw.chunked = True
         response.raise_for_status()
         with response as part:
             s3.load_file_obj(part.raw, s3_key, s3_bucket, replace)
