@@ -4,13 +4,15 @@ from itertools import chain
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-from lib.config import env, s3_conn_id, basespace_illumina_credentials
+from lib.config import env, s3_conn_id, basespace_illumina_credentials, K8sContext
+from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.utils_import import stream_upload_to_s3, get_s3_file_version
 from lib.utils import http_get
+from lib.utils_import import stream_upload_to_s3, get_s3_file_version
 
 with DAG(
         dag_id='etl_import_spliceai',
@@ -75,6 +77,30 @@ with DAG(
     file = PythonOperator(
         task_id='file',
         python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
+        on_execute_callback=Slack.notify_dag_start
+    )
+
+    indel_table = SparkOperator(
+        task_id='indel_table',
+        name='etl-import-spliceai-indel-table',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=[f'config/{env}.conf', 'default', 'spliceai_indel'],
+    )
+
+    snv_table = SparkOperator(
+        task_id='snv_table',
+        name='etl-import-spliceai-snv-table',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=[f'config/{env}.conf', 'default', 'spliceai_snv'],
+    )
+
+    publish = EmptyOperator(
+        task_id="publish",
         on_success_callback=Slack.notify_dag_completion
     )
+
+    file >> [indel_table, snv_table] >> publish
