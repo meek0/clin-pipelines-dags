@@ -7,6 +7,7 @@ from airflow.exceptions import AirflowSkipException
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib.config import env, s3_conn_id, basespace_illumina_credentials, K8sContext
 from lib.operators.spark import SparkOperator
@@ -87,6 +88,7 @@ with DAG(
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=[f'config/{env}.conf', 'default', 'spliceai_indel'],
+        trigger_rule=TriggerRule.NONE_FAILED
     )
 
     snv_table = SparkOperator(
@@ -96,6 +98,7 @@ with DAG(
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=[f'config/{env}.conf', 'default', 'spliceai_snv'],
+        trigger_rule=TriggerRule.NONE_FAILED
     )
 
     publish = EmptyOperator(
