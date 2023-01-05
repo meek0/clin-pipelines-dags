@@ -19,6 +19,7 @@ with DAG(
         dag_id='etl_import_spliceai',
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
+        max_active_tasks=1,  # Only one task can be scheduled at a time
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
         },
