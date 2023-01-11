@@ -43,7 +43,7 @@ with DAG(
                 )
         elif color != '':
             raise AirflowFailException(
-                f'DAG param "color" is forbidden in {env} environment'et
+                f'DAG param "color" is forbidden in {env} environment'
             )
 
     params_validate = PythonOperator(
@@ -51,7 +51,6 @@ with DAG(
         op_args=[script(), color()],
         python_callable=_params_validate,
         on_execute_callback=Slack.notify_dag_start,
-        on_success_callback=Slack.notify_dag_completion,
     )
 
     script = PipelineOperator(
@@ -59,6 +58,7 @@ with DAG(
         name='script',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
+        on_success_callback=Slack.notify_dag_completion,
         arguments=[
             'bio.ferlab.clin.etl.Scripts', script(), args()
         ],
