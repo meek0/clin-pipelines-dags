@@ -5,6 +5,7 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime
 from lib.config import env, es_url, Env, K8sContext
 from lib.operators.curl import CurlOperator
+from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.slack import Slack
 
@@ -87,6 +88,19 @@ if env == Env.QA:
             ],
         )
 
+        arranger_remove_project = ArrangerOperator(
+            task_id='arranger_remove_project',
+            name='etl-publish-arranger-remove-project',
+            k8s_context=K8sContext.DEFAULT,
+            cmds=[
+                'node',
+                '--experimental-modules=node',
+                '--es-module-specifier-resolution=node',
+                'cmd/remove_project.js',
+                env,
+            ],
+        )
+
         arranger_restart = K8sDeploymentRestartOperator(
             task_id='arranger_restart',
             k8s_context=K8sContext.DEFAULT,
@@ -94,4 +108,4 @@ if env == Env.QA:
             on_success_callback=Slack.notify_dag_completion,
         )
 
-        params_validate >> es_indices_swap >> arranger_restart
+        params_validate >> es_indices_swap >> arranger_remove_project >> arranger_restart
