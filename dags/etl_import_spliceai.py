@@ -102,9 +102,15 @@ with DAG(
         trigger_rule=TriggerRule.NONE_FAILED
     )
 
-    publish = EmptyOperator(
-        task_id="publish",
+    enrich = SparkOperator(
+        task_id='enrich',
+        name='etl-enrich-spliceai',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=[f'config/{env}.conf', 'default', 'spliceai_enriched'],
+        trigger_rule=TriggerRule.NONE_FAILED,
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> [indel_table, snv_table] >> publish
+    file >> [indel_table, snv_table] >> enrich
