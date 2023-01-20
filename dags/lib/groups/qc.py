@@ -142,7 +142,7 @@ def qc(
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
-
+        '''
         variants_should_be_annotated = SparkOperator(
             task_id='variants_should_be_annotated',
             doc_md=doc.variants_should_be_annotated,
@@ -186,7 +186,7 @@ def qc(
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
-
-        filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric >> variants_should_be_annotated >> variants_should_not_be_annotated >> variants_should_be_reannotated >> variants_should_not_be_reannotated
+        '''
+        filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric
 
     return group
