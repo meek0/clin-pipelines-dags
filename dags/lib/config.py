@@ -50,7 +50,7 @@ elif env == Env.STAGING:
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.PROD:
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'https://github.com/Ferlab-Ste-Justine/clin-variant-etl/releases/download/v2.4.2/clin-variant-etl.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.5.4.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
 else:
