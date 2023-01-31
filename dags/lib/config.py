@@ -45,7 +45,7 @@ if env == Env.QA:
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.5.4.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.5.5.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.PROD:
