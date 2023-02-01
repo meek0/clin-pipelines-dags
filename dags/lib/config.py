@@ -40,7 +40,7 @@ spark_service_account = 'spark'
 
 if env == Env.QA:
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.0.jar'
+    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.1.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
