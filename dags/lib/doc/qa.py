@@ -15,14 +15,15 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 ## Série de tests sur la non duplication des variants dans les tables
 
 ### Fonctionnement des tests
-- Regrouper les variants selon la clé (chromosome, start, reference, alternate) et un critère supplémentaire selon le cas
-- Vérifier qu'aucun variant n'est dupliqué
+- Regrouper les variants selon la clé (chromosome, start, reference, alternate) et un critère supplémentaire selon le cas [la clé des CNVs est hash]
+- Vérifier qu'aucun variant/CNVs n'est dupliqué
 
 ### Différents tests
 - Table normalized_snv
 - Table normalized_variants
 - Table variants
 - Table variant_centric
+- Table cnv_centric
 - Table varsome
 
 ## Série de tests comparant la liste des variants entre les tables
@@ -68,6 +69,12 @@ no_dup_variant_centric = '''
 ### Documentation
 - Test : Non duplication - Table variant_centric
 - Objectif : Les variants doivent être unique dans la table variant_centric
+'''
+
+no_dup_cnv_centric = '''
+### Documentation
+- Test : Non duplication - Table cnv_centric
+- Objectif : Les CNVs doivent être unique dans la table cnv_centric
 '''
 
 no_dup_varsome = '''
