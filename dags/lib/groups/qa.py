@@ -65,6 +65,17 @@ def qa(
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
+
+        no_dup_cnv_centric = SparkOperator(
+            task_id='no_dup_cnv_centric',
+            doc_md=doc.no_dup_cnv_centric,
+            name='etl-qc-no-dup-cnv-centric',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationCNV',
+            spark_config='enriched-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
         '''
         no_dup_varsome = SparkOperator(
             task_id='no_dup_varsome',
@@ -110,6 +121,6 @@ def qa(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        non_empty_tables >> no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
+        non_empty_tables >> no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> no_dup_cnv_centric >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
 
     return group
