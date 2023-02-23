@@ -25,6 +25,9 @@ with DAG(
     def panels() -> str:
         return '{{ params.panels }}'
 
+    def _import() -> str:
+        return '{{ params.import }}'
+
     def debug() -> str:
         return '{% if params.debug == "yes" %}true{% else %}false{% endif %}'
 
@@ -34,15 +37,18 @@ with DAG(
     def skip_import() -> str:
         return '{% if params.panels|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
-    def _params_validate(panels, debug, dryrun):
-        if panels == '':
+    def skip_etl() -> str:
+        return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
+
+    def _params_validate(panels, _import):
+        if panels == '' and _import == 'yes':
             raise AirflowFailException(
                 'DAG param "panels" is required'
             )
 
     params_validate = PythonOperator(
         task_id='params_validate',
-        op_args=[panels(), debug(), dryrun()],
+        op_args=[panels(), _import()],
         python_callable=_params_validate,
         on_execute_callback=Slack.notify_dag_start,
     )
@@ -63,10 +69,10 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.external.ImportExternal',
         spark_config='raw-import-external-etl',
+        skip=skip_etl(),
         arguments=[
             f'config/{env}.conf', 'initial', 'panels',
         ],
-        on_execute_callback=Slack.notify_dag_start,
         on_success_callback=Slack.notify_dag_completion,
     )
 
