@@ -7,6 +7,7 @@ from lib.slack import Slack
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 with DAG(
     dag_id='etl_import_panels',
