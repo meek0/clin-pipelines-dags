@@ -19,6 +19,7 @@ with DAG(
         'dryrun': Param('no', enum=['yes', 'no']),
     },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
 ) as dag:
@@ -39,7 +40,7 @@ with DAG(
         return '{% if params.panels|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
     def skip_etl() -> str:
-        return '{% if params.dryrun == "no" %}{% else %}yes{% endif %}'
+        return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
 
     def _params_validate(panels, _import):
         if panels == '' and _import == 'yes':
