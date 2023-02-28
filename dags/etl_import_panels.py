@@ -39,7 +39,7 @@ with DAG(
         return '{% if params.panels|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
     def skip_etl() -> str:
-        return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
+        return '{% if params.dryrun == "no" %}{% else %}yes{% endif %}'
 
     def _params_validate(panels, _import):
         if panels == '' and _import == 'yes':
