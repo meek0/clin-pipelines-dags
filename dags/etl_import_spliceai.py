@@ -113,4 +113,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> [indel_table, snv_table] >> enrich
+    [indel_table, snv_table] >> enrich
