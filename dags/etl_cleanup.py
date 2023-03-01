@@ -106,8 +106,10 @@ if env in [Env.QA, Env.STAGING]:
                 '--cacert', '/opt/ingress-ca/ca.crt', '-f', '-X', 'DELETE',
                 f'{es_url}/clin-{env}-prescriptions' + color('-') +
                 f',clin-{env}-patients' + color('-') +
-                f',clin-{env}-analyses' + color('-') +
-                f',clin-{env}-sequencings' + color('-') +
+                f',clin-qa-analyses' + color('-') +
+                f',clin-qa-sequencings' + color('-') +
+                f',clin-staging-analyses-*' +
+                f',clin-staging-sequencings-*' +
                 '?ignore_unavailable=true',
             ],
         )
