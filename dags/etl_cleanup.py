@@ -108,8 +108,8 @@ if env in [Env.QA, Env.STAGING]:
                 f',clin-{env}-patients' + color('-') +
                 f',clin-qa-analyses' + color('-') +
                 f',clin-qa-sequencings' + color('-') +
-                f',clin-staging-analyses-*' +
-                f',clin-staging-sequencings-*' +
+                f',clin-staging-analyses*' +
+                f',clin-staging-sequencings*' +
                 '?ignore_unavailable=true',
             ],
         )
