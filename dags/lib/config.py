@@ -41,7 +41,7 @@ spark_service_account = 'spark'
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.3.jar'
+    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.4.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
