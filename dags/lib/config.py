@@ -40,18 +40,21 @@ spark_service_account = 'spark'
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
+    pipeline_image = 'ferlabcrsj/clin-pipelines'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.5.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:0ebc3a9'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:ff730b9'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.6.3.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:0ebc3a9'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:ff730b9'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.6.3.jar'
     ca_certificates = 'ca-certificates-bundle'
