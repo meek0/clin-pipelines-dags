@@ -53,10 +53,22 @@ no_dup_snv = '''
 - Objectif : Les variants doivent être unique par patient_id dans la table normalized_snv
 '''
 
+no_dup_nor_consequences = '''
+### Documentation
+- Test : Non duplication - Table normalized_consequences
+- Objectif : Les conséquences doivent être unique dans la table normalized_consequences
+'''
+
 no_dup_nor_variants = '''
 ### Documentation
 - Test : Non duplication - Table normalized_variants
 - Objectif : Les variants doivent être unique par batch_id dans la table normalized_variants
+'''
+
+no_dup_consequences = '''
+### Documentation
+- Test : Non duplication - Table consequences
+- Objectif : Les conséquences doivent être unique dans la table consequences
 '''
 
 no_dup_variants = '''

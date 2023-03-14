@@ -33,12 +33,34 @@ def qa(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        no_dup_nor_consequences = SparkOperator(
+            task_id='no_dup_nor_consequences',
+            doc_md=doc.no_dup_nor_consequences,
+            name='etl-qc-no-dup-nor-consequences',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorConsequences',
+            spark_config='raw-fhir-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         no_dup_nor_variants = SparkOperator(
             task_id='no_dup_nor_variants',
             doc_md=doc.no_dup_nor_variants,
             name='etl-qc-no-dup-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
+            spark_config='raw-fhir-etl',
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        no_dup_consequences = SparkOperator(
+            task_id='no_dup_consequences',
+            doc_md=doc.no_dup_consequences,
+            name='etl-qc-no-dup-consequences',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationConsequences',
             spark_config='raw-fhir-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -121,6 +143,6 @@ def qa(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        non_empty_tables >> no_dup_snv >> no_dup_nor_variants >> no_dup_variants >> no_dup_variant_centric >> no_dup_cnv_centric >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
+        non_empty_tables >> no_dup_snv >> no_dup_nor_consequences >> no_dup_nor_variants >> no_dup_consequences >> no_dup_variants >> no_dup_variant_centric >> no_dup_cnv_centric >> same_list_snv_nor_variants >> same_list_snv_variants >> same_list_variants_variant_centric
 
     return group
