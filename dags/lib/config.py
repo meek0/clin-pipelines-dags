@@ -41,7 +41,7 @@ if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.5.jar'
+    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.6.6.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.STAGING:
