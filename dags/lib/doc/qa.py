@@ -12,15 +12,18 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 ### Différents tests
 - Tables non vides
 
-## Série de tests sur la non duplication des variants dans les tables
+## Série de tests sur la non duplication des entités dans les tables
 
 ### Fonctionnement des tests
-- Regrouper les variants selon la clé (chromosome, start, reference, alternate) et un critère supplémentaire selon le cas [la clé des CNVs est hash]
-- Vérifier qu'aucun variant/CNVs n'est dupliqué
+- Regrouper les entités selon une clé unique
+- Vérifier qu'aucune entité n'est dupliquée
 
 ### Différents tests
+- Table gnomad_genomes_3_0
 - Table normalized_snv
+- Table normalized_consequences
 - Table normalized_variants
+- Table consequences
 - Table variants
 - Table variant_centric
 - Table cnv_centric
@@ -45,6 +48,12 @@ non_empty_tables = '''
 ### Documentation
 - Test : Tables non vides
 - Objectif : Les tables ne doivent pas être vide
+'''
+
+no_dup_gnomad = '''
+### Documentation
+- Test : Non duplication - Table gnomad_genomes_3_0
+- Objectif : Les variants doivent être unique dans la table gnomad_genomes_3_0
 '''
 
 no_dup_snv = '''
