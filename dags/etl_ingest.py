@@ -23,6 +23,7 @@ with DAG(
         'batch_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
+        'legacy': Param('no', enum=['yes', 'no']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -35,6 +36,9 @@ with DAG(
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+
+    def legacy() -> str:
+        return '{% if params.legacy == "no" %}false{% else %}true{% endif %}'
 
     def skip_import() -> str:
         return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
@@ -65,6 +69,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
         skip_batch='', # always compute this batch (purpose of this dag)
+        legacy=legacy()
     )
 
     slack = EmptyOperator(

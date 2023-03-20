@@ -22,7 +22,7 @@ def qa(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        no_dup_snv = SparkOperator(
+        no_dup_gnomad = SparkOperator(
             task_id='no_dup_gnomad',
             doc_md=doc.no_dup_gnomad,
             name='etl-qc-no-dup-gnomad',
