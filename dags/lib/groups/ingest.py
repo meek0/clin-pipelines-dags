@@ -22,7 +22,8 @@ def ingest(
     batch_id: str,
     color: str,
     skip_import: str,
-    skip_batch: str
+    skip_batch: str,
+    legacy: str
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
@@ -35,7 +36,7 @@ def ingest(
             color=color,
             skip=skip_import,
             arguments=[
-                'bio.ferlab.clin.etl.FileImport', batch_id, 'false', 'true',
+                'bio.ferlab.clin.etl.FileImport', batch_id, 'false', 'true', legacy,
             ],
         )
 
