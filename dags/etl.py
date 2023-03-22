@@ -24,7 +24,6 @@ with DAG(
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
-        'legacy': Param('no', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
     },
     default_args={
@@ -41,9 +40,6 @@ with DAG(
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-    def legacy() -> str:
-        return '{% if params.legacy == "no" %}false{% else %}true{% endif %}'
 
     def skip_import() -> str:
         return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
@@ -83,7 +79,6 @@ with DAG(
         color=color(),
         skip_import=skip_import(),
         skip_batch=skip_batch(),
-        legacy=legacy()
     )
 
     with TaskGroup(group_id='enrich') as enrich:
