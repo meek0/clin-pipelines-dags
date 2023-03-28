@@ -34,7 +34,7 @@ curl_image = 'curlimages/curl'
 fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 panels_image = 'ferlabcrsj/clin-panels:58f50b0ec310bdd8e6b33593497b39b4258009eb-1677093891'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
-spark_image = 'ferlabcrsj/spark:3.3.1'
+spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 
 if env == Env.QA:
