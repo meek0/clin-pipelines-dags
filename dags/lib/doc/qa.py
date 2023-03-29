@@ -12,15 +12,18 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 ### Différents tests
 - Tables non vides
 
-## Série de tests sur la non duplication des variants dans les tables
+## Série de tests sur la non duplication des entités dans les tables
 
 ### Fonctionnement des tests
-- Regrouper les variants selon la clé (chromosome, start, reference, alternate) et un critère supplémentaire selon le cas [la clé des CNVs est hash]
-- Vérifier qu'aucun variant/CNVs n'est dupliqué
+- Regrouper les entités selon une clé unique
+- Vérifier qu'aucune entité n'est dupliquée
 
 ### Différents tests
+- Table gnomad_genomes_v3
 - Table normalized_snv
+- Table normalized_consequences
 - Table normalized_variants
+- Table consequences
 - Table variants
 - Table variant_centric
 - Table cnv_centric
@@ -47,16 +50,34 @@ non_empty_tables = '''
 - Objectif : Les tables ne doivent pas être vide
 '''
 
+no_dup_gnomad = '''
+### Documentation
+- Test : Non duplication - Table gnomad_genomes_v3
+- Objectif : Les variants doivent être unique dans la table gnomad_genomes_v3
+'''
+
 no_dup_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
 - Objectif : Les variants doivent être unique par patient_id dans la table normalized_snv
 '''
 
+no_dup_nor_consequences = '''
+### Documentation
+- Test : Non duplication - Table normalized_consequences
+- Objectif : Les conséquences doivent être unique dans la table normalized_consequences
+'''
+
 no_dup_nor_variants = '''
 ### Documentation
 - Test : Non duplication - Table normalized_variants
 - Objectif : Les variants doivent être unique par batch_id dans la table normalized_variants
+'''
+
+no_dup_consequences = '''
+### Documentation
+- Test : Non duplication - Table consequences
+- Objectif : Les conséquences doivent être unique dans la table consequences
 '''
 
 no_dup_variants = '''

@@ -6,7 +6,8 @@ from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.doc import qa as doc
 from lib.groups.qa import qa
-
+from airflow.operators.empty import EmptyOperator
+from lib.slack import Slack
 
 with DAG(
     dag_id='etl_qa',
@@ -32,6 +33,7 @@ with DAG(
         task_id='params_validate',
         op_args=[release_id()],
         python_callable=_params_validate,
+        on_execute_callback=Slack.notify_dag_start,
     )
 
     qa = qa(
@@ -39,4 +41,9 @@ with DAG(
         release_id=release_id(),
     )
 
-    params_validate >> qa
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
+    )
+
+    params_validate >> qa >> slack

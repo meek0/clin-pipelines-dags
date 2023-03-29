@@ -22,7 +22,7 @@ def ingest(
     batch_id: str,
     color: str,
     skip_import: str,
-    skip_batch: str
+    skip_batch: str,
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
