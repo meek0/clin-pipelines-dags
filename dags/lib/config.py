@@ -52,10 +52,10 @@ elif env == Env.STAGING:
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:0ebc3a9'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:ff730b9'
+    fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:4ddf4ef'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.6.3.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.7.4.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
 else:
