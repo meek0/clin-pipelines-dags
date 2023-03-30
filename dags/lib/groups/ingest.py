@@ -111,7 +111,7 @@ def ingest(
             ],
         )
 
-
+        '''
         varsome = SparkOperator(
             task_id='varsome',
             name='etl-ingest-varsome',
@@ -125,8 +125,8 @@ def ingest(
             ],
             skip_env=[Env.QA, Env.STAGING],
         )
+        '''
 
-
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> varsome
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences
 
     return group
