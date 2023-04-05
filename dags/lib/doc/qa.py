@@ -59,7 +59,7 @@ no_dup_gnomad = '''
 no_dup_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
-- Objectif : Les variants doivent être unique par patient_id dans la table normalized_snv
+- Objectif : Les variants doivent être unique par service_request_id dans la table normalized_snv
 '''
 
 no_dup_nor_consequences = '''
