@@ -17,7 +17,7 @@ def qa(
             name='etl-qc-non-empty-tables',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.tables.NonEmptyTables',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -28,7 +28,7 @@ def qa(
             name='etl-qc-no-dup-gnomad',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomad',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -39,7 +39,7 @@ def qa(
             name='etl-qc-no-dup-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationSNV',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -50,7 +50,7 @@ def qa(
             name='etl-qc-no-dup-nor-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorConsequences',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -61,7 +61,7 @@ def qa(
             name='etl-qc-no-dup-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -72,7 +72,7 @@ def qa(
             name='etl-qc-no-dup-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationConsequences',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -83,7 +83,7 @@ def qa(
             name='etl-qc-no-dup-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariants',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -94,7 +94,7 @@ def qa(
             name='etl-qc-no-dup-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariantCentric',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -105,7 +105,7 @@ def qa(
             name='etl-qc-no-dup-cnv-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationCNV',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -116,7 +116,7 @@ def qa(
             name='etl-qc-no-dup-varsome',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVarsome',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -127,7 +127,7 @@ def qa(
             name='etl-qc-same-list-snv-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndNorVariants',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -138,7 +138,7 @@ def qa(
             name='etl-qc-same-list-snv-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndVariants',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
@@ -149,7 +149,7 @@ def qa(
             name='etl-qc-same-list-variants-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenVariantsAndVariantCentric',
-            spark_config='raw-fhir-etl',
+            spark_config='enriched-etl',
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
