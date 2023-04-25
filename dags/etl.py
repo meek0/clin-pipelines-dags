@@ -5,7 +5,7 @@ from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
+from lib.config import env, es_url, Env, K8sContext, indexer_context
 from lib.groups.qa import qa
 from lib.groups.ingest import ingest
 from lib.operators.arranger import ArrangerOperator
@@ -186,7 +186,7 @@ with DAG(
         gene_centric = SparkOperator(
             task_id='gene_centric',
             name='etl-index-gene-centric',
-            k8s_context=K8sContext.DEFAULT,
+            k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
@@ -203,7 +203,7 @@ with DAG(
         gene_suggestions = SparkOperator(
             task_id='gene_suggestions',
             name='etl-index-gene-suggestions',
-            k8s_context=K8sContext.DEFAULT,
+            k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
@@ -220,7 +220,7 @@ with DAG(
         variant_centric = SparkOperator(
             task_id='variant_centric',
             name='etl-index-variant-centric',
-            k8s_context=K8sContext.DEFAULT,
+            k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
@@ -237,7 +237,7 @@ with DAG(
         variant_suggestions = SparkOperator(
             task_id='variant_suggestions',
             name='etl-index-variant-suggestions',
-            k8s_context=K8sContext.DEFAULT,
+            k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
@@ -254,7 +254,7 @@ with DAG(
         cnv_centric = SparkOperator(
             task_id='cnv_centric',
             name='etl-index-cnv-centric',
-            k8s_context=K8sContext.DEFAULT,
+            k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
             arguments=[
