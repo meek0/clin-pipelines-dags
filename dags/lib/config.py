@@ -44,6 +44,7 @@ if env == Env.QA:
     spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.7.6.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
+    indexer_context = K8sContext.DEFAULT
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
     pipeline_image = 'ferlabcrsj/clin-pipelines:4ddf4ef'
@@ -51,6 +52,7 @@ elif env == Env.STAGING:
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.7.6.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
+    indexer_context = K8sContext.DEFAULT
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
     pipeline_image = 'ferlabcrsj/clin-pipelines:4ddf4ef'
@@ -58,6 +60,7 @@ elif env == Env.PROD:
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.7.6.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
+    indexer_context = K8sContext.ETL
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
