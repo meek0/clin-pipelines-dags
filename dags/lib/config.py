@@ -39,7 +39,7 @@ spark_service_account = 'spark'
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
-    panels_image = 'ferlabcrsj/clin-panels'
+    panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.7.6.jar'
     ca_certificates = 'ingress-ca-certificate'
