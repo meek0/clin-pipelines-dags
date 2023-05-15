@@ -74,7 +74,7 @@ with DAG(
         spark_config='raw-import-external-etl',
         skip=skip_etl(),
         arguments=[
-            f'config/{env}.conf', 'initial', 'panels',
+            f'config/{env}.conf', 'initial', '', 'panels',
         ],
     )
 
