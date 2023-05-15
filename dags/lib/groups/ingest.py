@@ -67,7 +67,7 @@ def ingest(
             task_id='snv',
             name='etl-ingest-snv',
             k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
             arguments=[
@@ -79,7 +79,7 @@ def ingest(
             task_id='cnv',
             name='etl-ingest-cnv',
             k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
             arguments=[
@@ -91,7 +91,7 @@ def ingest(
             task_id='variants',
             name='etl-ingest-variants',
             k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
             arguments=[
@@ -103,11 +103,23 @@ def ingest(
             task_id='consequences',
             name='etl-ingest-consequences',
             k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.vcf.ImportVcf',
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'consequences',
+            ],
+        )
+
+        exomiser = SparkOperator(
+            task_id='exomiser',
+            name='etl-ingest-exomiser',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='raw-vcf-etl',
+            skip=skip_batch,
+            arguments=[
+                f'config/{env}.conf', 'default', batch_id, 'exomiser',
             ],
         )
 
@@ -127,6 +139,6 @@ def ingest(
         )
         '''
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> exomiser
 
     return group

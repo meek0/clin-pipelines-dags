@@ -70,7 +70,7 @@ with DAG(
         task_id='panels',
         name='etl-import-panels',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.external.ImportExternal',
+        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='raw-import-external-etl',
         skip=skip_etl(),
         arguments=[
