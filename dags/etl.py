@@ -82,6 +82,17 @@ with DAG(
     )
 
     with TaskGroup(group_id='enrich') as enrich:
+        snv = SparkOperator(
+            task_id='snv',
+            name='etl-enrich-snv',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
+            spark_config='enriched-etl',
+            arguments=[
+                f'config/{env}.conf', default_or_initial(), 'snv',
+            ],
+        )
+
         variants = SparkOperator(
             task_id='variants',
             name='etl-enrich-variants',
@@ -115,7 +126,7 @@ with DAG(
             ],
         )
 
-        variants >> consequences >> cnv
+        snv >> variants >> consequences >> cnv
 
     with TaskGroup(group_id='prepare') as prepare:
 
