@@ -56,7 +56,7 @@ no_dup_gnomad = '''
 - Objectif : Les variants doivent être unique dans la table gnomad_genomes_v3
 '''
 
-no_dup_snv = '''
+no_dup_nor_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
 - Objectif : Les variants doivent être unique par service_request_id dans la table normalized_snv
@@ -72,6 +72,12 @@ no_dup_nor_variants = '''
 ### Documentation
 - Test : Non duplication - Table normalized_variants
 - Objectif : Les variants doivent être unique par batch_id dans la table normalized_variants
+'''
+
+no_dup_snv = '''
+### Documentation
+- Test : Non duplication - Table snv
+- Objectif : Les variants doivent être unique par service_request_id dans la table snv
 '''
 
 no_dup_consequences = '''
@@ -104,7 +110,7 @@ no_dup_varsome = '''
 - Objectif : Les variants doivent être unique dans la table varsome
 '''
 
-same_list_snv_nor_variants = '''
+same_list_nor_snv_nor_variants = '''
 ### Documentation
 - Test : Liste des variants - Entre les tables normalized_snv et normalized_variants
 - Objectif : La liste des variants ayant ad_alt >= 3 dans la table normalized_snv est incluse dans celle de la table normalized_variants
@@ -112,8 +118,8 @@ same_list_snv_nor_variants = '''
 
 same_list_snv_variants = '''
 ### Documentation
-- Test : Liste des variants - Entre les tables normalized_snv et variants
-- Objectif : La liste des variants ayant ad_alt >= 3 dans la table normalized_snv est incluse dans celle de la table variants
+- Test : Liste des variants - Entre les tables snv et variants
+- Objectif : La liste des variants ayant ad_alt >= 3 dans la table snv est incluse dans celle de la table variants
 '''
 
 same_list_variants_variant_centric = '''
