@@ -47,7 +47,7 @@ if env == Env.QA:
     indexer_context = K8sContext.DEFAULT
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:4ddf4ef'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:f470295'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.9.3.jar'
