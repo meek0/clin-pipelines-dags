@@ -75,6 +75,18 @@ def ingest(
             ],
         )
 
+        snv_somatic = SparkOperator(
+            task_id='snv_somatic',
+            name='etl-ingest-snv-somatic',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='raw-vcf-etl',
+            skip=skip_batch,
+            arguments=[
+                f'config/{env}.conf', 'default', batch_id, 'snv_somatic',
+            ],
+        )
+
         cnv = SparkOperator(
             task_id='cnv',
             name='etl-ingest-cnv',
@@ -139,6 +151,6 @@ def ingest(
         )
         '''
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> exomiser
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> snv_somatic >> cnv >> variants >> consequences >> exomiser
 
     return group
