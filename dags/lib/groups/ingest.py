@@ -23,6 +23,7 @@ def ingest(
     color: str,
     skip_import: str,
     skip_batch: str,
+    spark_jar: str,
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
@@ -58,6 +59,7 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
             spark_config='raw-fhir-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'initial', 'all',
             ],
@@ -70,8 +72,22 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'snv',
+            ],
+        )
+
+        snv_somatic = SparkOperator(
+            task_id='snv_somatic',
+            name='etl-ingest-snv-somatic',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='raw-vcf-etl',
+            skip=skip_batch,
+            spark_jar=spark_jar,
+            arguments=[
+                f'config/{env}.conf', 'default', batch_id, 'snv_somatic',
             ],
         )
 
@@ -82,6 +98,7 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'cnv',
             ],
@@ -94,6 +111,7 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'variants',
             ],
@@ -106,6 +124,7 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'consequences',
             ],
@@ -118,6 +137,7 @@ def ingest(
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'exomiser',
             ],
@@ -132,6 +152,7 @@ def ingest(
             spark_config='varsome-etl',
             spark_secret='varsome',
             skip=skip_batch,
+            spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', 'all', batch_id
             ],
@@ -139,6 +160,6 @@ def ingest(
         )
         '''
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> exomiser
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> snv_somatic >> cnv >> variants >> consequences >> exomiser
 
     return group

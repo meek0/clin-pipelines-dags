@@ -13,6 +13,7 @@ class SparkOperator(KubernetesPodOperator):
 
     template_fields = KubernetesPodOperator.template_fields + (
         'skip',
+        'spark_jar'
     )
 
     def __init__(
@@ -21,6 +22,7 @@ class SparkOperator(KubernetesPodOperator):
         spark_class: str,
         spark_config: str = '',
         spark_secret: str = '',
+        spark_jar: str = '',
         skip_env: List[str] = [],
         skip_fail_env: List[str] = [],
         skip: bool = False,
@@ -40,6 +42,7 @@ class SparkOperator(KubernetesPodOperator):
         self.spark_class = spark_class
         self.spark_config = spark_config
         self.spark_secret = spark_secret
+        self.spark_jar = spark_jar
         self.skip_env = skip_env
         self.skip_fail_env = skip_fail_env
         self.skip = skip
@@ -51,6 +54,11 @@ class SparkOperator(KubernetesPodOperator):
 
         if self.skip:
             raise AirflowSkipException()
+        
+        if self.spark_jar == '':
+            self.spark_jar = config.spark_jar
+        else:
+            self.spark_jar = 's3a://cqgc-' + env + '-app-datalake/jars/clin-variant-etl-' + self.spark_jar + '.jar'
 
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_policy = 'Always'
@@ -70,7 +78,7 @@ class SparkOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='SPARK_JAR',
-                value=config.spark_jar,
+                value=self.spark_jar,
             ),
             k8s.V1EnvVar(
                 name='SPARK_CLASS',

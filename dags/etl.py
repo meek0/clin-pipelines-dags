@@ -25,6 +25,7 @@ with DAG(
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
+        'spark_jar': Param('', type='string'),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -37,6 +38,9 @@ with DAG(
 
     def release_id() -> str:
         return '{{ params.release_id }}'
+
+    def spark_jar() -> str:
+        return '{{ params.spark_jar }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
@@ -79,6 +83,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),
         skip_batch=skip_batch(),
+        spark_jar=spark_jar(),
     )
 
     with TaskGroup(group_id='enrich') as enrich:
@@ -88,6 +93,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', default_or_initial(), 'snv',
             ],
@@ -99,6 +105,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', default_or_initial(), 'variants',
             ],
@@ -110,6 +117,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', default_or_initial(), 'consequences',
             ],
@@ -121,6 +129,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', default_or_initial(), 'cnv',
             ],
@@ -136,6 +145,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'gene_centric', release_id(),
             ],
@@ -147,6 +157,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'gene_suggestions', release_id(),
             ],
@@ -158,6 +169,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'variant_centric', release_id(),
             ],
@@ -169,6 +181,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'variant_suggestions', release_id(),
             ],
@@ -180,6 +193,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
             spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 f'config/{env}.conf', 'initial', 'cnv_centric', release_id(),
             ],
@@ -190,6 +204,7 @@ with DAG(
     qa = qa(
         group_id='qa',
         release_id=release_id(),
+        spark_jar=spark_jar(),
     )
 
     with TaskGroup(group_id='index') as index:
@@ -200,6 +215,7 @@ with DAG(
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
@@ -217,6 +233,7 @@ with DAG(
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
@@ -234,6 +251,7 @@ with DAG(
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
@@ -251,6 +269,7 @@ with DAG(
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
@@ -268,6 +287,7 @@ with DAG(
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
             spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
@@ -289,6 +309,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
@@ -302,6 +323,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
@@ -315,6 +337,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
@@ -328,6 +351,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
@@ -341,6 +365,7 @@ with DAG(
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',

@@ -16,6 +16,7 @@ with DAG(
     schedule_interval=None,
     params={
         'release_id': Param('', type='string'),
+        'spark_jar': Param('', type='string'),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -24,6 +25,9 @@ with DAG(
 
     def release_id() -> str:
         return '{{ params.release_id }}'
+
+    def spark_jar() -> str:
+        return '{{ params.spark_jar }}'
 
     def _params_validate(release_id):
         if release_id == '':
@@ -39,6 +43,7 @@ with DAG(
     qa = qa(
         group_id='qa',
         release_id=release_id(),
+        spark_jar=spark_jar(),
     )
 
     slack = EmptyOperator(
