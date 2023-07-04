@@ -23,6 +23,7 @@ with DAG(
         'batch_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
+        'spark_jar': Param('', type='string'),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -32,6 +33,9 @@ with DAG(
 
     def batch_id() -> str:
         return '{{ params.batch_id }}'
+
+    def spark_jar() -> str:
+        return '{{ params.spark_jar }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
@@ -65,6 +69,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
         skip_batch='', # always compute this batch (purpose of this dag)
+        spark_jar=spark_jar(),
     )
 
     slack = EmptyOperator(
