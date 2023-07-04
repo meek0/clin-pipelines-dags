@@ -77,7 +77,7 @@ def ingest(
                 f'config/{env}.conf', 'default', batch_id, 'snv',
             ],
         )
-
+        '''
         snv_somatic = SparkOperator(
             task_id='snv_somatic',
             name='etl-ingest-snv-somatic',
@@ -90,7 +90,7 @@ def ingest(
                 f'config/{env}.conf', 'default', batch_id, 'snv_somatic',
             ],
         )
-
+        '''
         cnv = SparkOperator(
             task_id='cnv',
             name='etl-ingest-cnv',
@@ -160,6 +160,6 @@ def ingest(
         )
         '''
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> snv_somatic >> cnv >> variants >> consequences >> exomiser
+        fhir_import >> fhir_export >> fhir_normalize >> snv >> cnv >> variants >> consequences >> exomiser
 
     return group
