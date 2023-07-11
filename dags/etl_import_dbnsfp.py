@@ -22,11 +22,21 @@ with DAG(
     },
 ) as dag:
 
-    # Following steps to get and build the raw zip file
+    # Following steps explain how to get and clean-up the raw zip files
     # 1 - download dbNSFP4.3a.zip from https://sites.google.com/site/jpopgen/dbNSFP
     # 2 - extract ZIP content on local inside a folder
-    # 3 - ZIP again all the files which match pattern: dbNSFP4.3a_variant.chr*.gz into dbNSFP4.3a.zip
-    # 4 - deploy that dbNSFP4.3a.zip file on S3
+    # 3 - keep only files with pattern: dbNSFP4.3a_variant.chr*.gz
+    # 4 - for every of those files, apply the following shell script:
+    # (this script exists because: some columns have un-compatible names for HIVE (SQL like naming convention) and the easiest way was a 'sed' 
+    # command cause the files are big also the script deploy on S3 QA when it's done, can take some time with the VPN upload speed limit. 
+    # You can run multiple conversions at once to go quicker, one per local CPU unit is fine)
+
+    '''
+    gunzip $1.gz
+    sed -i -e '1s/pos(1-based)/position_1-based/' -e '1s/hg19_pos(1-based)/hg19_pos_1-based/' -e '1s/hg18_pos(1-based)/phg18_pos_1-based/' $1
+    gzip $1
+    aws --profile cqgc-qa --endpoint https://s3.cqgc.hsj.rtss.qc.ca s3 cp $1.gz s3://cqgc-qa-app-datalake/raw/landing/dbNSFP/$1.gz
+    '''
 
     raw = SparkOperator(
         task_id='raw',
