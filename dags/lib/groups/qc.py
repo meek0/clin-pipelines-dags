@@ -179,6 +179,54 @@ def qc(
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
+
+        dictionary_cnv = SparkOperator(
+            task_id='dictionary_cnv',
+            doc_md=doc.dictionary_cnv,
+            name='etl-qc-dictionary-cnv',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesCNV',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        dictionary_consequences = SparkOperator(
+            task_id='dictionary_consequences',
+            doc_md=doc.dictionary_consequences,
+            name='etl-qc-dictionary-consequences',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesConsequences',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        dictionary_donors = SparkOperator(
+            task_id='dictionary_donors',
+            doc_md=doc.dictionary_donors,
+            name='etl-qc-dictionary-donors',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesDonors',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        dictionary_snv = SparkOperator(
+            task_id='dictionary_snv',
+            doc_md=doc.dictionary_snv,
+            name='etl-qc-dictionary-snv',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesSNV',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_'), release_id],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
         '''
         variants_should_be_annotated = SparkOperator(
             task_id='variants_should_be_annotated',
@@ -301,6 +349,6 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        vcf_snv >> vcf_nor_variants >> filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric >> freq_rqdm_total >> freq_rqdm_affected >> freq_rqdm_non_affected >> freq_by_analysis_total >> freq_by_analysis_affected >> freq_by_analysis_non_affected
+        vcf_snv >> vcf_nor_variants >> filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_gene_centric >> no_null_cnv_centric >> only_null_variant_centric >> only_null_gene_centric >> only_null_cnv_centric >> same_value_variant_centric >> same_value_gene_centric >> same_value_cnv_centric >> dictionary_cnv >> dictionary_consequences >> dictionary_donors >> dictionary_snv >> freq_rqdm_total >> freq_rqdm_affected >> freq_rqdm_non_affected >> freq_by_analysis_total >> freq_by_analysis_affected >> freq_by_analysis_non_affected
 
     return group

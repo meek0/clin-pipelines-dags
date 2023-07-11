@@ -53,6 +53,17 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
   - Table gene_centric
   - Table cnv_centric
 
+## Série de tests sur les dictionnaires
+
+### Fonctionnement des tests
+- Vérifier que les valeurs d'une colonne sont incluses dans son dictionnaire
+
+### Différents tests
+- Les colonnes de cnv_centric
+- Les colonnes de variant_centric.consequences
+- Les colonnes de variant_centric.donors
+- Les colonnes de variant_centric
+
 <!--## Séries de tests sur l’annotation Varsome
 
 ### Différentes règles
@@ -183,6 +194,30 @@ same_value_cnv_centric = '''
 ### Documentation
 - Test : Table cnv_centric - Les colonnes de données à valeur unique
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+dictionary_cnv = '''
+### Documentation
+- Test : Table cnv_centric
+- Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
+'''
+
+dictionary_consequences = '''
+### Documentation
+- Test : Table variant_centric.consequences
+- Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
+'''
+
+dictionary_donors = '''
+### Documentation
+- Test : Table variant_centric.donors
+- Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
+'''
+
+dictionary_snv = '''
+### Documentation
+- Test : Table variant_centric
+- Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
 '''
 
 variants_should_be_annotated = '''
