@@ -99,6 +99,18 @@ with DAG(
             ],
         )
 
+        snv_somatic_tumor_only = SparkOperator(
+            task_id='snv_somatic_tumor_only',
+            name='etl-enrich-snv',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar(),
+            arguments=[
+                f'config/{env}.conf', default_or_initial(), 'snv_somatic_tumor_only',
+            ],
+        )
+
         variants = SparkOperator(
             task_id='variants',
             name='etl-enrich-variants',
@@ -135,7 +147,7 @@ with DAG(
             ],
         )
 
-        snv >> variants >> consequences >> cnv
+        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv
 
     with TaskGroup(group_id='prepare') as prepare:
 
