@@ -16,6 +16,7 @@ with DAG(
         'script': Param('', type='string'),
         'args': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
+        'bucket': Param('', enum=['', f'cqgc-{env}-app-files-import', f'cqgc-{env}-app-datalake',]),
     },
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
@@ -27,6 +28,9 @@ with DAG(
 
     def args() -> str:
         return '{{ params.args }}'
+
+    def bucket() -> str:
+        return '{{ params.bucket }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
@@ -59,7 +63,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         on_success_callback=Slack.notify_dag_completion,
-        aws_bucket=f'cqgc-{env}-app-files-import',
+        aws_bucket=bucket(),
         arguments=[
             'bio.ferlab.clin.etl.Scripts', script(), args()
         ],
