@@ -59,6 +59,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         on_success_callback=Slack.notify_dag_completion,
+        aws_bucket=f'cqgc-{env}-app-files-import',
         arguments=[
             'bio.ferlab.clin.etl.Scripts', script(), args()
         ],
