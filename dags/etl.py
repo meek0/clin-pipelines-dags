@@ -322,6 +322,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_centric',
@@ -336,6 +337,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_gene_suggestions',
@@ -350,6 +352,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_centric',
@@ -364,6 +367,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_variant_suggestions',
@@ -378,6 +382,7 @@ with DAG(
             spark_class='bio.ferlab.clin.etl.es.Publish',
             spark_config='publish-elasticsearch-etl',
             spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
                 es_url, '', '',
                 f'clin_{env}' + color('_') + '_cnv_centric',
