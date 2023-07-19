@@ -1,7 +1,7 @@
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import env_url
+from lib.config import env_url, auth_url
 from lib.utils import join
 
 
@@ -43,8 +43,7 @@ class FhirCsvOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='CONFIG__FHIR__OAUTH__URL',
-                value='https://auth' + env_url('.') +
-                '.cqgc.hsj.rtss.qc.ca/auth/realms/clin/protocol/openid-connect/token',
+                value=auth_url + '/realms/clin/protocol/openid-connect/token',
             ),
             k8s.V1EnvVar(
                 name='CONFIG__FHIR__OAUTH__CLIENT_ID',
