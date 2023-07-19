@@ -45,6 +45,7 @@ if env == Env.QA:
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
+    auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
     pipeline_image = 'ferlabcrsj/clin-pipelines:f470295'
@@ -54,6 +55,7 @@ elif env == Env.STAGING:
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
+    auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca/auth'
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
     pipeline_image = 'ferlabcrsj/clin-pipelines:f470295'
@@ -63,6 +65,7 @@ elif env == Env.PROD:
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
+    auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca/auth'
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
