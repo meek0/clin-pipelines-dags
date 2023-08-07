@@ -47,11 +47,11 @@ if env == Env.QA:
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:2a72663'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:f470295'
+    fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:d6ecde4'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.10.0.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.13.5.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
