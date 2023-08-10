@@ -7,7 +7,8 @@ from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 from lib.config import env, es_url, Env, K8sContext, indexer_context
 from lib.groups.qa import qa
-from lib.groups.ingest import ingest
+from lib.groups.ingest_fhir import IngestFhir
+from lib.groups.ingest_batch import IngestBatch
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
@@ -77,12 +78,25 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
-    ingest = ingest(
-        group_id='ingest',
+    ingest_fhir = IngestFhir(
+        group_id='fhir',
         batch_id=batch_id(),
         color=color(),
         skip_import=skip_import(),
         skip_batch=skip_batch(),
+        spark_jar=spark_jar(),
+    )
+
+    ingest_batch = IngestBatch(
+        group_id='ingest',
+        batch_id=batch_id(),
+        skip_snv=skip_batch(),
+        skip_snv_somatic_tumor_only=skip_batch(),
+        skip_cnv=skip_batch(),
+        skip_cnv_somatic_tumor_only=skip_batch(),
+        skip_variants=skip_batch(),
+        skip_consequences=skip_batch(),
+        skip_exomiser=skip_batch,
         spark_jar=spark_jar(),
     )
 
@@ -423,4 +437,4 @@ with DAG(
         ],
     )
 
-    params_validate >> ingest >> enrich >> prepare >> qa >> index >> publish >> notify
+    params_validate >> ingest_fhir >> ingest_batch >> enrich >> prepare >> qa >> index >> publish >> notify
