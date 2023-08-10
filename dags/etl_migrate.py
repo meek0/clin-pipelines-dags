@@ -94,6 +94,8 @@ with DAG(
         spark_jar=spark_jar(),
     )
 
+    migrateBatchs = None
+
     def migrateBatchId(id):
         return IngestBatch(
             group_id='ingest',
@@ -108,8 +110,13 @@ with DAG(
             spark_jar=spark_jar(),
             batch_id_as_tag=True
         )
-
-    migrateBatchs = [migrateBatchId(id) for id in batch_ids]
+    
+    # concat every dags inside a loop
+    for id in batch_ids:
+        batch = migrateBatchId(id)
+        if migrateBatchs is not None:
+            migrateBatchs >> batch
+        migrateBatchs = batch
 
     slack = EmptyOperator(
         task_id="slack",
