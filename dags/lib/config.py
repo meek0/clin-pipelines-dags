@@ -47,7 +47,7 @@ if env == Env.QA:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
-    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_exum', 'Batch_ParCas']
+    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
     pipeline_image = 'ferlabcrsj/clin-pipelines:d6ecde4'
