@@ -85,7 +85,7 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
-    ingest_fhir = IngestFhir(
+    allDags = IngestFhir(
         group_id='fhir',
         batch_id='',
         color=color(),
@@ -93,8 +93,6 @@ with DAG(
         skip_batch='', # we want to do fhir normalized once
         spark_jar=spark_jar(),
     )
-
-    migrateBatchs = None
 
     def migrateBatchId(id):
         return IngestBatch(
@@ -114,13 +112,12 @@ with DAG(
     # concat every dags inside a loop
     for id in batch_ids:
         batch = migrateBatchId(id)
-        if migrateBatchs is not None:
-            migrateBatchs >> batch
-        migrateBatchs = batch
+        allDags >> batch
+        allDags = batch
 
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> ingest_fhir >> migrateBatchs >> slack
+    params_validate >> allDags >> slack
