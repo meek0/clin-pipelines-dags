@@ -17,61 +17,35 @@ from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 
-def ingest(
+def IngestBatch(
     group_id: str,
     batch_id: str,
-    color: str,
-    skip_import: str,
-    skip_batch: str,
+    skip_snv: str,
+    skip_snv_somatic_tumor_only: str,
+    skip_cnv: str,
+    skip_cnv_somatic_tumor_only: str,
+    skip_variants: str,
+    skip_consequences: str,
+    skip_exomiser: str,
     spark_jar: str,
+    batch_id_as_tag = False,
 ) -> TaskGroup:
 
-    with TaskGroup(group_id=group_id) as group:
+    def getUniqueId(taskOrGrp: str) -> str:
+        if batch_id_as_tag:
+            return taskOrGrp + '_' + batch_id
+        else:
+            return taskOrGrp
 
-        fhir_import = PipelineOperator(
-            task_id='fhir_import',
-            name='etl-ingest-fhir-import',
-            k8s_context=K8sContext.DEFAULT,
-            aws_bucket=f'cqgc-{env}-app-files-import',
-            color=color,
-            skip=skip_import,
-            arguments=[
-                'bio.ferlab.clin.etl.FileImport', batch_id, 'false', 'true',
-            ],
-        )
-
-        fhir_export = PipelineOperator(
-            task_id='fhir_export',
-            name='etl-ingest-fhir-export',
-            k8s_context=K8sContext.DEFAULT,
-            aws_bucket=f'cqgc-{env}-app-datalake',
-            color=color,
-            skip=skip_batch,
-            arguments=[
-                'bio.ferlab.clin.etl.FhirExport', 'all',
-            ],
-        )
-
-        fhir_normalize = SparkOperator(
-            task_id='fhir_normalize',
-            name='etl-ingest-fhir-normalize',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
-            spark_config='raw-fhir-etl',
-            skip=skip_batch,
-            spark_jar=spark_jar,
-            arguments=[
-                f'config/{env}.conf', 'initial', 'all',
-            ],
-        )
+    with TaskGroup(group_id=getUniqueId(group_id)) as group:
 
         snv = SparkOperator(
-            task_id='snv',
+            task_id=getUniqueId('snv'),
             name='etl-ingest-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_snv,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'snv',
@@ -79,12 +53,12 @@ def ingest(
         )
 
         snv_somatic_tumor_only = SparkOperator(
-            task_id='snv_somatic_tumor_only',
+            task_id=getUniqueId('snv_somatic_tumor_only'),
             name='etl-ingest-snv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_snv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'snv_somatic_tumor_only',
@@ -92,12 +66,12 @@ def ingest(
         )
 
         cnv = SparkOperator(
-            task_id='cnv',
+            task_id=getUniqueId('cnv'),
             name='etl-ingest-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_cnv,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'cnv',
@@ -105,12 +79,12 @@ def ingest(
         )
 
         cnv_somatic_tumor_only = SparkOperator(
-            task_id='cnv_somatic_tumor_only',
+            task_id=getUniqueId('cnv_somatic_tumor_only'),
             name='etl-ingest-cnv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_cnv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'cnv_somatic_tumor_only',
@@ -118,12 +92,12 @@ def ingest(
         )
 
         variants = SparkOperator(
-            task_id='variants',
+            task_id=getUniqueId('variants'),
             name='etl-ingest-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_variants,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'variants',
@@ -131,12 +105,12 @@ def ingest(
         )
 
         consequences = SparkOperator(
-            task_id='consequences',
+            task_id=getUniqueId('consequences'),
             name='etl-ingest-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_consequences,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'consequences',
@@ -144,12 +118,12 @@ def ingest(
         )
 
         exomiser = SparkOperator(
-            task_id='exomiser',
+            task_id=getUniqueId('exomiser'),
             name='etl-ingest-exomiser',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_batch,
+            skip=skip_exomiser,
             spark_jar=spark_jar,
             arguments=[
                 f'config/{env}.conf', 'default', batch_id, 'exomiser',
@@ -158,7 +132,7 @@ def ingest(
 
         '''
         varsome = SparkOperator(
-            task_id='varsome',
+            task_id=getUniqueId('varsome',
             name='etl-ingest-varsome',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.varsome.Varsome',
@@ -173,6 +147,6 @@ def ingest(
         )
         '''
 
-        fhir_import >> fhir_export >> fhir_normalize >> snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser
+        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser
 
     return group

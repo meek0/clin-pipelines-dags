@@ -35,6 +35,7 @@ fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
+batch_ids = []
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -46,6 +47,7 @@ if env == Env.QA:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
+    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
     pipeline_image = 'ferlabcrsj/clin-pipelines:d6ecde4'
@@ -56,6 +58,7 @@ elif env == Env.STAGING:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca/auth'
+    batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
     pipeline_image = 'ferlabcrsj/clin-pipelines:d6ecde4'
@@ -66,6 +69,22 @@ elif env == Env.PROD:
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca/auth'
+    batch_ids=[
+        '221017_A00516_0366_BHH2T3DMXY',
+        '221209_A00516_0377_BHHHJWDMXY',
+        '230130_A00516_0386_BHGV3NDMXY',
+        '230130_A00516_0387_AHLKYGDRX2',
+        '230314_A00516_0396_AHHYHLDMXY',
+        '230329_A00516_0401_AHTLY5DRX2',
+        '230329_A00516_0402_BHHYGVDMXY',
+        '230505_A00516_0412_BHK72VDMXY',
+        '230526_A00516_0419_AHKCL2DMXY',
+        '230609_A00516_0425_AHKNCFDMXY',
+        '230614_A00516_0427_BHKY2LDMXY',
+        '230628_A00516_0430_BHTLWMDRX2',
+        '230713_A00516_0435_BHKWVGDMXY',
+        '230803_A00516_0444_AHLNJKDMXY',
+    ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
 
