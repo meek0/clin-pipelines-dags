@@ -1,20 +1,21 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext, indexer_context
-from lib.groups.qa import qa
-from lib.groups.ingest_fhir import IngestFhir
+
+from lib.config import env, es_url, Env, K8sContext, indexer_context, config_file
 from lib.groups.ingest_batch import IngestBatch
+from lib.groups.ingest_fhir import IngestFhir
+from lib.groups.qa import qa
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-
 
 with DAG(
     dag_id='etl',
@@ -109,19 +110,25 @@ with DAG(
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', default_or_initial(), 'snv',
+                'snv',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_snv',
             ],
         )
 
         snv_somatic_tumor_only = SparkOperator(
             task_id='snv_somatic_tumor_only',
-            name='etl-enrich-snv',
+            name='etl-enrich-snv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', default_or_initial(), 'snv_somatic_tumor_only',
+                'snv_somatic_tumor_only',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_snv_somatic',
             ],
         )
 
@@ -133,7 +140,10 @@ with DAG(
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', default_or_initial(), 'variants',
+                'variants',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_variants',
             ],
         )
 
@@ -145,7 +155,10 @@ with DAG(
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', default_or_initial(), 'consequences',
+                'consequences',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_consequences',
             ],
         )
 
@@ -157,7 +170,10 @@ with DAG(
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', default_or_initial(), 'cnv',
+                'cnv',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_cnv',
             ],
         )
 
@@ -173,7 +189,11 @@ with DAG(
             spark_config='prepare-index-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'gene_centric', release_id(),
+                'gene_centric',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_gene_centric',
+                '--releaseId', release_id()
             ],
         )
 
@@ -185,7 +205,11 @@ with DAG(
             spark_config='prepare-index-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'gene_suggestions', release_id(),
+                'gene_suggestions',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_gene_suggestions',
+                '--releaseId', release_id()
             ],
         )
 
@@ -197,7 +221,11 @@ with DAG(
             spark_config='prepare-index-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'variant_centric', release_id(),
+                'variant_centric',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_variant_centric',
+                '--releaseId', release_id()
             ],
         )
 
@@ -209,7 +237,11 @@ with DAG(
             spark_config='prepare-index-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'variant_suggestions', release_id(),
+                'variant_suggestions',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_variant_suggestions',
+                '--releaseId', release_id()
             ],
         )
 
@@ -221,7 +253,11 @@ with DAG(
             spark_config='prepare-index-etl',
             spark_jar=spark_jar(),
             arguments=[
-                f'config/{env}.conf', 'initial', 'cnv_centric', release_id(),
+                'cnv_centric',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_cnv_centric',
+                '--releaseId', release_id()
             ],
         )
 

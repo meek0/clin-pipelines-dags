@@ -7,7 +7,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib import config
-from lib.config import env, K8sContext
+from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get_file
@@ -61,7 +61,12 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=[f'config/{env}.conf', 'default', 'gnomad_constraint'],
+        arguments=[
+            'gnomad_constraint',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_import_gnomad_constraint',
+        ],
         on_success_callback=Slack.notify_dag_completion,
     )
 

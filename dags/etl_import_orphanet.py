@@ -1,15 +1,16 @@
 import logging
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from datetime import datetime
+
 from lib import config
-from lib.config import env, K8sContext
+from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils_import import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
-
 
 with DAG(
     dag_id='etl_import_orphanet',
@@ -72,7 +73,12 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=[f'config/{env}.conf', 'default', 'orphanet'],
+        arguments=[
+            'orphanet',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_import_orphanet_table',
+        ],
         on_success_callback=Slack.notify_dag_completion,
     )
 

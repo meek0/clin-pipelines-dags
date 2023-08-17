@@ -1,13 +1,15 @@
-from airflow import DAG
 from datetime import datetime
-from lib.config import env, K8sContext
-from lib.operators.spark import SparkOperator
-from lib.operators.panels import PanelsOperator
-from lib.slack import Slack
+
+from airflow import DAG
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
+
+from lib.config import K8sContext, config_file
+from lib.operators.panels import PanelsOperator
+from lib.operators.spark import SparkOperator
+from lib.slack import Slack
 
 with DAG(
     dag_id='etl_import_panels',
@@ -74,7 +76,10 @@ with DAG(
         spark_config='raw-import-external-etl',
         skip=skip_etl(),
         arguments=[
-            f'config/{env}.conf', 'initial', '', 'panels',
+            'panels',
+            '--config', config_file,
+            '--steps', 'initial',
+            '--app-name', 'etl_import_panels',
         ],
     )
 

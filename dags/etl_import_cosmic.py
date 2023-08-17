@@ -1,18 +1,19 @@
 import base64
 import logging
 import re
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from datetime import datetime
+
 from lib import config
-from lib.config import env, K8sContext
+from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get, http_get_file
 from lib.utils_import import get_s3_file_version, load_to_s3_with_version
-
 
 with DAG(
     dag_id='etl_import_cosmic',
@@ -75,7 +76,12 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.public.ImportPublicTable',
         spark_config='enriched-etl',
-        arguments=['cosmic_gene_set'],
+        arguments=[
+            'cosmic_gene_set',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_import_cosmic_table',
+        ],
         on_success_callback=Slack.notify_dag_completion,
     )
 
