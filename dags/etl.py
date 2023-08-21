@@ -97,7 +97,7 @@ with DAG(
         skip_cnv_somatic_tumor_only=skip_batch(),
         skip_variants=skip_batch(),
         skip_consequences=skip_batch(),
-        skip_exomiser=skip_batch,
+        skip_exomiser=skip_batch(),
         spark_jar=spark_jar(),
     )
 
