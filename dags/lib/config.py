@@ -47,6 +47,7 @@ if env == Env.QA:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
+    config_file = f'config/qa.conf'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
@@ -58,6 +59,7 @@ elif env == Env.STAGING:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca/auth'
+    config_file = f'config/staging.conf'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:fc5878d'
@@ -69,7 +71,8 @@ elif env == Env.PROD:
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca/auth'
-    batch_ids=[
+    config_file = f'config/prod.conf'
+    batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
         '221209_A00516_0377_BHHHJWDMXY',
         '230130_A00516_0386_BHGV3NDMXY',

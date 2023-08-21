@@ -1,21 +1,9 @@
 from airflow.utils.task_group import TaskGroup
-from lib.config import env_url, Env, K8sContext
-from lib.doc import qa as doc
+
+from lib.config import K8sContext
+from lib.config import config_file
 from lib.operators.spark import SparkOperator
-from airflow import DAG
-from airflow.exceptions import AirflowFailException
-from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from airflow.utils.task_group import TaskGroup
-from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
-from lib.groups.qa import qa
-from lib.operators.arranger import ArrangerOperator
-from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
-from lib.operators.pipeline import PipelineOperator
-from lib.operators.spark import SparkOperator
-from lib.slack import Slack
+
 
 def IngestBatch(
     group_id: str,
@@ -48,7 +36,11 @@ def IngestBatch(
             skip=skip_snv,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'snv',
+                'snv',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_snv',
+                '--batchId', batch_id
             ],
         )
 
@@ -61,7 +53,11 @@ def IngestBatch(
             skip=skip_snv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'snv_somatic_tumor_only',
+                'snv_somatic_tumor_only',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_snv_somatic',
+                '--batchId', batch_id
             ],
         )
 
@@ -74,7 +70,11 @@ def IngestBatch(
             skip=skip_cnv,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'cnv',
+                'cnv',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_cnv',
+                '--batchId', batch_id
             ],
         )
 
@@ -87,7 +87,11 @@ def IngestBatch(
             skip=skip_cnv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'cnv_somatic_tumor_only',
+                'cnv_somatic_tumor_only',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_cnv_somatic',
+                '--batchId', batch_id
             ],
         )
 
@@ -100,7 +104,11 @@ def IngestBatch(
             skip=skip_variants,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'variants',
+                'variants',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_variants',
+                '--batchId', batch_id
             ],
         )
 
@@ -113,7 +121,11 @@ def IngestBatch(
             skip=skip_consequences,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'consequences',
+                'consequences',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_consequences',
+                '--batchId', batch_id
             ],
         )
 
@@ -126,7 +138,11 @@ def IngestBatch(
             skip=skip_exomiser,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'default', batch_id, 'exomiser',
+                'exomiser',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_exomiser',
+                '--batchId', batch_id
             ],
         )
 

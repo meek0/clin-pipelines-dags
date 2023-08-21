@@ -1,21 +1,10 @@
 from airflow.utils.task_group import TaskGroup
-from lib.config import env_url, Env, K8sContext
-from lib.doc import qa as doc
-from lib.operators.spark import SparkOperator
-from airflow import DAG
-from airflow.exceptions import AirflowFailException
-from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from airflow.utils.task_group import TaskGroup
-from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
-from lib.groups.qa import qa
-from lib.operators.arranger import ArrangerOperator
-from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
+
+from lib.config import config_file
+from lib.config import env, K8sContext
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
-from lib.slack import Slack
+
 
 def IngestFhir(
     group_id: str,
@@ -61,7 +50,10 @@ def IngestFhir(
             skip=skip_batch,
             spark_jar=spark_jar,
             arguments=[
-                f'config/{env}.conf', 'initial', 'all',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_ingest_fhir_normalize',
+                '--destination', 'all'
             ],
         )
 

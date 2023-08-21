@@ -1,9 +1,10 @@
-from airflow import DAG
 from datetime import datetime
-from lib.config import env, K8sContext
+
+from airflow import DAG
+
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-
 
 with DAG(
     dag_id='etl_reset_enrich_cnv',
@@ -21,7 +22,10 @@ with DAG(
         spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
         spark_config='enriched-etl',
         arguments=[
-            f'config/{env}.conf', 'initial', 'cnv',
+            'cnv',
+            '--config', config_file,
+            '--steps', 'initial',
+            '--app-name', 'reset_enrich_cnv',
         ],
         on_execute_callback=Slack.notify_dag_start,
         on_success_callback=Slack.notify_dag_completion,

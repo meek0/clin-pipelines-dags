@@ -1,9 +1,11 @@
-from airflow import DAG
-from airflow.models.param import Param
-from airflow.exceptions import AirflowFailException
-from airflow.operators.python import PythonOperator
 from datetime import datetime
-from lib.config import env, Env, K8sContext
+
+from airflow import DAG
+from airflow.exceptions import AirflowFailException
+from airflow.models.param import Param
+from airflow.operators.python import PythonOperator
+
+from lib.config import env, Env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 
@@ -43,7 +45,10 @@ if env in [Env.PROD]:
             spark_config='varsome-etl',
             spark_secret='varsome',
             arguments=[
-                f'config/{env}.conf', 'initial', 'all', batch_id()
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_import_varsome',
+                '--batchId', batch_id()
             ],
             on_success_callback=Slack.notify_dag_completion,
         )
