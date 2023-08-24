@@ -153,7 +153,7 @@ def IngestBatch(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='raw-vcf-etl',
-            skip=skip_exomiser,
+            skip=skip_coverage_by_gene,
             spark_jar=spark_jar,
             arguments=[
                 'coverage_by_gene',
