@@ -15,6 +15,7 @@ def IngestBatch(
     skip_variants: str,
     skip_consequences: str,
     skip_exomiser: str,
+    skip_coverage_by_gene: str,
     spark_jar: str,
     batch_id_as_tag = False,
 ) -> TaskGroup:
@@ -146,6 +147,23 @@ def IngestBatch(
             ],
         )
 
+        coverage_by_gene = SparkOperator(
+            task_id=getUniqueId('coverage_by_gene'),
+            name='etl-ingest-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='raw-vcf-etl',
+            skip=skip_coverage_by_gene,
+            spark_jar=spark_jar,
+            arguments=[
+                'coverage_by_gene',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl_ingest_coverage_by_gene',
+                '--batchId', batch_id
+            ],
+        )
+
         '''
         varsome = SparkOperator(
             task_id=getUniqueId('varsome',
@@ -163,6 +181,6 @@ def IngestBatch(
         )
         '''
 
-        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser
+        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene
 
     return group

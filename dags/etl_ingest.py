@@ -83,6 +83,7 @@ with DAG(
         skip_variants='',
         skip_consequences='',
         skip_exomiser='',
+        skip_coverage_by_gene='',
         spark_jar=spark_jar(),
     )
 

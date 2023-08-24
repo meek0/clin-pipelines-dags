@@ -98,6 +98,7 @@ with DAG(
         skip_variants=skip_batch(),
         skip_consequences=skip_batch(),
         skip_exomiser=skip_batch(),
+        skip_coverage_by_gene=skip_batch(),
         spark_jar=spark_jar(),
     )
 
