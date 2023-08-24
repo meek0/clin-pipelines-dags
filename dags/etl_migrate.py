@@ -29,6 +29,7 @@ with DAG(
         'variants': Param('no', enum=['yes', 'no']),
         'consequences': Param('no', enum=['yes', 'no']),
         'exomiser': Param('no', enum=['yes', 'no']),
+        'coverage_by_gene': Param('no', enum=['yes', 'no']),
         'spark_jar': Param('', type='string'),
     },
     default_args={
@@ -66,6 +67,9 @@ with DAG(
 
     def skip_exomiser() -> str:
         return formatSkipCondition('exomiser')
+
+    def skip_coverage_by_gene() -> str:
+        return formatSkipCondition('coverage_by_gene')
 
     def _params_validate(color):
         if env == Env.QA:
@@ -105,6 +109,7 @@ with DAG(
             skip_variants=skip_variants(),
             skip_consequences=skip_consequences(),
             skip_exomiser=skip_exomiser(),
+            skip_coverage_by_gene=skip_coverage_by_gene(),
             spark_jar=spark_jar(),
             batch_id_as_tag=True
         )
