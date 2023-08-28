@@ -178,7 +178,22 @@ with DAG(
             ],
         )
 
-        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv
+        coverage = SparkOperator(
+            task_id='coverage_by_gene',
+            name='etl-enrich-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
+            spark_config='enriched-etl',
+            spark_jar=spark_jar(),
+            arguments=[
+                'coverage-by-gene',
+                '--config', config_file,
+                '--steps', default_or_initial(),
+                '--app-name', 'etl_enrich_coverage_by_gene',
+            ],
+        )
+
+        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv >> coverage
 
     with TaskGroup(group_id='prepare') as prepare:
 
