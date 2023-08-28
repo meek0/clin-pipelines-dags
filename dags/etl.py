@@ -186,7 +186,7 @@ with DAG(
             spark_config='enriched-etl',
             spark_jar=spark_jar(),
             arguments=[
-                'coverage-by-gene',
+                'coverage_by_gene',
                 '--config', config_file,
                 '--steps', default_or_initial(),
                 '--app-name', 'etl_enrich_coverage_by_gene',
