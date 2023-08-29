@@ -178,7 +178,7 @@ with DAG(
             ],
         )
 
-        coverage = SparkOperator(
+        coverage_by_gene = SparkOperator(
             task_id='coverage_by_gene',
             name='etl-enrich-coverage-by-gene',
             k8s_context=K8sContext.ETL,
@@ -193,7 +193,7 @@ with DAG(
             ],
         )
 
-        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv >> coverage
+        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv >> coverage_by_gene
 
     with TaskGroup(group_id='prepare') as prepare:
 
@@ -277,7 +277,23 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+        coverage_by_gene_centric = SparkOperator(
+            task_id='coverage_by_gene',
+            name='etl-prepare-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
+            spark_config='prepare-index-etl',
+            spark_jar=spark_jar(),
+            arguments=[
+                'coverage_by_gene_centric',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_prepare_coverage_by_gene',
+                '--releaseId', release_id()
+            ],
+        )
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric
 
     qa = qa(
         group_id='qa',
@@ -377,7 +393,25 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric
+        coverage_by_gene_centric = SparkOperator(
+            task_id='coverage_by_gene_centric',
+            name='etl-index-coverage-by-gene',
+            k8s_context=indexer_context,
+            spark_class='bio.ferlab.clin.etl.es.Indexer',
+            spark_config='index-elasticsearch-etl',
+            spark_jar=spark_jar(),
+            arguments=[
+                es_url, '', '',
+                f'clin_{env}' + color('_') + '_coverage_by_gene_centric',
+                release_id(),
+                'coverage_by_gene_centric_template.json',
+                'coverage_by_gene_centric',
+                '1900-01-01 00:00:00',
+                f'config/{env}.conf',
+            ],
+        )
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric
 
     with TaskGroup(group_id='publish') as publish:
 
@@ -456,6 +490,21 @@ with DAG(
             ],
         )
 
+        coverage_by_gene_centric = SparkOperator(
+            task_id='coverage_by_gene_centric',
+            name='etl-publish-cnv-centric',
+            k8s_context=K8sContext.DEFAULT,
+            spark_class='bio.ferlab.clin.etl.es.Publish',
+            spark_config='publish-elasticsearch-etl',
+            spark_jar=spark_jar(),
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+            arguments=[
+                es_url, '', '',
+                f'clin_{env}' + color('_') + '_coverage_by_gene_centric',
+                release_id(),
+            ],
+        )
+
         arranger_remove_project = ArrangerOperator(
             task_id='arranger_remove_project',
             name='etl-publish-arranger-remove-project',
@@ -476,7 +525,7 @@ with DAG(
             on_success_callback=Slack.notify_dag_completion,
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> arranger_remove_project >> arranger_restart
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric >> arranger_remove_project >> arranger_restart
 
     notify = PipelineOperator(
         task_id='notify',
