@@ -33,6 +33,7 @@ with DAG(
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
+    concurrency=4
 ) as dag:
 
     def batch_id() -> str:
