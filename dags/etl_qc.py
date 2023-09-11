@@ -22,6 +22,7 @@ with DAG(
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
     },
+    max_active_tasks=4
 ) as dag:
 
     def release_id() -> str:
