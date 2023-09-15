@@ -20,7 +20,7 @@ with DAG(
         name='etl-reset-enrich-consequences',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'consequences',
             '--config', config_file,

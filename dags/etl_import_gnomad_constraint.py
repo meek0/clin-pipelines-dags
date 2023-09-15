@@ -60,7 +60,7 @@ with DAG(
         name='etl-import-gnomad-constraint',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'gnomad_constraint',
             '--config', config_file,

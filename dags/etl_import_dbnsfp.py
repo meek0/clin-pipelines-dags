@@ -41,7 +41,7 @@ with DAG(
         name='etl-import-dbnsfp-raw-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[f'config/{env}.conf', 'default', 'dbnsfp_raw'],
         on_execute_callback=Slack.notify_dag_start,
     )
@@ -51,7 +51,7 @@ with DAG(
         name='etl-import-dbnsfp-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'dbnsfp',
             '--config', config_file,

@@ -42,7 +42,7 @@ if env in [Env.PROD]:
             name='etl-import-varsome',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.varsome.Varsome',
-            spark_config='varsome-etl',
+            spark_config='config-etl-large',
             spark_secret='varsome',
             arguments=[
                 '--config', config_file,

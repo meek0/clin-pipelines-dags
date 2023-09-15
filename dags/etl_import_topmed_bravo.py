@@ -120,7 +120,7 @@ with DAG(
         name='etl-import-topmed-bravo-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'topmed_bravo',
             '--config', config_file,

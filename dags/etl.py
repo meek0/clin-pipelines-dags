@@ -109,7 +109,7 @@ with DAG(
             name='etl-enrich-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'snv',
@@ -124,7 +124,7 @@ with DAG(
             name='etl-enrich-snv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-medium',
             spark_jar=spark_jar(),
             arguments=[
                 'snv_somatic_tumor_only',
@@ -139,7 +139,7 @@ with DAG(
             name='etl-enrich-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'variants',
@@ -154,7 +154,7 @@ with DAG(
             name='etl-enrich-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'consequences',
@@ -169,7 +169,7 @@ with DAG(
             name='etl-enrich-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'cnv',
@@ -184,7 +184,7 @@ with DAG(
             name='etl-enrich-coverage-by-gene',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'coverage_by_gene',
@@ -203,7 +203,7 @@ with DAG(
             name='etl-prepare-gene-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'gene_centric',
@@ -219,7 +219,7 @@ with DAG(
             name='etl-prepare-gene-suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'gene_suggestions',
@@ -235,7 +235,7 @@ with DAG(
             name='etl-prepare-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'variant_centric',
@@ -251,7 +251,7 @@ with DAG(
             name='etl-prepare-variant-suggestions',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'variant_suggestions',
@@ -267,7 +267,7 @@ with DAG(
             name='etl-prepare-cnv-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'cnv_centric',
@@ -283,7 +283,7 @@ with DAG(
             name='etl-prepare-coverage-by-gene',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='prepare-index-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[
                 'coverage_by_gene_centric',
@@ -309,7 +309,7 @@ with DAG(
             name='etl-index-gene-centric',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -327,7 +327,7 @@ with DAG(
             name='etl-index-gene-suggestions',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -345,7 +345,7 @@ with DAG(
             name='etl-index-variant-centric',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -363,7 +363,7 @@ with DAG(
             name='etl-index-variant-suggestions',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -381,7 +381,7 @@ with DAG(
             name='etl-index-cnv-centric',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -399,7 +399,7 @@ with DAG(
             name='etl-index-coverage-by-gene',
             k8s_context=indexer_context,
             spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='index-elasticsearch-etl',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             arguments=[
                 es_url, '', '',
@@ -412,7 +412,7 @@ with DAG(
             ],
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric
+        [gene_centric, gene_suggestions, variant_centric, variant_suggestions, cnv_centric, coverage_by_gene_centric]
 
     with TaskGroup(group_id='publish') as publish:
 
@@ -421,7 +421,7 @@ with DAG(
             name='etl-publish-gene-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -436,7 +436,7 @@ with DAG(
             name='etl-publish-gene-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -451,7 +451,7 @@ with DAG(
             name='etl-publish-variant-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -466,7 +466,7 @@ with DAG(
             name='etl-publish-variant-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -481,7 +481,7 @@ with DAG(
             name='etl-publish-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -496,7 +496,7 @@ with DAG(
             name='etl-publish-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='publish-elasticsearch-etl',
+            spark_config='config-etl-small',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -526,7 +526,7 @@ with DAG(
             on_success_callback=Slack.notify_dag_completion,
         )
 
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric >> arranger_remove_project >> arranger_restart
+        [gene_centric, gene_suggestions, variant_centric, variant_suggestions, cnv_centric, coverage_by_gene_centric] >> arranger_remove_project >> arranger_restart
 
     notify = PipelineOperator(
         task_id='notify',
