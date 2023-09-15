@@ -421,7 +421,7 @@ with DAG(
             name='etl-publish-gene-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -436,7 +436,7 @@ with DAG(
             name='etl-publish-gene-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -451,7 +451,7 @@ with DAG(
             name='etl-publish-variant-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -466,7 +466,7 @@ with DAG(
             name='etl-publish-variant-suggestions',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -481,7 +481,7 @@ with DAG(
             name='etl-publish-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
@@ -496,7 +496,7 @@ with DAG(
             name='etl-publish-cnv-centric',
             k8s_context=K8sContext.DEFAULT,
             spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-small',
+            spark_config='config-etl-singleton',
             spark_jar=spark_jar(),
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
             arguments=[
