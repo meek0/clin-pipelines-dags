@@ -33,7 +33,7 @@ def IngestBatch(
             name='etl-ingest-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_snv,
             spark_jar=spark_jar,
             arguments=[
@@ -50,7 +50,7 @@ def IngestBatch(
             name='etl-ingest-snv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_snv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
@@ -67,7 +67,7 @@ def IngestBatch(
             name='etl-ingest-cnv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_cnv,
             spark_jar=spark_jar,
             arguments=[
@@ -84,7 +84,7 @@ def IngestBatch(
             name='etl-ingest-cnv-somatic',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_cnv_somatic_tumor_only,
             spark_jar=spark_jar,
             arguments=[
@@ -101,7 +101,7 @@ def IngestBatch(
             name='etl-ingest-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_variants,
             spark_jar=spark_jar,
             arguments=[
@@ -118,7 +118,7 @@ def IngestBatch(
             name='etl-ingest-consequences',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_consequences,
             spark_jar=spark_jar,
             arguments=[
@@ -135,7 +135,7 @@ def IngestBatch(
             name='etl-ingest-exomiser',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_exomiser,
             spark_jar=spark_jar,
             arguments=[
@@ -152,7 +152,7 @@ def IngestBatch(
             name='etl-ingest-coverage-by-gene',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-            spark_config='raw-vcf-etl',
+            spark_config='config-etl-large',
             skip=skip_coverage_by_gene,
             spark_jar=spark_jar,
             arguments=[
@@ -170,7 +170,7 @@ def IngestBatch(
             name='etl-ingest-varsome',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.varsome.Varsome',
-            spark_config='varsome-etl',
+            spark_config='config-etl-large',
             spark_secret='varsome',
             skip=skip_batch,
             spark_jar=spark_jar,

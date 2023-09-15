@@ -86,7 +86,7 @@ with DAG(
         name='etl-import-spliceai-indel-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'spliceai_indel',
             '--config', config_file,
@@ -101,7 +101,7 @@ with DAG(
         name='etl-import-spliceai-snv-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'spliceai_snv',
             '--config', config_file,
@@ -116,7 +116,7 @@ with DAG(
         name='etl-enrich-spliceai',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'spliceai_enriched',
             '--config', config_file,

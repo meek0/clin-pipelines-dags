@@ -101,7 +101,7 @@ with DAG(
         name='etl-import-cosmic-gene-set-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'cosmic_gene_set',
             '--config', config_file,
@@ -116,7 +116,7 @@ with DAG(
         name='etl-import-cosmic-mutation-set-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'cosmic_mutation_set',
             '--config', config_file,

@@ -46,7 +46,7 @@ def IngestFhir(
             name='etl-ingest-fhir-normalize',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
-            spark_config='raw-fhir-etl',
+            spark_config='config-etl-large',
             skip=skip_batch,
             spark_jar=spark_jar,
             arguments=[

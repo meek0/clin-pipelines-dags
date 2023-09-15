@@ -24,7 +24,7 @@ if (config.show_test_dags):
             name='test-spark-fail',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.fail.Fail',
-            spark_config='enriched-etl',
+            spark_config='config-etl-large',
             spark_jar=spark_jar(),
             arguments=[f'config/{env}.conf', 'default'],
         )

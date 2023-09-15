@@ -24,7 +24,7 @@ with DAG(
         name='etl-import-rare-variant',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'rare_variant_enriched',
             '--config', config_file,

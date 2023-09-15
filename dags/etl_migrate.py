@@ -36,6 +36,7 @@ with DAG(
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
+    max_active_tasks=4
 ) as dag:
 
     def formatSkipCondition(param: str) -> str:

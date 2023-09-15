@@ -19,7 +19,7 @@ with DAG(
         name='etl-reset-enrich-variants',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'variants',
             '--config', config_file,

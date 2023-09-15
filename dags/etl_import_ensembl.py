@@ -80,7 +80,7 @@ with DAG(
         name='etl-import-ensembl-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='enriched-etl',
+        spark_config='config-etl-large',
         arguments=[
             'ensembl_mapping',
             '--config', config_file,
