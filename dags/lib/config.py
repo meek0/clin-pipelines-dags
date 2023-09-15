@@ -58,7 +58,7 @@ elif env == Env.STAGING:
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
-    auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca/auth'
+    auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/staging.conf'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
 elif env == Env.PROD:
@@ -70,7 +70,7 @@ elif env == Env.PROD:
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
-    auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca/auth'
+    auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/prod.conf'
     batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
