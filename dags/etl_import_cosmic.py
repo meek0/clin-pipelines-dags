@@ -105,7 +105,7 @@ with DAG(
         arguments=[
             'cosmic_gene_set',
             '--config', config_file,
-            '--steps', 'initial',
+            '--steps', 'default',
             '--app-name', 'etl_import_cosmic_gene_set_table',
         ],
         trigger_rule=TriggerRule.NONE_FAILED
