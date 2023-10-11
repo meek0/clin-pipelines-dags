@@ -22,7 +22,7 @@ def IngestBatch(
 
     def getUniqueId(taskOrGrp: str) -> str:
         if batch_id_as_tag:
-            return taskOrGrp + '_' + batch_id
+            return taskOrGrp + '_' + batch_id.replace('.','') # '.' not allowed
         else:
             return taskOrGrp
 
