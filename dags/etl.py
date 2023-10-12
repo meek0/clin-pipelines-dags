@@ -412,7 +412,7 @@ with DAG(
             ],
         )
 
-        [gene_centric, gene_suggestions, variant_centric, variant_suggestions, cnv_centric, coverage_by_gene_centric]
+        [gene_centric, gene_suggestions] >> variant_centric >> [variant_suggestions, cnv_centric, coverage_by_gene_centric]
 
     with TaskGroup(group_id='publish') as publish:
 
