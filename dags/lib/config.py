@@ -42,7 +42,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.18.3.jar'
+    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.18.4.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
@@ -54,7 +54,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:6141b25'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.18.3.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.18.4.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
@@ -66,7 +66,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:6141b25'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.17.2.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.18.4.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
