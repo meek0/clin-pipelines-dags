@@ -24,10 +24,10 @@ def check_analysis_exists(s3, batch_id, family_id, aliquot_id):
     if not batch_id and not family_id and not aliquot_id:
         raise Exception('batch_id, analysis_id are required')
     if not family_id:
-        path = f'/batch_id={batch_id}/family_id=/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
+        path = f'/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
     else:
         # todo - adjust here
-        path = f'/batch_id={batch_id}/family_id={family_id}/_IN_PROGRESS_.txt'
+        path = f'/batch_id={batch_id}/family_id={family_id}/aliquot_id=null/_IN_PROGRESS_.txt'
     if s3.check_for_key(path, 'clin-local'):
         logging.info("Path exists in minio")
         return True
@@ -74,11 +74,13 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key, batch_id):
 
 def copy_files_to_franklin(s3_clin, s3_franklin, analyse, batch_id):
     files_to_transfer = []
-    files = analyse['files']
-    file = files['snv_vcf']
-    if file:
-        files_to_transfer.append(file)
 
+    # todo send .VEP.vcf.gz to franklin instead of .gvcf files
+    #  assuming the XXXXX.VEP.vcf.gz file for a family is the PROBAND's aliquot_id
+    # if file:
+    #     files_to_transfer.append(file)
+    if analyse['patient']['familyMember'] == 'PROBAND':
+        files_to_transfer.append(f"{analyse['labAliquotId']}.case.hard-filtered.formatted.norm.VEP.vcf.gz")
     for to_transfer in files_to_transfer:
         transfer_vcf_to_franklin(s3_clin, s3_franklin, to_transfer, batch_id)
 
@@ -113,6 +115,10 @@ def build_payload(family_id, analyses):
         }
         if family_id:
             family_analyses.append(sample)
+            if analysis["patient"]["familyMember"] == 'PROBAND':
+                proband_id = analysis["labAliquotId"]
+        else:
+            proband_id = analysis["labAliquotId"]
 
         analyses_payload.append({
             "assay_id": assay_id,
@@ -121,7 +127,7 @@ def build_payload(family_id, analyses):
                 "name_in_vcf": analysis["labAliquotId"],
                 "aws_files": [
                     {
-                        "key": f'local/{analysis["labAliquotId"]}.hard-filtered.vcf.gz',
+                        "key": f'local/{proband_id}.case.hard-filtered.formatted.norm.VEP.vcf.gz',
                         "type": "VCF_SHORT"
                     }
                 ],
@@ -176,8 +182,9 @@ def start_analysis(family_id, analyses, token):
         logging.info(f'Request sent to franklin', json.dumps(payload).encode('utf-8'))
         res = conn.getresponse()
         data = res.read()
-        logging.info(data.decode("utf-8"))
-        return data.decode("utf-8")
+        s = json.loads(data.decode('utf-8'))
+        logging.info(s)
+        return s
     except Exception as e:
         logging.info(f'Error: {e}')
 

@@ -111,7 +111,9 @@ with DAG(
             started_analyses['families'][family_id] = start_analysis(family_id, analyses, token)
 
         for patient in solos:
-            started_analyses['no_family'].append(start_analysis(None, [patient], token))
+            started_analyses['no_family'].append(start_analysis(None, [patient], token)[0]) # only one analysis started on Franklin
+
+        logging.info(started_analyses)
         return started_analyses
 
 
@@ -137,18 +139,20 @@ with DAG(
     def mark_analyses_as_started(obj):
         _families = obj['families']
         solos = obj['no_family']
+        logging.info(obj)
         for family_id, status in _families.items():
             logging.info(status)
             for s in status:
                 if 'family' in s['name']:
                     clin_s3.load_string('',
-                                        f'batch_id={batch_id()}/family_id={family_id}/analysis_id={s["id"]}/_IN_PROGRESS.txt',
+                                        f'batch_id={batch_id()}/family_id={family_id}/aliquot_id=null/analysis_id={s["id"]}/_IN_PROGRESS.txt',
                                         'clin-local', replace=True)
                 else:
                     path = f'batch_id={batch_id()}/family_id={family_id}/aliquot_id={s["name"].split(" - ")[0]}/analysis_id={s["id"]}/_IN_PROGRESS.txt'
                     clin_s3.load_string('', path, 'clin-local', replace=True)
 
         for p in solos:
+            logging.info(p)
             patient = p[0]
             clin_s3.load_string('',
                                 f'batch_id={batch_id()}/family_id=/aliquot_id={patient["name"].split(" - ")[0]}/analysis_id={patient["id"]}/_IN_PROGRESS.txt',
@@ -156,7 +160,6 @@ with DAG(
         return True
 
 
-    @task
     def list_analysis():
         keys = clin_s3.list_keys('clin-local', f'batch_id={batch_id()}/')
         logging.info(f'list analysis {keys}')
@@ -187,7 +190,7 @@ with DAG(
             for analysis in analyses:
                 logging.info(f'analysis {analysis}')
                 if analysis['labAliquotId'] is None:
-                    path = f'batch_id={batch_id()}/family_id={family_id}/analysis.json'
+                    path = f'batch_id={batch_id()}/family_id={family_id}/aliquot_id=null/analysis.json'
                 else:
                     path = f'batch_id={batch_id()}/family_id={family_id}/aliquot_id={analysis["labAliquotId"]}/analysis_id={analysis["id"]}/analysis.json'
                 data = get_completed_analysis(analysis["id"], token)
@@ -195,7 +198,7 @@ with DAG(
 
         for p in solos:
             patient = p[0]
-            path = f'batch_id={batch_id()}/family_id=/aliquot_id={patient["name"].split(" - ")[0]}/analysis_id={patient["id"]}/analysis.json'
+            path = f'batch_id={batch_id()}/family_id=null/aliquot_id={patient["name"].split(" - ")[0]}/analysis_id={patient["id"]}/analysis.json'
             data = get_completed_analysis(patient["id"], token)
             clin_s3.load_string(data, path, 'clin-local', replace=True)
         return True
@@ -209,7 +212,7 @@ with DAG(
             'no_family': []
         }
 
-        return {'batch_id': batch_id()}
+        return {'batch_id': '123'}
 
         # Set task dependencies.
         # list_analysis
@@ -217,6 +220,8 @@ with DAG(
 
         # if 'allo' in 'abc':
 
+
+    # upload_files_to_franklin(check_file_existence(_group_families()))
 
     mark_analyses_as_started(
         get_statuses(_start_analysis(upload_files_to_franklin(check_file_existence(_group_families())), auth()),

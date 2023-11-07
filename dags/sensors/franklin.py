@@ -8,10 +8,12 @@ from lib.franklin import get_analyses_status, authenticate
 class FranklinAPISensor(BaseSensorOperator):
     def __init__(self, analyses_ids, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        logging.info(f'analyses_ids {analyses_ids}')
         self.analyses_ids = analyses_ids
 
     def poke(self, context):
         try:
+            logging.info(f'analysis are {self.analyses_ids}')
             token = authenticate(email=config.franklin_email, password=config.franklin_password)
 
             response = get_analyses_status(self.analyses_ids, token)
