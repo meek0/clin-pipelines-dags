@@ -74,11 +74,8 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key, batch_id):
 
 def copy_files_to_franklin(s3_clin, s3_franklin, analyse, batch_id):
     files_to_transfer = []
-
-    # todo send .VEP.vcf.gz to franklin instead of .gvcf files
     #  assuming the XXXXX.VEP.vcf.gz file for a family is the PROBAND's aliquot_id
-    # if file:
-    #     files_to_transfer.append(file)
+
     if analyse['patient']['familyMember'] == 'PROBAND':
         files_to_transfer.append(f"{analyse['labAliquotId']}.case.hard-filtered.formatted.norm.VEP.vcf.gz")
     for to_transfer in files_to_transfer:
@@ -103,7 +100,17 @@ def format_date(input_date):
     return output_date
 
 
-def build_payload(family_id, analyses):
+def get_phenotypes(id, batch_id, s3):
+    key = f'{batch_id}/{id}.hpo'
+    if s3.check_for_key(key, 'clin-local'):
+        file = s3.get_key(key, 'clin-local')
+        file_content = file.get()['Body'].read()
+        return json.loads(file_content.decode('utf-8'))
+    else:
+        return []
+
+
+def build_payload(family_id, analyses, batch_id, s3):
     assay_id = "2765500d-8728-4830-94b5-269c306dbe71"  # value given from franklin
     family_analyses = []
     analyses_payload = []
@@ -119,6 +126,8 @@ def build_payload(family_id, analyses):
                 proband_id = analysis["labAliquotId"]
         else:
             proband_id = analysis["labAliquotId"]
+
+        phenotypes = get_phenotypes(proband_id, batch_id, s3)
 
         analyses_payload.append({
             "assay_id": assay_id,
@@ -156,9 +165,7 @@ def build_payload(family_id, analyses):
             {
                 'case_name': f'family - {family_id}',
                 'family_samples': family_analyses,
-                "phenotypes": [
-                    "HP:0003197"
-                ]
+                "phenotypes": phenotypes
             }
         ]
         payload["family_analyses_creation_specs"] = {
@@ -168,15 +175,15 @@ def build_payload(family_id, analyses):
     return payload
 
 
-def start_analysis(family_id, analyses, token):
+def start_analysis(family_id, analyses, token, s3, batch_id):
     try:
         conn = http.client.HTTPSConnection("api.genoox.com")
 
         headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
         if family_id:
-            payload = build_payload(family_id, analyses)
+            payload = build_payload(family_id, analyses, batch_id, s3)
         else:
-            payload = build_payload(None, analyses)
+            payload = build_payload(None, analyses, batch_id, s3)
         conn.request("POST", "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
 
         logging.info(f'Request sent to franklin', json.dumps(payload).encode('utf-8'))
