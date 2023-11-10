@@ -1,9 +1,13 @@
 import json
 import logging
 import http.client
-import os
 import urllib.parse
 from datetime import datetime
+
+from lib.config import env
+
+import_bucket = f'cqgc-{env}-app-files-import'
+export_bucket = f'cqgc-{env}-app-datalake'
 
 
 def authenticate(email, password):
@@ -24,11 +28,11 @@ def check_analysis_exists(s3, batch_id, family_id, aliquot_id):
     if not batch_id and not family_id and not aliquot_id:
         raise Exception('batch_id, analysis_id are required')
     if not family_id:
-        path = f'/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
+        path = f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
     else:
         # todo - adjust here
-        path = f'/batch_id={batch_id}/family_id={family_id}/aliquot_id=null/_IN_PROGRESS_.txt'
-    if s3.check_for_key(path, 'clin-local'):
+        path = f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/aliquot_id=null/_IN_PROGRESS_.txt'
+    if s3.check_for_key(path, export_bucket):
         logging.info("Path exists in minio")
         return True
     return False
@@ -50,13 +54,10 @@ def group_families(data):
     return [family_groups, analyses_without_family]
 
 
-env = os.environ.get('environment')
-
-
 def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key, batch_id):
-    clin_bucket = 'clin-local'
+    clin_bucket = import_bucket
     franklin_bucket = 'genoox-upload-chu-st-justine'
-    destination_key = f'local/{source_key}'
+    destination_key = f'{env}/{source_key}'
 
     try:
         path = f'{batch_id}/{source_key}'
@@ -102,10 +103,17 @@ def format_date(input_date):
 
 def get_phenotypes(id, batch_id, s3):
     key = f'{batch_id}/{id}.hpo'
-    if s3.check_for_key(key, 'clin-local'):
-        file = s3.get_key(key, 'clin-local')
-        file_content = file.get()['Body'].read()
-        return json.loads(file_content.decode('utf-8'))
+    if s3.check_for_key(key, import_bucket):
+        logging.info(f'found the file {key}')
+        try:
+            file = s3.get_key(key, import_bucket)
+            logging.info(f'file {file}')
+            file_content = file.get()['Body'].read()
+            logging.info(f'file_content {file_content}')
+            return json.loads(file_content)
+        except Exception as e:
+            logging.info(f'Error when getting phenotypes: {e}')
+            return []
     else:
         return []
 
@@ -115,11 +123,13 @@ def build_payload(family_id, analyses, batch_id, s3):
     family_analyses = []
     analyses_payload = []
     for analysis in analyses:
+        logging.info(f'in analysis {analysis}')
         sample = {
             "sample_name": f'{analysis["labAliquotId"]} - {analysis["patient"]["familyMember"]}',
             "family_relation": get_relation(analysis["patient"]["familyMember"]),
             "is_affected": analysis["patient"]["status"] == 'AFF',
         }
+        logging.info(f'sample {sample}')
         if family_id:
             family_analyses.append(sample)
             if analysis["patient"]["familyMember"] == 'PROBAND':
@@ -127,8 +137,9 @@ def build_payload(family_id, analyses, batch_id, s3):
         else:
             proband_id = analysis["labAliquotId"]
 
+        logging.info(f'proband id {proband_id}')
         phenotypes = get_phenotypes(proband_id, batch_id, s3)
-
+        logging.info(f'phenotypes {phenotypes}')
         analyses_payload.append({
             "assay_id": assay_id,
             'sample_data': {
@@ -136,7 +147,7 @@ def build_payload(family_id, analyses, batch_id, s3):
                 "name_in_vcf": analysis["labAliquotId"],
                 "aws_files": [
                     {
-                        "key": f'local/{proband_id}.case.hard-filtered.formatted.norm.VEP.vcf.gz',
+                        "key": f'{env}/{proband_id}.case.hard-filtered.formatted.norm.VEP.vcf.gz',
                         "type": "VCF_SHORT"
                     }
                 ],
@@ -154,7 +165,7 @@ def build_payload(family_id, analyses, batch_id, s3):
             "source": 'AWS',
             "details": {
                 "bucket": 'genoox-upload-chu-st-justine',
-                'root_folder': 'local'
+                'root_folder': env
             }
         },
         'analyses': analyses_payload,
@@ -184,6 +195,7 @@ def start_analysis(family_id, analyses, token, s3, batch_id):
             payload = build_payload(family_id, analyses, batch_id, s3)
         else:
             payload = build_payload(None, analyses, batch_id, s3)
+            logging.info(f'solo payload {payload}')
         conn.request("POST", "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
 
         logging.info(f'Request sent to franklin', json.dumps(payload).encode('utf-8'))
@@ -200,7 +212,6 @@ def get_analyses_status(started_analyses, token):
     conn = http.client.HTTPSConnection("api.genoox.com")
 
     payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
-    print(f'the analysis_id are {payload}')
     headers = {
         'Content-Type': "application/json",
         'Authorization': f"Bearer {token}"
@@ -218,6 +229,7 @@ def get_analyses_status(started_analyses, token):
 def get_completed_analysis(id, token):
     conn = http.client.HTTPSConnection("api.genoox.com")
 
+    logging.info(f'id {id}')
     headers = {
         'Content-Type': "application/json",
         'Authorization': f"Bearer {token}"
@@ -226,6 +238,7 @@ def get_completed_analysis(id, token):
 
     res = conn.getresponse()
     data = res.read()
+    logging.info(f'data {data}')
 
     decoded = data.decode("utf-8")
     logging.info(decoded)
