@@ -17,7 +17,7 @@ from airflow.utils.task_group import TaskGroup
 from airflow.operators.python import ShortCircuitOperator
 
 with DAG(
-        dag_id='etl_franklin_check_analysis',
+        dag_id='etl_import_franklin',
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         default_args={
@@ -55,7 +55,7 @@ with DAG(
 
     with TaskGroup(group_id='franklin') as franklin:
         @task
-        def _group_families(_batch_id):
+        def group_families_task(_batch_id):
             metadata_path = f'{_batch_id}/metadata.json'
             f = clin_s3.get_key(metadata_path, import_bucket)
             file_content = json.loads(f.get()['Body'].read().decode('utf-8'))
@@ -67,9 +67,9 @@ with DAG(
 
         @task
         def upload_files_to_franklin(obj, batch):
-            _families = obj['families']
+            families = obj['families']
             solos = obj['no_family']
-            for family_id, analyses in _families.items():
+            for family_id, analyses in families.items():
                 for analysis in analyses:
                     copy_files_to_franklin(clin_s3, franklin_s3, analysis, batch_id=batch)
 
@@ -80,13 +80,13 @@ with DAG(
 
         @task
         def check_file_existence(obj, _batch_id):
-            _families = obj['families']
-            _no_family = obj['no_family']
+            families = obj['families']
+            no_family = obj['no_family']
             to_create = {
                 'no_family': [],
                 'families': {},
             }
-            for family_id, analyses in _families.items():
+            for family_id, analyses in families.items():
                 does_exists = False
                 for analysis in analyses:
                     does_exists = check_analysis_exists(clin_s3, f'{_batch_id}',
@@ -95,7 +95,7 @@ with DAG(
                 if does_exists is False:
                     to_create['families'][family_id] = analyses
 
-            for patient in _no_family:
+            for patient in no_family:
 
                 does_exists = check_analysis_exists(clin_s3, f'{_batch_id}',
                                                     family_id=None,
@@ -108,15 +108,15 @@ with DAG(
 
 
         @task
-        def _start_analysis(obj, token, batch):
-            _families = obj['families']
+        def start_analysis_task(obj, token, batch):
+            families = obj['families']
             solos = obj['no_family']
             started_analyses = {
                 'no_family': [],
                 'families': {},
             }
 
-            for family_id, analyses in _families.items():
+            for family_id, analyses in families.items():
                 started_analyses['families'][f'{family_id}'] = start_analysis(family_id, analyses, token, clin_s3,
                                                                               batch)
 
@@ -148,10 +148,10 @@ with DAG(
 
         @task
         def mark_analyses_as_started(obj, batch):
-            _families = obj['families']
+            families = obj['families']
             solos = obj['no_family']
             logging.info(obj)
-            for family_id, status in _families.items():
+            for family_id, status in families.items():
                 logging.info(status)
                 for s in status:
                     if 'family' in s['name']:
@@ -185,10 +185,10 @@ with DAG(
         @task
         def transfer_from_franklin_to_clin(_batch_id, token):
             obj = build_cases(_batch_id)
-            _families = obj['families']
+            families = obj['families']
             solos = obj['no_family']
             logging.info(obj)
-            for family_id, analyses in _families.items():
+            for family_id, analyses in families.items():
                 for analysis in analyses:
                     logging.info(f'analysis {analysis}')
                     if analysis['labAliquotId'] is None:
@@ -238,8 +238,8 @@ with DAG(
 
         mark_analyses_as_started(
             get_statuses(
-                _start_analysis(
-                    upload_files_to_franklin(check_file_existence(_group_families(batch_id()), batch_id()), batch_id()),
+                start_analysis_task(
+                    upload_files_to_franklin(check_file_existence(group_families_task(batch_id()), batch_id()), batch_id()),
                     auth(),
                     batch_id()),
                 auth()), batch_id()) >> api_sensor >> transfer_from_franklin_to_clin(batch_id(), auth())

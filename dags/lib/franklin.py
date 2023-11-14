@@ -30,7 +30,6 @@ def check_analysis_exists(s3, batch_id, family_id, aliquot_id):
     if not family_id:
         path = f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
     else:
-        # todo - adjust here
         path = f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/aliquot_id=null/_IN_PROGRESS_.txt'
     if s3.check_for_key(path, export_bucket):
         logging.info("Path exists in minio")
