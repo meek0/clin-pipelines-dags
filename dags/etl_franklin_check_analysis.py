@@ -29,6 +29,7 @@ with DAG(
             'trigger_franklin': Param('yes', enum=['yes', 'no'])
         },
 ) as dag:
+
     def batch_id() -> str:
         return '{{ params.batch_id }}'
 
@@ -170,25 +171,14 @@ with DAG(
             return True
 
 
-        def list_analysis(batch):
-            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch}/')
-            logging.info(f'list analysis {keys}')
-            ids = []
-            for key in keys:
-                if 'analysis_id=' in key:
-                    _id = key.split('analysis_id=')[1].split('/')[0]
-                    ids.append(_id)
-            logging.info(f'ids are {ids}')
-            return ids
-
-
         api_sensor = FranklinAPISensor(
             task_id='api_sensor_task',
-            analyses_ids=list_analysis(batch_id()),
+            s3=clin_s3,
             mode='poke',
             poke_interval=franklin_poke,
             timeout=franklin_timeout,
             dag=dag,
+            export_bucket=export_bucket
         )
 
 
@@ -202,15 +192,15 @@ with DAG(
                 for analysis in analyses:
                     logging.info(f'analysis {analysis}')
                     if analysis['labAliquotId'] is None:
-                        path = f'raw/landing/franklin/batch_id={batch_id()}/family_id={family_id}/aliquot_id=null/analysis.json'
+                        path = f'raw/landing/franklin/batch_id={_batch_id}/family_id={family_id}/aliquot_id=null/analysis.json'
                     else:
-                        path = f'raw/landing/franklin/batch_id={batch_id()}/family_id={family_id}/aliquot_id={analysis["labAliquotId"]}/analysis_id={analysis["id"]}/analysis.json'
+                        path = f'raw/landing/franklin/batch_id={_batch_id}/family_id={family_id}/aliquot_id={analysis["labAliquotId"]}/analysis_id={analysis["id"]}/analysis.json'
                     data = get_completed_analysis(analysis["id"], token)
                     clin_s3.load_string(data, path, export_bucket, replace=True)
 
             for patient in solos:
                 logging.info(f'patient is {patient}')
-                path = f'raw/landing/franklin/batch_id={batch_id()}/family_id=null/aliquot_id={patient["labAliquotId"].split(" - ")[0]}/analysis_id={patient["id"]}/analysis.json'
+                path = f'raw/landing/franklin/batch_id={_batch_id}/family_id=null/aliquot_id={patient["labAliquotId"].split(" - ")[0]}/analysis_id={patient["id"]}/analysis.json'
                 data = get_completed_analysis(patient["id"], token)
                 clin_s3.load_string(data, path, export_bucket, replace=True)
             return True
@@ -232,7 +222,8 @@ with DAG(
                 'no_family': []
             }
             logging.info(f'build cases {_batch_id}')
-            keys = clin_s3.list_keys(import_bucket, f'batch_id={_batch_id}/')
+            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={_batch_id}/')
+            logging.info(f'keys are {keys}')
             for key in keys:
                 if 'family_id=null' not in key:
                     family_id = key.split('family_id=')[1].split('/')[0]
