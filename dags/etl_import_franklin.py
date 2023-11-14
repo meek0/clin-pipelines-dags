@@ -6,7 +6,7 @@ from lib.config import env
 from lib.slack import Slack
 from datetime import datetime
 from airflow.decorators import task
-from lib.franklin import authenticate, check_analysis_exists, copy_files_to_franklin, group_families, start_analysis, \
+from lib.franklin import authenticate, copy_files_to_franklin, group_families, start_analysis, \
     get_analyses_status, get_completed_analysis
 from sensors.franklin import FranklinAPISensor
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -29,7 +29,6 @@ with DAG(
             'trigger_franklin': Param('yes', enum=['yes', 'no'])
         },
 ) as dag:
-
     def batch_id() -> str:
         return '{{ params.batch_id }}'
 
@@ -82,6 +81,7 @@ with DAG(
         def check_file_existence(obj, _batch_id):
             families = obj['families']
             no_family = obj['no_family']
+            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={_batch_id}/')
             # families are grouped by familyId
             # no_family is a list of solos analysis
             to_create = {
@@ -91,17 +91,14 @@ with DAG(
             for family_id, analyses in families.items():
                 does_exists = False
                 for analysis in analyses:
-                    does_exists = check_analysis_exists(clin_s3, f'{_batch_id}',
-                                                        family_id=analysis['patient']['familyId'],
-                                                        aliquot_id=analysis['labAliquotId'])
+                    does_exists = any(f'aliquot_id={analysis["labAliquotId"]}' in key for key in keys)
                 if does_exists is False:
                     to_create['families'][family_id] = analyses
 
             for patient in no_family:
 
-                does_exists = check_analysis_exists(clin_s3, f'{_batch_id}',
-                                                    family_id=None,
-                                                    aliquot_id=patient['labAliquotId'])
+                does_exists = any(f'aliquot_id={patient["labAliquotId"]}' in key for key in keys)
+
                 if does_exists is False:
                     to_create['no_family'].append(patient)
 

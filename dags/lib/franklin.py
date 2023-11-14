@@ -24,19 +24,6 @@ def authenticate(email, password):
     return decoded_data['token']
 
 
-def check_analysis_exists(s3, batch_id, family_id, aliquot_id):
-    if not batch_id and not family_id and not aliquot_id:
-        raise Exception('batch_id, analysis_id are required')
-    if not family_id:
-        path = f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_IN_PROGRESS_.txt'
-    else:
-        path = f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/aliquot_id=null/_IN_PROGRESS_.txt'
-    if s3.check_for_key(path, export_bucket):
-        logging.info("Path exists in minio")
-        return True
-    return False
-
-
 def group_families(data):
     family_groups = {}
     analyses_without_family = []
