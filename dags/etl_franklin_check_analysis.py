@@ -82,6 +82,8 @@ with DAG(
         def check_file_existence(obj, _batch_id):
             families = obj['families']
             no_family = obj['no_family']
+            # families are grouped by familyId
+            # no_family is a list of solos analysis
             to_create = {
                 'no_family': [],
                 'families': {},
