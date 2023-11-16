@@ -90,6 +90,7 @@ elif env == Env.PROD:
         '230818_A00516_0449_BH7N22DSX7',
         '231002_A00516_0466_AHM553DMXY',
         '231002_A00516_0467_BHHYV7DRX3',
+        '231102_A00516_0476_AHMVFNDMXY',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
