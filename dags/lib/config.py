@@ -51,7 +51,7 @@ if env == Env.QA:
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:226081a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:6141b25'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:2f44223'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.19.0.jar'
@@ -63,7 +63,7 @@ elif env == Env.STAGING:
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:226081a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:6141b25'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:2f44223'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.19.0.jar'
