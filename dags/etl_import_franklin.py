@@ -1,13 +1,13 @@
 import logging
 from airflow import DAG
 from airflow.models.baseoperator import chain
-
+from airflow.operators.python import PythonOperator
 from lib.config import env
 from lib.slack import Slack
 from datetime import datetime
 from airflow.decorators import task
-from lib.franklin import authenticate, copy_files_to_franklin, group_families, start_analysis, \
-    get_analyses_status, get_completed_analysis
+from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, start_analysis, \
+    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix
 from sensors.franklin import FranklinAPISensor
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
@@ -15,6 +15,9 @@ import json
 from airflow.models.param import Param
 from airflow.utils.task_group import TaskGroup
 from airflow.operators.python import ShortCircuitOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.exceptions import AirflowFailException
+from airflow.utils.trigger_rule import TriggerRule
 
 with DAG(
         dag_id='etl_import_franklin',
@@ -26,26 +29,11 @@ with DAG(
         render_template_as_native_obj=True,
         params={
             'batch_id': Param('', type='string'),
-            'trigger_franklin': Param('yes', enum=['yes', 'no'])
         },
 ) as dag:
+
     def batch_id() -> str:
         return '{{ params.batch_id }}'
-
-
-    def trigger_franklin() -> str:
-        return '{{ params.trigger_franklin }}'
-
-
-    import_bucket = f'cqgc-{env}-app-files-import'
-    export_bucket = f'cqgc-{env}-app-datalake'
-
-
-    @task
-    def auth():
-        token = authenticate(email=config.franklin_email, password=config.franklin_password)
-        return token
-
 
     clin_s3 = S3Hook(config.s3_conn_id)
     franklin_s3 = S3Hook(config.s3_franklin)
@@ -53,61 +41,24 @@ with DAG(
     franklin_timeout = 10800
 
     with TaskGroup(group_id='franklin') as franklin:
-        @task
-        def group_families_task(_batch_id):
-            metadata_path = f'{_batch_id}/metadata.json'
-            f = clin_s3.get_key(metadata_path, import_bucket)
-            file_content = json.loads(f.get()['Body'].read().decode('utf-8'))
 
-            [grouped_by_families, without_families] = group_families(file_content)
+        @task
+        def group_families(batch_id):
+            metadata = get_metadata_content(clin_s3, batch_id)
+            [grouped_by_families, without_families] = group_families_from_metadata(metadata)
             logging.info(grouped_by_families)
             return {'families': grouped_by_families, 'no_family': without_families}
 
-
         @task
-        def upload_files_to_franklin(obj, batch):
-            families = obj['families']
-            solos = obj['no_family']
-            for family_id, analyses in families.items():
-                for analysis in analyses:
-                    copy_files_to_franklin(clin_s3, franklin_s3, analysis, batch_id=batch)
-
-            for patient in solos:
-                copy_files_to_franklin(clin_s3, franklin_s3, patient, batch_id=batch)
+        def upload_files_to_franklin(obj, batch_id):
+            matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
+            for key in matching_keys:
+                if key.endswith(vcf_suffix):
+                    transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
             return obj
 
-
         @task
-        def check_file_existence(obj, _batch_id):
-            families = obj['families']
-            no_family = obj['no_family']
-            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={_batch_id}/')
-            # families are grouped by familyId
-            # no_family is a list of solos analysis
-            to_create = {
-                'no_family': [],
-                'families': {},
-            }
-            for family_id, analyses in families.items():
-                does_exists = False
-                for analysis in analyses:
-                    does_exists = any(f'aliquot_id={analysis["labAliquotId"]}' in key for key in keys)
-                if does_exists is False:
-                    to_create['families'][family_id] = analyses
-
-            for patient in no_family:
-
-                does_exists = any(f'aliquot_id={patient["labAliquotId"]}' in key for key in keys)
-
-                if does_exists is False:
-                    to_create['no_family'].append(patient)
-
-            logging.info(f'files to create {to_create}')
-            return to_create
-
-
-        @task
-        def start_analysis_task(obj, token, batch):
+        def start_analysis_task(obj, batch):
             families = obj['families']
             solos = obj['no_family']
             started_analyses = {
@@ -115,10 +66,11 @@ with DAG(
                 'families': {},
             }
 
-            for family_id, analyses in families.items():
-                started_analyses['families'][f'{family_id}'] = start_analysis(family_id, analyses, token, clin_s3,
-                                                                              batch)
+            token = get_franklin_token()
+            logging.info(obj)
 
+            for family_id, analyses in families.items():
+                started_analyses['families'][f'{family_id}'] = start_analysis(family_id, analyses, token, clin_s3, batch)
             for patient in solos:
                 started_analyses['no_family'].append(
                     start_analysis(None, [patient], token, clin_s3, batch)[0])  # only one analysis started on Franklin
@@ -128,13 +80,16 @@ with DAG(
 
 
         @task
-        def get_statuses(started_analyses, token):
+        def get_statuses(started_analyses):
             families = started_analyses['families']
             solos = started_analyses['no_family']
             statuses = {
                 'no_family': [],
                 'families': {},
             }
+
+            token = get_franklin_token()
+
             for family_id, analyses in families.items():
                 status = get_analyses_status(analyses, token)
                 statuses['families'][family_id] = status
@@ -169,7 +124,7 @@ with DAG(
                                     export_bucket, replace=True)
             return True
 
-
+        '''
         api_sensor = FranklinAPISensor(
             task_id='api_sensor_task',
             s3=clin_s3,
@@ -179,7 +134,7 @@ with DAG(
             dag=dag,
             export_bucket=export_bucket
         )
-
+        '''
 
         @task
         def transfer_from_franklin_to_clin(_batch_id, token):
@@ -215,7 +170,6 @@ with DAG(
 
 
         def build_cases(_batch_id):
-            # {'families': {'LDM_FAM0': [{'id':3, 'labAliquotId': 12345}, {'id':4, 'labAliquotId': 12346}, {'id':5, 'labAliquotId': 12347}, {'id':6, 'labAliquotId': None}]}, 'no_family': []}
             to_return = {
                 'families': {},
                 'no_family': []
@@ -238,29 +192,58 @@ with DAG(
         mark_analyses_as_started(
             get_statuses(
                 start_analysis_task(
-                    upload_files_to_franklin(check_file_existence(group_families_task(batch_id()), batch_id()), batch_id()),
-                    auth(),
-                    batch_id()),
-                auth()), batch_id()) >> api_sensor >> transfer_from_franklin_to_clin(batch_id(), auth())
+                    upload_files_to_franklin(
+                        group_families(batch_id()), 
+                        batch_id()), 
+                    batch_id())), 
+            batch_id()) 
+#>> api_sensor >> transfer_from_franklin_to_clin(batch_id(), authenticate())
 
+    with TaskGroup(group_id='validate') as validate:
 
-    def check_franklin_needed(_batch_id, trigger):
-        metadata_path = f'{_batch_id}/metadata.json'
-        logging.info(f'path {metadata_path} || trigger = {trigger}')
-        f = clin_s3.get_key(metadata_path, import_bucket)
-        file_content = json.loads(f.get()['Body'].read().decode('utf-8'))
-        logging.info(f'file content {file_content["submissionSchema"] == "CQGC_Germline"}')
-        logging.info(f'trigger {trigger}')
-        if trigger == 'yes' and 'CQGC_Germline' == file_content['submissionSchema']:
-            return True
-        else:
-            return False
+        def validate_params(batch_id):
+            if batch_id == '':
+                raise AirflowFailException('DAG param "batch_id" is required')
 
+        def validate_metadata(batch_id):
+            metadata = get_metadata_content(clin_s3, batch_id)
+            submission_schema = metadata.get('submissionSchema', '')
+            logging.info(f'Schema: {submission_schema}')
+            return submission_schema == 'CQGC_Germline'
 
-    cond_true = ShortCircuitOperator(
-        task_id="checking_schema_germline",
-        python_callable=check_franklin_needed,
-        op_args=[batch_id(), trigger_franklin()],
+        def validate_previous(batch_id):
+            batch_path = f'raw/landing/franklin/batch_id={batch_id}/'
+            keys = clin_s3.list_keys(export_bucket, batch_path)
+            logging.info(f'Batch {export_bucket}/{batch_path} keys: {keys}')
+            return len(keys) == 0
+
+        params = PythonOperator(
+            task_id='params',
+            op_args=[batch_id()],
+            python_callable=validate_params,
+            on_execute_callback=Slack.notify_dag_start,
+        )
+
+        metadata = ShortCircuitOperator(
+            task_id="metadata",
+            python_callable=validate_metadata,
+            ignore_downstream_trigger_rules=False,  # Required to trigger Slack
+            op_args=[batch_id()],
+        )
+
+        previous = ShortCircuitOperator(
+            task_id="previous",
+            python_callable=validate_previous,
+            ignore_downstream_trigger_rules=False,  # Required to trigger Slack
+            op_args=[batch_id()],
+        )
+
+        params >> metadata >> previous
+
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion,
+        trigger_rule=TriggerRule.NONE_FAILED # required even when ShortCircuits skips
     )
-
-    chain(cond_true, franklin)
+    
+    validate >> franklin >> slack
