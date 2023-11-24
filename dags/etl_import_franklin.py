@@ -7,7 +7,8 @@ from lib.slack import Slack
 from datetime import datetime
 from airflow.decorators import task
 from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, post_create_analysis, \
-    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis
+    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis, \
+    get_franklin_http_conn
 from sensors.franklin import FranklinAPISensor
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
@@ -67,14 +68,14 @@ with DAG(
                 'families': {},
             }
 
-            token = get_franklin_token()
-            logging.info(obj)
+            conn = get_franklin_http_conn() # avoid instancing too many
+            token = get_franklin_token(conn)
 
             for family_id, analyses in families.items():
-                started_analyses['families'][f'{family_id}'] = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)
+                started_analyses['families'][f'{family_id}'] = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)
             for patient in solos:
                 started_analyses['no_family'].append(
-                    post_create_analysis(None, [patient], token, clin_s3, franklin_s3, batch_id)[0])
+                    post_create_analysis(conn, None, [patient], token, clin_s3, franklin_s3, batch_id)[0])
 
             logging.info(started_analyses)
             return started_analyses

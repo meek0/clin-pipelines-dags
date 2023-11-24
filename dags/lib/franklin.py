@@ -10,6 +10,7 @@ from airflow.exceptions import AirflowFailException
 from io import BytesIO
 import gzip
 import tempfile
+import shutil
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
@@ -29,8 +30,8 @@ def get_franklin_http_conn():
     logging.info(f'Conn: {franklin_url_parts.hostname} {franklin_url_parts.port} {franklin_url_parts.path}')
     return conn
 
-def get_franklin_token():
-    conn = get_franklin_http_conn()
+def get_franklin_token(conn = None):
+    conn = conn or get_franklin_http_conn()
     payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
     path = franklin_url_parts.path + '/v1/auth/login?'
     conn.request("GET", path + payload)
@@ -59,6 +60,7 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
     logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
     vcf_file = s3_clin.get_key(source_key, import_bucket)
     vcf_content = vcf_file.get()['Body'].read()
+    logging.info(f'VCF content size: {len(vcf_content)}')
     aliquot_ids = extract_aliquot_ids_from_vcf(vcf_content)
     logging.info(f'Aliquot IDs in VCF: {aliquot_ids}')
     logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
@@ -67,18 +69,16 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
 
 def extract_aliquot_ids_from_vcf(vcf_content):
     aliquot_ids = []
-    with tempfile.NamedTemporaryFile(delete=True) as temp_file:
-        temp_file.write(vcf_content)
-        with gzip.open(temp_file.name, 'rb') as f_in:
-            with BytesIO(f_in.read()) as byte_stream:
-                while True:
-                    line_bytes = byte_stream.readline()
-                    if not line_bytes:
-                        break # EOF
-                    line_str = line_bytes.decode('utf-8')
-                    if line_str.startswith('#CHROM'):
+    with tempfile.NamedTemporaryFile(delete=True) as temp_zipped_file, tempfile.NamedTemporaryFile(delete=True) as temp_unzipped_file:
+        temp_zipped_file.write(vcf_content)
+        logging.info(f'VCF tmp location zipped: {temp_zipped_file.name} unzipped: {temp_unzipped_file.name}')
+        with gzip.open(temp_zipped_file.name, 'rb') as f_in, open(temp_unzipped_file.name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out, length=100*1024*1024)
+            with open(temp_unzipped_file.name, 'r') as file:
+                for line in file:
+                    if line.startswith('#CHROM'):
                         formatFound = False
-                        cols = line_str.split('\t')
+                        cols = line.split('\t')
                         for col in cols:
                             if col == 'FORMAT':
                                 formatFound = True
@@ -215,14 +215,15 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
     return payload
 
 
-def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
-    conn = get_franklin_http_conn()
+def post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
 
     if family_id:
         payload = build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)
     else:
         payload = build_create_analysis_payload(None, analyses, batch_id, clin_s3, franklin_s3)
+
+    logging.info(f'Create analysis: {family_id} {analyses}')
   
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
     res = conn.getresponse()
@@ -232,7 +233,7 @@ def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch
 
 
 def get_analyses_status(started_analyses, token):
-    conn = http.client.HTTPSConnection(config.franklin_url)
+    conn = get_franklin_http_conn()
 
     payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
     headers = {
