@@ -6,8 +6,8 @@ from lib.config import env
 from lib.slack import Slack
 from datetime import datetime
 from airflow.decorators import task
-from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, start_analysis, \
-    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix
+from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, post_create_analysis, \
+    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis
 from sensors.franklin import FranklinAPISensor
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
@@ -51,14 +51,15 @@ with DAG(
 
         @task
         def upload_files_to_franklin(obj, batch_id):
+            aliquot_ids = {}
             matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
             for key in matching_keys:
                 if key.endswith(vcf_suffix):
-                    transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
-            return obj
+                    aliquot_ids[key] = transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
+            return attach_vcf_to_analysis(obj, aliquot_ids)
 
         @task
-        def start_analysis_task(obj, batch):
+        def create_analysis(obj, batch_id):
             families = obj['families']
             solos = obj['no_family']
             started_analyses = {
@@ -70,10 +71,10 @@ with DAG(
             logging.info(obj)
 
             for family_id, analyses in families.items():
-                started_analyses['families'][f'{family_id}'] = start_analysis(family_id, analyses, token, clin_s3, batch)
+                started_analyses['families'][f'{family_id}'] = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)
             for patient in solos:
                 started_analyses['no_family'].append(
-                    start_analysis(None, [patient], token, clin_s3, batch)[0])  # only one analysis started on Franklin
+                    post_create_analysis(None, [patient], token, clin_s3, franklin_s3, batch_id)[0])  # only one analysis started on Franklin
 
             logging.info(started_analyses)
             return started_analyses
@@ -191,7 +192,7 @@ with DAG(
 
         mark_analyses_as_started(
             get_statuses(
-                start_analysis_task(
+                create_analysis(
                     upload_files_to_franklin(
                         group_families(batch_id()), 
                         batch_id()), 
@@ -212,10 +213,11 @@ with DAG(
             return submission_schema == 'CQGC_Germline'
 
         def validate_previous(batch_id):
+            # TODO add a reset param to delete raw landing content ?
             batch_path = f'raw/landing/franklin/batch_id={batch_id}/'
             keys = clin_s3.list_keys(export_bucket, batch_path)
             logging.info(f'Batch {export_bucket}/{batch_path} keys: {keys}')
-            return len(keys) == 0
+            return len(keys) == 0   # we never called Franklin for that batch yet
 
         params = PythonOperator(
             task_id='params',

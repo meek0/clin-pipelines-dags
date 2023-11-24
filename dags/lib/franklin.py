@@ -5,10 +5,15 @@ import urllib.parse
 from datetime import datetime
 from lib import config
 from lib.config import env
+import uuid
+from airflow.exceptions import AirflowFailException
+from io import BytesIO
+import gzip
+import tempfile
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
-vcf_suffix = '.hard-filtered.formatted.norm.VEP.vcf.gz'
+vcf_suffix = 'hard-filtered.formatted.norm.VEP.vcf.gz'
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
 
 def get_metadata_content(clin_s3, batch_id):
@@ -16,7 +21,7 @@ def get_metadata_content(clin_s3, batch_id):
     file_obj = clin_s3.get_key(metadata_path, import_bucket)
     return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
 
-def get_franklin_conn():
+def get_franklin_http_conn():
     if config.franklin_url.startswith('https'):
         conn = http.client.HTTPSConnection(franklin_url_parts.hostname)
     else:
@@ -25,7 +30,7 @@ def get_franklin_conn():
     return conn
 
 def get_franklin_token():
-    conn = get_franklin_conn()
+    conn = get_franklin_http_conn()
     payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
     path = franklin_url_parts.path + '/v1/auth/login?'
     conn.request("GET", path + payload)
@@ -49,14 +54,62 @@ def group_families_from_metadata(data):
             analyses_without_family.append(analysis)
     return [family_groups, analyses_without_family]
 
-
 def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
     destination_key = f'{env}/{source_key}'
     logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
     vcf_file = s3_clin.get_key(source_key, import_bucket)
     vcf_content = vcf_file.get()['Body'].read()
+    aliquot_ids = extract_aliquot_ids_from_vcf(vcf_content)
+    logging.info(f'Aliquot IDs in VCF: {aliquot_ids}')
     logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
     s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+    return aliquot_ids
+
+def extract_aliquot_ids_from_vcf(vcf_content):
+    aliquot_ids = []
+    with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+        temp_file.write(vcf_content)
+        with gzip.open(temp_file.name, 'rb') as f_in:
+            with BytesIO(f_in.read()) as byte_stream:
+                while True:
+                    line_bytes = byte_stream.readline()
+                    if not line_bytes:
+                        break # EOF
+                    line_str = line_bytes.decode('utf-8')
+                    if line_str.startswith('#CHROM'):
+                        formatFound = False
+                        cols = line_str.split('\t')
+                        for col in cols:
+                            if col == 'FORMAT':
+                                formatFound = True
+                                continue
+                            if formatFound:
+                                aliquot_ids.append(col.replace('\n',''))
+                        break # aliquots line found, stop here
+    if len(aliquot_ids) == 0:
+        raise AirflowFailException(f'VCF aliquot IDs not found')
+    return aliquot_ids
+
+def attach_vcf_to_aliquot_id(analysis, aliquot_ids):
+    aliquot_id = analysis['labAliquotId']
+    vcfFound = False
+    for vcf in aliquot_ids:
+        if aliquot_id in aliquot_ids[vcf]:
+            analysis['vcf'] = vcf
+            vcfFound = True
+    if not vcfFound:
+        raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
+
+def attach_vcf_to_analysis(obj, aliquot_ids):
+    families = obj['families']
+    solos = obj['no_family']
+    for family_id, analyses in families.items():
+        for analysis in analyses:
+            attach_vcf_to_aliquot_id(analysis, aliquot_ids)
+    for patient in solos:
+        attach_vcf_to_aliquot_id(patient, aliquot_ids)
+    return obj
+
 
 def get_relation(relation):
     if relation == 'FTH':
@@ -91,44 +144,49 @@ def get_phenotypes(id, batch_id, s3):
         return []
 
 
-def build_payload(family_id, analyses, batch_id, s3):
-    # ok mais ca devrait etre different entre deux batch ?
-    assay_id = "2765500d-8728-4830-94b5-269c306dbe71"  # value given from franklin
+def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3):
     family_analyses = []
     analyses_payload = []
     for analysis in analyses:
+        aliquot_id = analysis["labAliquotId"]
+        vcf = analysis['vcf']
         sample = {
-            "sample_name": f'{analysis["labAliquotId"]} - {analysis["patient"]["familyMember"]}',
+            "sample_name": f'{aliquot_id} - {analysis["patient"]["familyMember"]}',
             "family_relation": get_relation(analysis["patient"]["familyMember"]),
-            "is_affected": analysis["patient"]["status"] == 'AFF',
+            "is_affected": analysis["patient"]["status"] == 'AFF'
         }
         if family_id:
             family_analyses.append(sample)
             if analysis["patient"]["familyMember"] == 'PROBAND':
-                proband_id = analysis["labAliquotId"]
+                proband_id = aliquot_id
         else:
-            proband_id = analysis["labAliquotId"]
+            proband_id = aliquot_id
 
-        phenotypes = get_phenotypes(proband_id, batch_id, s3)
-        analyses_payload.append({
-            "assay_id": assay_id,
-            'sample_data': {
-                "sample_name": f'{analysis["labAliquotId"]} - {analysis["patient"]["familyMember"]}',
-                "name_in_vcf": analysis["labAliquotId"],
-                "aws_files": [
-                    {
-                        "key": f'{batch_id}/{proband_id}.case.hard-filtered.formatted.norm.VEP.vcf.gz',
-                        "type": "VCF_SHORT"
+        vcf_franklin_s3_full_path = f'{env}/{vcf}'
+        # check of the VCF exists in Franklin S3
+        if franklin_s3.check_for_key(vcf_franklin_s3_full_path, config.s3_franklin_bucket):
+            phenotypes = get_phenotypes(proband_id, batch_id, clin_s3) # TODO fix that
+            analyses_payload.append({
+                "assay_id": str(uuid.uuid4()),
+                'sample_data': {
+                    "sample_name": f'{aliquot_id} - {analysis["patient"]["familyMember"]}',
+                    "name_in_vcf": aliquot_id,
+                    "aws_files": [
+                        {
+                            "key": vcf,
+                            "type": "VCF_SHORT"
+                        }
+                    ],
+                    "tissue_type": "Whole Blood",
+                    "patient_details": {
+                        "name": analysis["patient"]["firstName"],
+                        "dob": format_date(analysis["patient"]["birthDate"]),
+                        "sex": analysis["patient"]["sex"].title()
                     }
-                ],
-                "tissue_type": "Whole Blood",
-                "patient_details": {
-                    "name": analysis["patient"]["firstName"],
-                    "dob": format_date(analysis["patient"]["birthDate"]),
-                    "sex": analysis["patient"]["sex"].title()
                 }
-            }
-        })
+            })
+        else:
+            raise AirflowFailException(f'VCF not found: {config.s3_franklin_bucket}/{vcf_franklin_s3_full_path}')
 
     payload = {
         'upload_specs': {
@@ -156,14 +214,14 @@ def build_payload(family_id, analyses, batch_id, s3):
     return payload
 
 
-def start_analysis(family_id, analyses, token, s3, batch_id):
-    conn = get_franklin_conn()
+def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
+    conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
 
     if family_id:
-        payload = build_payload(family_id, analyses, batch_id, s3)
+        payload = build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)
     else:
-        payload = build_payload(None, analyses, batch_id, s3)
+        payload = build_create_analysis_payload(None, analyses, batch_id, clin_s3, franklin_s3)
   
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
     res = conn.getresponse()
