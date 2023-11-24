@@ -147,6 +147,7 @@ def get_phenotypes(id, batch_id, s3):
 def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3):
     family_analyses = []
     analyses_payload = []
+    assay_id = str(uuid.uuid4()),
     for analysis in analyses:
         aliquot_id = analysis["labAliquotId"]
         vcf = analysis['vcf']
@@ -167,7 +168,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
         if franklin_s3.check_for_key(vcf_franklin_s3_full_path, config.s3_franklin_bucket):
             phenotypes = get_phenotypes(proband_id, batch_id, clin_s3) # TODO fix that
             analyses_payload.append({
-                "assay_id": str(uuid.uuid4()),
+                "assay_id": assay_id,
                 'sample_data': {
                     "sample_name": f'{aliquot_id} - {analysis["patient"]["familyMember"]}',
                     "name_in_vcf": aliquot_id,

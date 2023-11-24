@@ -74,7 +74,7 @@ with DAG(
                 started_analyses['families'][f'{family_id}'] = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)
             for patient in solos:
                 started_analyses['no_family'].append(
-                    post_create_analysis(None, [patient], token, clin_s3, franklin_s3, batch_id)[0])  # only one analysis started on Franklin
+                    post_create_analysis(None, [patient], token, clin_s3, franklin_s3, batch_id)[0])
 
             logging.info(started_analyses)
             return started_analyses
