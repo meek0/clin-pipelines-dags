@@ -1,16 +1,25 @@
+import gzip
+import http.client
 import json
 import logging
-import http.client
+import shutil
+import tempfile
 import urllib.parse
+import uuid
 from datetime import datetime
+from enum import Enum
+from io import BytesIO
+
+from airflow.exceptions import AirflowFailException
 from lib import config
 from lib.config import env
-import uuid
-from airflow.exceptions import AirflowFailException
-from io import BytesIO
-import gzip
-import tempfile
-import shutil
+
+
+class FranklinStatus(Enum):
+    UNKNOWN = 0
+    CREATED = 1
+    IN_PROGRESS = 2
+    READY = 3
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
@@ -50,15 +59,21 @@ def group_families_from_metadata(data):
     return [family_groups, analyses_without_family]
 
 def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
-    destination_key = f'{env}/{source_key}'
+
     logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
     vcf_file = s3_clin.get_key(source_key, import_bucket)
     vcf_content = vcf_file.get()['Body'].read()
     logging.info(f'VCF content size: {len(vcf_content)}')
     aliquot_ids = extract_aliquot_ids_from_vcf(vcf_content)
     logging.info(f'Aliquot IDs in VCF: {aliquot_ids}')
-    logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
-    s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+
+    # ignore upload if already on Franklin S3
+    destination_key = f'{env}/{source_key}'
+    destination_vcf_content_size = get_s3_key_content_size(s3_franklin, config.s3_franklin_bucket, destination_key)
+    if (destination_vcf_content_size != len(vcf_content)):
+        logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
+        s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+
     return aliquot_ids
 
 def extract_aliquot_ids_from_vcf(vcf_content):
@@ -137,8 +152,48 @@ def get_phenotypes(id, batch_id, s3):
     else:
         return []
 
+def get_s3_key_content_size(s3, bucket, key): 
+    if (s3.check_for_key(key, bucket)):
+        file = s3.get_key(key, bucket)
+        file_content = file.get()['Body'].read()
+        return len(file_content)
+    return 0
+
+def canCreateAnalyses(clin_s3, batch_id, family_id, analyses):
+    for analysis in analyses:
+        if (checkS3AnalysisStatus(clin_s3, batch_id, family_id, analysis["labAliquotId"]) != FranklinStatus.UNKNOWN):
+            return False
+    return True
+
+def checkS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
+    key = buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id)
+    if (s3.check_for_key(key, export_bucket)):
+        file = clin_s3.get_key(key, export_bucket)
+        file_content = file.get()['Body'].read()
+        return FranklinStatus[file_content.decode('utf-8')]
+    return FranklinStatus.UNKNOWN
+
+def writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, status, ids = None):
+    for analysis in analyses:
+        writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis, status, ids)
+
+def writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis, status, ids = None):
+    clin_s3.load_string(status.name, buildS3AnalysesStatusKey(batch_id, family_id, analysis['labAliquotId']), export_bucket, replace=True)
+    if ids is not None:
+        clin_s3.load_string(','.join(map(str, ids)), buildS3AnalysesIdsKey(batch_id, family_id, analysis['labAliquotId']), export_bucket, replace=True)
+
+def buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id):
+    return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id}/_FRANKLIN_STATUS_.txt'
+
+def buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id):
+    if family_id is not None:
+        return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/_FRANKLIN_IDS_.txt'
+    else:
+        return f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_FRANKLIN_IDS_.txt'
+
 def build_sample_name(aliquot_id, family_id):
     return f'{aliquot_id} - {family_id}'
+    
 def extract_from_name_aliquot_id(name):
     return name.split("-")[0].strip()
 def extract_from_name_family_id(name):

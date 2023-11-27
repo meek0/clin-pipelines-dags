@@ -1,24 +1,31 @@
-import logging
-from airflow import DAG
-from airflow.models.baseoperator import chain
-from airflow.operators.python import PythonOperator
-from lib.config import env
-from lib.slack import Slack
-from datetime import datetime
-from airflow.decorators import task
-from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, post_create_analysis, \
-    get_analysis_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis, \
-    get_franklin_http_conn, extract_from_name_aliquot_id, extract_from_name_family_id
-from sensors.franklin import FranklinAPISensor
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from lib import config
 import json
-from airflow.models.param import Param
-from airflow.utils.task_group import TaskGroup
-from airflow.operators.python import ShortCircuitOperator
-from airflow.operators.empty import EmptyOperator
+import logging
+from datetime import datetime
+
+from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
+from airflow.models.baseoperator import chain
+from airflow.models.param import Param
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator, ShortCircuitOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
+from lib import config
+from lib.config import env
+from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
+                          canCreateAnalyses, export_bucket,
+                          extract_from_name_aliquot_id,
+                          extract_from_name_family_id, get_analysis_status,
+                          get_completed_analysis, get_franklin_http_conn,
+                          get_franklin_token, get_metadata_content,
+                          group_families_from_metadata, import_bucket,
+                          post_create_analysis, transfer_vcf_to_franklin,
+                          vcf_suffix, writeS3AnalysesStatus)
+from lib.groups.franklin_create import FranklinCreate
+from lib.slack import Slack
+from sensors.franklin import FranklinAPISensor
 
 with DAG(
         dag_id='etl_import_franklin',
@@ -32,12 +39,9 @@ with DAG(
             'batch_id': Param('', type='string'),
         },
 ) as dag:
+    
+    '''
 
-    def batch_id() -> str:
-        return '{{ params.batch_id }}'
-
-    clin_s3 = S3Hook(config.s3_conn_id)
-    franklin_s3 = S3Hook(config.s3_franklin)
     franklin_poke = 900
     franklin_timeout = 10800
 
@@ -45,6 +49,7 @@ with DAG(
 
         @task
         def group_families(batch_id):
+            clin_s3 = S3Hook(config.s3_conn_id)
             metadata = get_metadata_content(clin_s3, batch_id)
             [grouped_by_families, without_families] = group_families_from_metadata(metadata)
             logging.info(grouped_by_families)
@@ -52,6 +57,8 @@ with DAG(
 
         @task
         def upload_files_to_franklin(obj, batch_id):
+            clin_s3 = S3Hook(config.s3_conn_id)
+            franklin_s3 = S3Hook(config.s3_franklin)
             aliquot_ids = {}
             matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
             for key in matching_keys:
@@ -61,25 +68,29 @@ with DAG(
 
         @task
         def create_analysis(obj, batch_id):
-            families = obj['families']
-            solos = obj['no_family']
-            started_analyses = {
-                'no_family': [],
-                'families': {},
-            }
-
+            clin_s3 = S3Hook(config.s3_conn_id)
+            franklin_s3 = S3Hook(config.s3_franklin)
             conn = get_franklin_http_conn()
             token = get_franklin_token(conn)
 
-            for family_id, analyses in families.items():
-                started_analyses['families'][f'{family_id}'] = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
-            for patient in solos:
-                started_analyses['no_family'].append(
-                    post_create_analysis(conn, None, [patient], token, clin_s3, franklin_s3, batch_id)[0])
+            created_ids = []
 
-            logging.info(started_analyses)
-            return started_analyses
 
+            for family_id, analyses in obj['families'].items():
+                if (canCreateAnalyses(clin_s3, batch_id, family_id, analyses)):
+                    ids = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
+                    writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
+                    created_ids += ids
+            
+            for patient in obj['no_family']:
+                analyses = [patient]
+                if (canCreateAnalyses(clin_s3, batch_id, None, analyses)):
+                    ids = post_create_analysis(conn, None, analyses, token, clin_s3, franklin_s3, batch_id)
+                    writeS3AnalysesStatus(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
+                    created_ids += ids
+
+            logging.info(created_ids)
+            return True # created_ids can't be used after
 
         @task
         def get_analyses_status(started_analyses):
@@ -101,7 +112,6 @@ with DAG(
             logging.info(status)
             return status
 
-
         @task
         def mark_analyses_as_started(status, batch_id):
             for s in status:
@@ -113,7 +123,7 @@ with DAG(
                     export_bucket, replace=True)
             return True
 
-        '''
+   
         api_sensor = FranklinAPISensor(
             task_id='api_sensor_task',
             s3=clin_s3,
@@ -123,7 +133,7 @@ with DAG(
             dag=dag,
             export_bucket=export_bucket
         )
-        '''
+     
 
         @task
         def transfer_from_franklin_to_clin(_batch_id, token):
@@ -176,59 +186,36 @@ with DAG(
 
             logging.info(f'build cases returned {to_return}')
             return to_return
+        '''
 
+        #mark_analyses_as_started(
+        #    get_analyses_status(
+        #create_analysis(
+        #    upload_files_to_franklin(
+        #        group_families(batch_id()), 
+        #        batch_id()),
+        #    batch_id()), 
+        #    batch_id()) 
 
-        mark_analyses_as_started(
-            get_analyses_status(
-                create_analysis(
-                    upload_files_to_franklin(
-                        group_families(batch_id()), 
-                        batch_id()), 
-                    batch_id())), 
-            batch_id()) 
-#>> api_sensor >> transfer_from_franklin_to_clin(batch_id(), authenticate())
+# >> api_sensor >> transfer_from_franklin_to_clin(batch_id(), authenticate())
+    def batch_id() -> str:
+        return '{{ params.batch_id }}'
 
-    with TaskGroup(group_id='validate') as validate:
+    def validate_params(batch_id):
+        if batch_id == '':
+            raise AirflowFailException('DAG param "batch_id" is required')
 
-        def validate_params(batch_id):
-            if batch_id == '':
-                raise AirflowFailException('DAG param "batch_id" is required')
+    params = PythonOperator(
+        task_id='params',
+        op_args=[batch_id()],
+        python_callable=validate_params,
+        on_execute_callback=Slack.notify_dag_start,
+    )
 
-        def validate_metadata(batch_id):
-            metadata = get_metadata_content(clin_s3, batch_id)
-            submission_schema = metadata.get('submissionSchema', '')
-            logging.info(f'Schema: {submission_schema}')
-            return submission_schema == 'CQGC_Germline'
-
-        def validate_previous(batch_id):
-            # TODO add a reset param to delete raw landing content ?
-            batch_path = f'raw/landing/franklin/batch_id={batch_id}/'
-            keys = clin_s3.list_keys(export_bucket, batch_path)
-            logging.info(f'Batch {export_bucket}/{batch_path} keys: {keys}')
-            return len(keys) == 0   # we never called Franklin for that batch yet
-
-        params = PythonOperator(
-            task_id='params',
-            op_args=[batch_id()],
-            python_callable=validate_params,
-            on_execute_callback=Slack.notify_dag_start,
-        )
-
-        metadata = ShortCircuitOperator(
-            task_id="metadata",
-            python_callable=validate_metadata,
-            ignore_downstream_trigger_rules=False,  # Required to trigger Slack
-            op_args=[batch_id()],
-        )
-
-        previous = ShortCircuitOperator(
-            task_id="previous",
-            python_callable=validate_previous,
-            ignore_downstream_trigger_rules=False,  # Required to trigger Slack
-            op_args=[batch_id()],
-        )
-
-        params >> metadata >> previous
+    franklin_create = FranklinCreate(
+        group_id='franklin',
+        batch_id=batch_id(),
+    )
 
     slack = EmptyOperator(
         task_id="slack",
@@ -236,4 +223,4 @@ with DAG(
         trigger_rule=TriggerRule.NONE_FAILED # required even when ShortCircuits skips
     )
     
-    validate >> franklin >> slack
+    params >> franklin_create >> slack
