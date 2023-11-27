@@ -3,7 +3,7 @@ import logging
 from airflow.sensors.base import BaseSensorOperator
 
 from lib import config
-from lib.franklin import get_analyses_status, get_franklin_token
+from lib.franklin import get_analysis_status, get_franklin_token, get_franklin_http_conn
 
 
 class FranklinAPISensor(BaseSensorOperator):
@@ -29,9 +29,10 @@ class FranklinAPISensor(BaseSensorOperator):
         try:
             self.analyses_ids = self.list_analysis(context['params']['batch_id'])
             logging.info(f'analysis are {self.analyses_ids} {context}')
-            token = get_franklin_token()
+            conn = get_franklin_http_conn() # avoid instancing too many
+            token = get_franklin_token(conn)
 
-            response = get_analyses_status(self.analyses_ids, token)
+            response = get_analysis_status(conn, self.analyses_ids, token)
             all_ready = False
 
             for analysis in response:

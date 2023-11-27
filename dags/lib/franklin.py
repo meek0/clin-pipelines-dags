@@ -30,16 +30,10 @@ def get_franklin_http_conn():
     logging.info(f'Conn: {franklin_url_parts.hostname} {franklin_url_parts.port} {franklin_url_parts.path}')
     return conn
 
-def get_franklin_token(conn = None):
-    conn = conn or get_franklin_http_conn()
+def get_franklin_token(conn):
     payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
-    path = franklin_url_parts.path + '/v1/auth/login?'
-    conn.request("GET", path + payload)
-    res = conn.getresponse()
-    data = res.read()
-    decoded_data = json.loads(data.decode('utf-8'))
-    return decoded_data['token']
-
+    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
+    return parseResponseJSON(conn.getresponse())['token']
 
 def group_families_from_metadata(data):
     family_groups = {}
@@ -143,6 +137,13 @@ def get_phenotypes(id, batch_id, s3):
     else:
         return []
 
+def build_sample_name(aliquot_id, family_id):
+    return f'{aliquot_id} - {family_id}'
+def extract_from_name_aliquot_id(name):
+    return name.split("-")[0].strip()
+def extract_from_name_family_id(name):
+    id = name.split("-")[1].strip()
+    return id if id != 'None' else 'null'
 
 def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3):
     family_analyses = []
@@ -150,15 +151,17 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
     assay_id = str(uuid.uuid4()),
     for analysis in analyses:
         aliquot_id = analysis["labAliquotId"]
+        family_member = analysis["patient"]["familyMember"]
         vcf = analysis['vcf']
+        sample_name = build_sample_name(aliquot_id, family_id)
         sample = {
-            "sample_name": f'{aliquot_id} - {analysis["patient"]["familyMember"]}',
-            "family_relation": get_relation(analysis["patient"]["familyMember"]),
+            "sample_name": sample_name,
+            "family_relation": get_relation(family_member),
             "is_affected": analysis["patient"]["status"] == 'AFF'
         }
         if family_id:
             family_analyses.append(sample)
-            if analysis["patient"]["familyMember"] == 'PROBAND':
+            if family_member == 'PROBAND':
                 proband_id = aliquot_id
         else:
             proband_id = aliquot_id
@@ -170,7 +173,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
             analyses_payload.append({
                 "assay_id": assay_id,
                 'sample_data': {
-                    "sample_name": f'{aliquot_id} - {analysis["patient"]["familyMember"]}',
+                    "sample_name": sample_name,
                     "name_in_vcf": aliquot_id,
                     "aws_files": [
                         {
@@ -214,40 +217,27 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 
     return payload
 
+def parseResponseJSON(res):
+    data = res.read()
+    body = data.decode('utf-8')
+    if res.status != 200:
+        raise AirflowFailException(f'{res.status} - {body}')
+    return json.loads(body)
 
 def post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
-
-    if family_id:
-        payload = build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)
-    else:
-        payload = build_create_analysis_payload(None, analyses, batch_id, clin_s3, franklin_s3)
-
+    payload = json.dumps(build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)).encode('utf-8')
     logging.info(f'Create analysis: {family_id} {analyses}')
-  
-    conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
-    res = conn.getresponse()
-    data = res.read()
-    s = json.loads(data.decode('utf-8'))
-    return s
+    conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", payload, headers)
+    return parseResponseJSON(conn.getresponse())
 
 
-def get_analyses_status(started_analyses, token):
-    conn = get_franklin_http_conn()
-
+def get_analysis_status(conn, started_analyses, token):
+    headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
-    headers = {
-        'Content-Type': "application/json",
-        'Authorization': f"Bearer {token}"
-    }
-    conn.request("POST", "/v1/analyses/status", payload, headers)
-
-    res = conn.getresponse()
-    data = res.read()
-
-    decoded = data.decode("utf-8")
-    logging.info(decoded)
-    return json.loads(decoded)
+    logging.info(f'Get analysis status: {started_analyses}')
+    conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
+    return parseResponseJSON(conn.getresponse())
 
 
 def get_completed_analysis(id, token):

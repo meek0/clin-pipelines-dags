@@ -7,8 +7,8 @@ from lib.slack import Slack
 from datetime import datetime
 from airflow.decorators import task
 from lib.franklin import get_franklin_token, transfer_vcf_to_franklin, group_families_from_metadata, post_create_analysis, \
-    get_analyses_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis, \
-    get_franklin_http_conn
+    get_analysis_status, get_completed_analysis, import_bucket, export_bucket, get_metadata_content, vcf_suffix, attach_vcf_to_analysis, \
+    get_franklin_http_conn, extract_from_name_aliquot_id, extract_from_name_family_id
 from sensors.franklin import FranklinAPISensor
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
@@ -68,11 +68,11 @@ with DAG(
                 'families': {},
             }
 
-            conn = get_franklin_http_conn() # avoid instancing too many
+            conn = get_franklin_http_conn()
             token = get_franklin_token(conn)
 
             for family_id, analyses in families.items():
-                started_analyses['families'][f'{family_id}'] = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)
+                started_analyses['families'][f'{family_id}'] = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
             for patient in solos:
                 started_analyses['no_family'].append(
                     post_create_analysis(conn, None, [patient], token, clin_s3, franklin_s3, batch_id)[0])
@@ -82,48 +82,35 @@ with DAG(
 
 
         @task
-        def get_statuses(started_analyses):
+        def get_analyses_status(started_analyses):
             families = started_analyses['families']
             solos = started_analyses['no_family']
-            statuses = {
-                'no_family': [],
-                'families': {},
-            }
 
-            token = get_franklin_token()
+            conn = get_franklin_http_conn()
+            token = get_franklin_token(conn)
+
+            ids = [] # build one status request with all analysis IDs
 
             for family_id, analyses in families.items():
-                status = get_analyses_status(analyses, token)
-                statuses['families'][family_id] = status
-            logging.info(statuses)
+                ids += analyses
 
             for patient in solos:
-                statuses['no_family'].append(get_analyses_status([patient], token))
-            return statuses
+                ids.append(patient)
+                
+            status = get_analysis_status(conn, ids, token)
+            logging.info(status)
+            return status
 
 
         @task
-        def mark_analyses_as_started(obj, batch):
-            families = obj['families']
-            solos = obj['no_family']
-            logging.info(obj)
-            for family_id, status in families.items():
-                logging.info(status)
-                for s in status:
-                    if 'family' in s['name']:
-                        clin_s3.load_string('',
-                                            f'raw/landing/franklin/batch_id={batch}/family_id={family_id}/aliquot_id=null/analysis_id={s["id"]}/_IN_PROGRESS.txt',
-                                            export_bucket, replace=True)
-                    else:
-                        path = f'raw/landing/franklin/batch_id={batch}/family_id={family_id}/aliquot_id={s["name"].split(" - ")[0]}/analysis_id={s["id"]}/_IN_PROGRESS.txt'
-                        clin_s3.load_string('', path, export_bucket, replace=True)
-
-            for p in solos:
-                logging.info(p)
-                patient = p[0]
-                clin_s3.load_string('',
-                                    f'raw/landing/franklin/batch_id={batch}/family_id=null/aliquot_id={patient["name"].split(" - ")[0]}/analysis_id={patient["id"]}/_IN_PROGRESS.txt',
-                                    export_bucket, replace=True)
+        def mark_analyses_as_started(status, batch_id):
+            for s in status:
+                analysis_id = s['id']
+                aliquot_id = extract_from_name_aliquot_id(s['name'])
+                family_id = extract_from_name_family_id(s['name'])
+                clin_s3.load_string(s['processing_status'],
+                    f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/aliquot_id={aliquot_id}/franklin_analysis_id={analysis_id}/_FRANKLIN_STATUS.txt',
+                    export_bucket, replace=True)
             return True
 
         '''
@@ -192,7 +179,7 @@ with DAG(
 
 
         mark_analyses_as_started(
-            get_statuses(
+            get_analyses_status(
                 create_analysis(
                     upload_files_to_franklin(
                         group_families(batch_id()), 
