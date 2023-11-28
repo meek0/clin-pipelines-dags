@@ -31,19 +31,6 @@ def get_metadata_content(clin_s3, batch_id):
     file_obj = clin_s3.get_key(metadata_path, import_bucket)
     return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
 
-def get_franklin_http_conn():
-    if config.franklin_url.startswith('https'):
-        conn = http.client.HTTPSConnection(franklin_url_parts.hostname)
-    else:
-        conn = http.client.HTTPConnection(franklin_url_parts.hostname, port=franklin_url_parts.port)
-    logging.info(f'Conn: {franklin_url_parts.hostname} {franklin_url_parts.port} {franklin_url_parts.path}')
-    return conn
-
-def get_franklin_token(conn):
-    payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
-    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
-    return parseResponseJSON(conn.getresponse())['token']
-
 def group_families_from_metadata(data):
     family_groups = {}
     analyses_without_family = []
@@ -298,24 +285,44 @@ def parseResponse(res):
 def parseResponseJSON(res):
     return json.loads(parseResponse(res))
 
-def post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id):
+def get_franklin_http_conn():
+    if config.franklin_url.startswith('https'):
+        conn = http.client.HTTPSConnection(franklin_url_parts.hostname)
+    else:
+        conn = http.client.HTTPConnection(franklin_url_parts.hostname, port=franklin_url_parts.port)
+    return conn
+
+def get_franklin_token():
+    conn = get_franklin_http_conn()
+    payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
+    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
+    conn.close
+    return parseResponseJSON(conn.getresponse())['token']
+
+def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
+    conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     payload = json.dumps(build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)).encode('utf-8')
     logging.info(f'Create analysis: {family_id} {analyses}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", payload, headers)
+    conn.close
     return parseResponseJSON(conn.getresponse())
 
 
-def get_analysis_status(conn, started_analyses, token):
+def get_analysis_status(started_analyses, token):
+    conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
     logging.info(f'Get analysis status: {started_analyses}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
+    conn.close
     return parseResponseJSON(conn.getresponse())
 
 
-def get_completed_analysis(conn, id, token):
+def get_completed_analysis(id, token):
+    conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     logging.info(f'Get completed analysis: {id}')
     conn.request("GET", franklin_url_parts.path + f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
+    conn.close
     return parseResponse(conn.getresponse())

@@ -16,11 +16,10 @@ from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
                           extract_from_name_aliquot_id,
                           extract_from_name_family_id, extractParamFromS3Key,
                           get_analysis_status, get_completed_analysis,
-                          get_franklin_http_conn, get_franklin_token,
-                          get_metadata_content, group_families_from_metadata,
-                          import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, vcf_suffix,
-                          writeS3AnalysisStatus)
+                          get_franklin_token, get_metadata_content,
+                          group_families_from_metadata, import_bucket,
+                          post_create_analysis, transfer_vcf_to_franklin,
+                          vcf_suffix, writeS3AnalysisStatus)
 from lib.operators.pipeline import PipelineOperator
 from sensors.franklin import FranklinAPISensor
 
@@ -39,8 +38,7 @@ def FranklinUpdate(
             if len(keys) == 0:  # nothing in that batch about Franklin
                 raise AirflowSkipException()
 
-            conn = get_franklin_http_conn()
-            token = get_franklin_token(conn)
+            token = get_franklin_token()
             completed_analyses = []
 
             for key in keys:
@@ -52,7 +50,7 @@ def FranklinUpdate(
                         id = id_key.get()['Body'].read().decode('utf-8')
                         aliquot_id = extractParamFromS3Key(key, 'aliquot_id')
                         family_id = extractParamFromS3Key(key, 'family_id') 
-                        json = get_completed_analysis(conn, id, token)
+                        json = get_completed_analysis(id, token)
                         json_s3_key = buildS3AnalysesJSONKey(batch_id, family_id, aliquot_id)
                         clin_s3.load_string(json, json_s3_key, export_bucket, replace=True)
                         writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, FranklinStatus.COMPLETED)

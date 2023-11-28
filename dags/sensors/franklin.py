@@ -7,8 +7,8 @@ from lib import config
 from lib.franklin import (FranklinStatus, buildS3AnalysesIdsKey, export_bucket,
                           extract_from_name_aliquot_id,
                           extract_from_name_family_id, extractParamFromS3Key,
-                          get_analysis_status, get_franklin_http_conn,
-                          get_franklin_token, writeS3AnalysisStatus)
+                          get_analysis_status, get_franklin_token,
+                          writeS3AnalysisStatus)
 
 
 class FranklinAPISensor(BaseSensorOperator):
@@ -53,9 +53,8 @@ class FranklinAPISensor(BaseSensorOperator):
         if len(created_analyses) == 0:  # All created analyses are ready
             return True
 
-        conn = get_franklin_http_conn()
-        token = get_franklin_token(conn)
-        statuses = get_analysis_status(conn, created_analyses, token)
+        token = get_franklin_token()
+        statuses = get_analysis_status(created_analyses, token)
 
         ready_count = 0
         for status in statuses:

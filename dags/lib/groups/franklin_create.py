@@ -7,11 +7,11 @@ from airflow.utils.task_group import TaskGroup
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.franklin import (FranklinStatus, analysesDontExist,
-                          attach_vcf_to_analysis, get_franklin_http_conn,
-                          get_franklin_token, get_metadata_content,
-                          group_families_from_metadata, import_bucket,
-                          post_create_analysis, transfer_vcf_to_franklin,
-                          vcf_suffix, writeS3AnalysesStatus)
+                          attach_vcf_to_analysis, get_franklin_token,
+                          get_metadata_content, group_families_from_metadata,
+                          import_bucket, post_create_analysis,
+                          transfer_vcf_to_franklin, vcf_suffix,
+                          writeS3AnalysesStatus)
 
 
 def FranklinCreate(
@@ -53,8 +53,7 @@ def FranklinCreate(
         def create_analysis(obj, batch_id):
             clin_s3 = S3Hook(config.s3_conn_id)
             franklin_s3 = S3Hook(config.s3_franklin)
-            conn = get_franklin_http_conn()
-            token = get_franklin_token(conn)
+            token = get_franklin_token()
 
             created_ids = []
 
@@ -65,14 +64,14 @@ def FranklinCreate(
 
             for family_id, analyses in obj['families'].items():
                 if (analysesDontExist(clin_s3, batch_id, family_id, analyses)):
-                    ids = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
+                    ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
                     writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
                     created_ids += ids
             
             for patient in obj['no_family']:
                 analyses = [patient]
                 if (analysesDontExist(clin_s3, batch_id, None, analyses)):
-                    ids = post_create_analysis(conn, None, analyses, token, clin_s3, franklin_s3, batch_id)
+                    ids = post_create_analysis(None, analyses, token, clin_s3, franklin_s3, batch_id)
                     writeS3AnalysesStatus(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
                     created_ids += ids
 
