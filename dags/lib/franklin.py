@@ -18,7 +18,6 @@ from lib.config import env
 class FranklinStatus(Enum):
     UNKNOWN = 0
     CREATED = 1
-    IN_PROGRESS = 2
     READY = 3
 
 import_bucket = f'cqgc-{env}-app-files-import'
@@ -67,7 +66,7 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
     aliquot_ids = extract_aliquot_ids_from_vcf(vcf_content)
     logging.info(f'Aliquot IDs in VCF: {aliquot_ids}')
 
-    # ignore upload if already on Franklin S3
+    # ignore upload if already on Franklin S3 with the same length
     destination_key = f'{env}/{source_key}'
     destination_vcf_content_size = get_s3_key_content_size(s3_franklin, config.s3_franklin_bucket, destination_key)
     if (destination_vcf_content_size != len(vcf_content)):
@@ -101,13 +100,11 @@ def extract_aliquot_ids_from_vcf(vcf_content):
 
 def attach_vcf_to_aliquot_id(analysis, aliquot_ids):
     aliquot_id = analysis['labAliquotId']
-    vcfFound = False
     for vcf in aliquot_ids:
         if aliquot_id in aliquot_ids[vcf]:
             analysis['vcf'] = vcf
-            vcfFound = True
-    if not vcfFound:
-        raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
+            return
+    raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
 
 def attach_vcf_to_analysis(obj, aliquot_ids):
     families = obj['families']
@@ -159,7 +156,7 @@ def get_s3_key_content_size(s3, bucket, key):
         return len(file_content)
     return 0
 
-def canCreateAnalyses(clin_s3, batch_id, family_id, analyses):
+def analysesDontExist(clin_s3, batch_id, family_id, analyses):
     for analysis in analyses:
         if (checkS3AnalysisStatus(clin_s3, batch_id, family_id, analysis["labAliquotId"]) != FranklinStatus.UNKNOWN):
             return False
@@ -167,7 +164,7 @@ def canCreateAnalyses(clin_s3, batch_id, family_id, analyses):
 
 def checkS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
     key = buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id)
-    if (s3.check_for_key(key, export_bucket)):
+    if (clin_s3.check_for_key(key, export_bucket)):
         file = clin_s3.get_key(key, export_bucket)
         file_content = file.get()['Body'].read()
         return FranklinStatus[file_content.decode('utf-8')]
@@ -175,12 +172,12 @@ def checkS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id) -> FranklinS
 
 def writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, status, ids = None):
     for analysis in analyses:
-        writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis, status, ids)
+        writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
 
-def writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis, status, ids = None):
-    clin_s3.load_string(status.name, buildS3AnalysesStatusKey(batch_id, family_id, analysis['labAliquotId']), export_bucket, replace=True)
+def writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, status, ids = None):
+    clin_s3.load_string(status.name, buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
     if ids is not None:
-        clin_s3.load_string(','.join(map(str, ids)), buildS3AnalysesIdsKey(batch_id, family_id, analysis['labAliquotId']), export_bucket, replace=True)
+        clin_s3.load_string(','.join(map(str, ids)), buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
 
 def buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id):
     return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id}/_FRANKLIN_STATUS_.txt'

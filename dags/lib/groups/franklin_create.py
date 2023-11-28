@@ -1,27 +1,17 @@
 import logging
 
-from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException, AirflowSkipException
-from airflow.models.baseoperator import chain
-from airflow.models.param import Param
-from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator, ShortCircuitOperator
+from airflow.exceptions import AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
-from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 from lib.config import K8sContext, config_file, env
-from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
-                          canCreateAnalyses, export_bucket,
-                          extract_from_name_aliquot_id,
-                          extract_from_name_family_id, get_analysis_status,
-                          get_completed_analysis, get_franklin_http_conn,
+from lib.franklin import (FranklinStatus, analysesDontExist,
+                          attach_vcf_to_analysis, get_franklin_http_conn,
                           get_franklin_token, get_metadata_content,
                           group_families_from_metadata, import_bucket,
                           post_create_analysis, transfer_vcf_to_franklin,
                           vcf_suffix, writeS3AnalysesStatus)
-from lib.operators.pipeline import PipelineOperator
 
 
 def FranklinCreate(
@@ -37,7 +27,7 @@ def FranklinCreate(
             submission_schema = metadata.get('submissionSchema', '')
             logging.info(f'Schema: {submission_schema}')
             if (submission_schema != 'CQGC_Germline'):
-                raise AirflowSkipException('Batch with schema CQGC_Germline is expected for Franklin')
+                raise AirflowSkipException()
 
         @task
         def group_families(batch_id):
@@ -79,14 +69,14 @@ def FranklinCreate(
             '''
 
             for family_id, analyses in obj['families'].items():
-                if (canCreateAnalyses(clin_s3, batch_id, family_id, analyses)):
+                if (analysesDontExist(clin_s3, batch_id, family_id, analyses)):
                     ids = post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
                     writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
                     created_ids += ids
             
             for patient in obj['no_family']:
                 analyses = [patient]
-                if (canCreateAnalyses(clin_s3, batch_id, None, analyses)):
+                if (analysesDontExist(clin_s3, batch_id, None, analyses)):
                     ids = post_create_analysis(conn, None, analyses, token, clin_s3, franklin_s3, batch_id)
                     writeS3AnalysesStatus(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
                     created_ids += ids
