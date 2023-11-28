@@ -38,23 +38,11 @@ with DAG(
         },
         params={
             'batch_id': Param('', type='string'),
-            'check_update': Param('yes', enum=['yes', 'no']),
-            'status_interval_min': Param(1, type="integer", minimum=0),
-            'status_timeout_min': Param(300,  type="integer", minimum=0),
         },
 ) as dag:
     
     def batch_id() -> str:
         return '{{ params.batch_id }}'
-    
-    def skip_update() -> str:
-        return '{% if params.check_update == "yes" %}{% else %}yes{% endif %}'
-    
-    def status_interval() -> str:
-        return '{{ params.status_interval_min }}'
-
-    def status_timeout() -> str:
-        return '{{ params.status_timeout_min }}'
 
     def validate_params(batch_id):
         if batch_id == '':
@@ -75,9 +63,6 @@ with DAG(
     update = FranklinUpdate(
         group_id='update',
         batch_id=batch_id(),
-        skip_update=skip_update(),
-        status_interval=status_interval(),
-        status_timeout=status_timeout(),
     )
 
     slack = EmptyOperator(

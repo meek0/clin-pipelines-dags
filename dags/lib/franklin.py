@@ -188,6 +188,16 @@ def buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id):
     else:
         return f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_FRANKLIN_IDS_.txt'
 
+def extractParamFromS3Key(key, param_name):
+    for param in key.split('/'):
+        if param.startswith(f"{param_name}="):
+            value = param.split('=')[1]
+            if value == 'null':
+                return None
+            else:
+                return value
+    raise AirflowFailException(f'Cant find param: {param_name} in s3 key: {key}')
+
 def build_sample_name(aliquot_id, family_id):
     return f'{aliquot_id} - {family_id}'
     
