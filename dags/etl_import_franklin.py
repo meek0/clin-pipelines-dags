@@ -16,9 +16,8 @@ from lib import config
 from lib.config import env
 from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
                           export_bucket, extract_from_name_aliquot_id,
-                          extract_from_name_family_id, get_analysis_status,
-                          get_completed_analysis, get_franklin_http_conn,
-                          get_franklin_token, get_metadata_content,
+                          get_analysis_status, get_completed_analysis,
+                          get_franklin_http_conn, get_metadata_content,
                           group_families_from_metadata, import_bucket,
                           post_create_analysis, transfer_vcf_to_franklin,
                           vcf_suffix, writeS3AnalysesStatus)

@@ -13,8 +13,7 @@ from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
                           buildS3AnalysesJSONKey, export_bucket,
-                          extract_from_name_aliquot_id,
-                          extract_from_name_family_id, extractParamFromS3Key,
+                          extract_from_name_aliquot_id, extractParamFromS3Key,
                           get_analysis_status, get_completed_analysis,
                           get_franklin_token, get_metadata_content,
                           group_families_from_metadata, import_bucket,
@@ -35,9 +34,6 @@ def FranklinUpdate(
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
-            if len(keys) == 0:  # nothing in that batch about Franklin
-                raise AirflowSkipException()
-
             token = get_franklin_token()
             completed_analyses = []
 
@@ -51,13 +47,21 @@ def FranklinUpdate(
                         aliquot_id = extractParamFromS3Key(key, 'aliquot_id')
                         family_id = extractParamFromS3Key(key, 'family_id') 
                         json = get_completed_analysis(id, token)
-                        json_s3_key = buildS3AnalysesJSONKey(batch_id, family_id, aliquot_id)
+                        json_s3_key = buildS3AnalysesJSONKey(batch_id, family_id, aliquot_id, id)
                         clin_s3.load_string(json, json_s3_key, export_bucket, replace=True)
                         writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, FranklinStatus.COMPLETED)
                         completed_analyses.append(id)
                         logging.info(f'Download JSON: {len(json)} {json_s3_key}')
             
             logging.info(f'Completed analyses: {completed_analyses}')
+        
+        def clean_up(batch_id):
+            clin_s3 = S3Hook(config.s3_conn_id)
+            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
+            for key in keys:
+                if '_FRANKLIN_' in key: # remove any TXT intermediate file STATUS, IDS, ID ...
+                    clin_s3.delete_objects(export_bucket, [key])
+                    logging.info(f'Delete: {key}')
 
         api_sensor = FranklinAPISensor(
             task_id='api_sensor',
@@ -72,6 +76,12 @@ def FranklinUpdate(
             python_callable=download_json,
         )
 
-        api_sensor >> download
+        clean_up = PythonOperator(
+            task_id='clean_up',
+            op_args=[batch_id],
+            python_callable=clean_up,
+        )
+
+        api_sensor >> download >> clean_up
 
     return group
