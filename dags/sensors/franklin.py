@@ -69,4 +69,4 @@ class FranklinAPISensor(BaseSensorOperator):
                                 ready_analyses.append(analysis_id)
 
         logging.info(f'Ready analyses: {total_ready}/{total_created} {ready_analyses}')
-        return total_created == 0;  # All created analyses are ready
+        return total_ready == total_created;  # All created analyses are ready
