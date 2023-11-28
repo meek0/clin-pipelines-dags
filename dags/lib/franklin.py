@@ -24,7 +24,6 @@ class FranklinStatus(Enum):
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
-vcf_suffix = 'hard-filtered.formatted.norm.VEP.vcf.gz'
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
 familyAnalysisKeyword = 'family'
 
@@ -118,59 +117,59 @@ def get_s3_key_content_size(s3, bucket, key):
     return 0
 
 # avoid spamming franklin <!>
-def canCreateAnalysis(clin_s3, batch_id, family_id, analyses):
+def can_create_analysis(clin_s3, batch_id, family_id, analyses):
     for analysis in analyses:
         aliquot_id = analysis["labAliquotId"]
-        completed_analysis_keys = clin_s3.list_keys(export_bucket, buildS3AnalysesRootKey(batch_id, family_id, aliquot_id))
+        completed_analysis_keys = clin_s3.list_keys(export_bucket, build_s3_analyses_root_key(batch_id, family_id, aliquot_id))
         for key in completed_analysis_keys:
             if 'analysis_id=' in key:   # found at least one completed analysis
                 logging.info(f'Completed analysis found: {batch_id} {family_id} {aliquot_id}')
                 return False
-        status = checkS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id)
+        status = check_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id)
         if status != FranklinStatus.UNKNOWN: # fund at least one analysis with a STATUS
             logging.info(f'Created analysis found: {batch_id} {family_id} {aliquot_id}')
             return False
     return True
 
-def checkS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
-    key = buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id)
+def check_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
+    key = build_s3_analyses_status_key(batch_id, family_id, aliquot_id)
     if (clin_s3.check_for_key(key, export_bucket)):
         file = clin_s3.get_key(key, export_bucket)
         file_content = file.get()['Body'].read()
         return FranklinStatus[file_content.decode('utf-8')]
     return FranklinStatus.UNKNOWN   # analysis doesn't exist
 
-def writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, status, ids = None):
+def write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, status, ids = None):
     for analysis in analyses:
-        writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
+        write_s3_analysis_status(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
 
-def writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
-    clin_s3.load_string(status.name, buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+def write_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
+    clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
     if ids is not None: # save TRIO, DUO ... analyses IDs
-        clin_s3.load_string(','.join(map(str, ids)), buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+        clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
     if id is not None:  # after status we can attached an ID to a specific family + aliquot id whatever it's SOLO or TRIO, DUO ...
-        clin_s3.load_string(str(id), buildS3AnalysesIdKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+        clin_s3.load_string(str(id), build_s3_analyses_id_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
 
-def buildS3AnalysesRootKey(batch_id, family_id, aliquot_id):
+def build_s3_analyses_root_key(batch_id, family_id, aliquot_id):
     return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id or "null"}'
 
-def buildS3AnalysesJSONKey(batch_id, family_id, aliquot_id, analysis_id):
-    return f'{buildS3AnalysesRootKey(batch_id, family_id, aliquot_id)}/analysis_id={analysis_id}/analysis.json'
+def build_s3_analyses_json_key(batch_id, family_id, aliquot_id, analysis_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/analysis_id={analysis_id}/analysis.json'
 
-def buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id):
-    return f'{buildS3AnalysesRootKey(batch_id, family_id, aliquot_id)}/_FRANKLIN_STATUS_.txt'
+def build_s3_analyses_status_key(batch_id, family_id, aliquot_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/_FRANKLIN_STATUS_.txt'
 
-def buildS3AnalysesIdKey(batch_id, family_id, aliquot_id):
-    return f'{buildS3AnalysesRootKey(batch_id, family_id, aliquot_id)}/_FRANKLIN_ID_.txt'
+def build_s3_analyses_id_key(batch_id, family_id, aliquot_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/_FRANKLIN_ID_.txt'
 
-def buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id):
+def build_s3_analyses_ids_key(batch_id, family_id, aliquot_id):
     if family_id is not None: # IDS are stored at family level TRIO, DUO ...
         return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/_FRANKLIN_IDS_.txt'
     else:   # SOLO
         return f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_FRANKLIN_IDS_.txt'
 
-# extractParamFromS3Key('raw/landing/franklin/batch_id=foo' ,'batch_id') -> foo
-def extractParamFromS3Key(key, param_name):
+# extract_param_from_s3_key('raw/landing/franklin/batch_id=foo' ,'batch_id') -> foo
+def extract_param_from_s3_key(key, param_name):
     for param in key.split('/'):
         if param.startswith(f"{param_name}="):
             value = param.split('=')[1]
@@ -199,6 +198,8 @@ def get_relation(relation):
         return 'mother'
     elif relation == 'PROBAND':
         return 'proband'
+    else:
+        raise AirflowFailException(f'Missing relation: {relation}')
 
 def format_date(input_date):
     input_format = "%d/%m/%Y"
@@ -289,15 +290,15 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 
     return payload
 
-def parseResponse(res):
+def parse_response(res):
     data = res.read()
     body = data.decode('utf-8')
     if res.status != 200:   # log if something wrong
         raise AirflowFailException(f'{res.status} - {body}')
     return body
 
-def parseResponseJSON(res):
-    return json.loads(parseResponse(res))
+def parse_response_json(res):
+    return json.loads(parse_response(res))
 
 def get_franklin_http_conn():
     if config.franklin_url.startswith('https'):
@@ -311,7 +312,7 @@ def get_franklin_token():
     payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
     conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
     conn.close
-    return parseResponseJSON(conn.getresponse())['token']
+    return parse_response_json(conn.getresponse())['token']
 
 def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     conn = get_franklin_http_conn()
@@ -320,7 +321,7 @@ def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch
     logging.info(f'Create analysis: {family_id} {analyses}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", payload, headers)
     conn.close
-    return parseResponseJSON(conn.getresponse())
+    return parse_response_json(conn.getresponse())
 
 
 def get_analysis_status(started_analyses, token):
@@ -330,7 +331,7 @@ def get_analysis_status(started_analyses, token):
     logging.info(f'Get analysis status: {started_analyses}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
     conn.close
-    return parseResponseJSON(conn.getresponse())
+    return parse_response_json(conn.getresponse())
 
 
 def get_completed_analysis(id, token):
@@ -339,4 +340,4 @@ def get_completed_analysis(id, token):
     logging.info(f'Get completed analysis: {id}')
     conn.request("GET", franklin_url_parts.path + f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
     conn.close
-    return parseResponse(conn.getresponse())
+    return parse_response(conn.getresponse())

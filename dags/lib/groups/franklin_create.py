@@ -7,11 +7,10 @@ from airflow.utils.task_group import TaskGroup
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
-                          canCreateAnalysis, get_franklin_token,
+                          can_create_analysis, get_franklin_token,
                           get_metadata_content, group_families_from_metadata,
                           import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, vcf_suffix,
-                          writeS3AnalysesStatus)
+                          transfer_vcf_to_franklin, write_s3_analyses_status)
 
 
 def FranklinCreate(
@@ -52,7 +51,7 @@ def FranklinCreate(
                 aliquot_ids = {}
                 matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
                 for key in matching_keys:
-                    if key.endswith(vcf_suffix):
+                    if key.endswith('hard-filtered.formatted.norm.VEP.vcf.gz'):
                         # we extract the aliquot IDs while transferring the VCF
                         aliquot_ids[key] = transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
                 return attach_vcf_to_analyses(families, aliquot_ids) # we now have analysis <=> vcf
@@ -68,16 +67,16 @@ def FranklinCreate(
                 created_ids = []
 
                 for family_id, analyses in families['families'].items():
-                    if (canCreateAnalysis(clin_s3, batch_id, family_id, analyses)): # already created before
+                    if (can_create_analysis(clin_s3, batch_id, family_id, analyses)): # already created before
                         ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
-                        writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
+                        write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
                         created_ids += ids
                 
                 for patient in families['no_family']:
                     analyses = [patient]
-                    if (canCreateAnalysis(clin_s3, batch_id, None, analyses)): # already created before
+                    if (can_create_analysis(clin_s3, batch_id, None, analyses)): # already created before
                         ids = post_create_analysis(None, analyses, token, clin_s3, franklin_s3, batch_id)
-                        writeS3AnalysesStatus(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
+                        write_s3_analyses_status(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
                         created_ids += ids
 
                 logging.info(created_ids)

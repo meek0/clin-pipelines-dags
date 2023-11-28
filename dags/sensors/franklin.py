@@ -4,10 +4,10 @@ from airflow.exceptions import AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sensors.base import BaseSensorOperator
 from lib import config
-from lib.franklin import (FranklinStatus, buildS3AnalysesIdsKey, export_bucket,
-                          extract_from_name_aliquot_id, extractParamFromS3Key,
-                          get_analysis_status, get_franklin_token,
-                          writeS3AnalysisStatus)
+from lib.franklin import (FranklinStatus, build_s3_analyses_ids_key,
+                          export_bucket, extract_from_name_aliquot_id,
+                          extract_param_from_s3_key, get_analysis_status,
+                          get_franklin_token, write_s3_analysis_status)
 
 
 class FranklinAPISensor(BaseSensorOperator):
@@ -43,14 +43,14 @@ class FranklinAPISensor(BaseSensorOperator):
                 status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
                 if status is FranklinStatus.CREATED:    # ignore others status
 
-                    family_id = extractParamFromS3Key(key, 'family_id') 
-                    aliquot_id = extractParamFromS3Key(key, 'aliquot_id')
+                    family_id = extract_param_from_s3_key(key, 'family_id') 
+                    aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
 
                     # SOLO are family_id = None otherwise check already done families
                     if family_id is None or family_id not in families_done:
                         families_done.append(family_id)
 
-                        ids_key = clin_s3.get_key(buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id), export_bucket)
+                        ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket)
                         ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
 
                         total_created += len(ids)   # count of IDs may vary DUO, TRIO ...
@@ -64,7 +64,7 @@ class FranklinAPISensor(BaseSensorOperator):
                                 analysis_id = status['id']
                                 analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
 
-                                writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
+                                write_s3_analysis_status(clin_s3, batch_id, family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
 
                                 ready_analyses.append(analysis_id)
 
