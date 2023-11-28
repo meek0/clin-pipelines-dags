@@ -27,9 +27,9 @@ class FranklinAPISensor(BaseSensorOperator):
             raise AirflowSkipException()
 
         batch_id = self.batch_id
-        started_analyses = []
-
         clin_s3 = S3Hook(config.s3_conn_id)
+        created_analyses = []
+
         keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
         if len(keys) == 0:  # nothing in that batch about Franklin
@@ -43,19 +43,19 @@ class FranklinAPISensor(BaseSensorOperator):
                     aliquot_id = extractParamFromS3Key(key, 'aliquot_id')
                     family_id = extractParamFromS3Key(key, 'family_id') 
                     ids_key = clin_s3.get_key(buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id), export_bucket)
-                    started_analyses += ids_key.get()['Body'].read().decode('utf-8').split(',')
+                    created_analyses += ids_key.get()['Body'].read().decode('utf-8').split(',')
 
         # remove all possible duplicated analysis
-        started_analyses = list(set(started_analyses))
+        created_analyses = list(set(created_analyses))
 
-        logging.info(f'Started analyses: {len(started_analyses)} {started_analyses}')
+        logging.info(f'Started analyses: {len(created_analyses)} {created_analyses}')
 
-        if len(started_analyses) == 0:  # All created analyses are ready
+        if len(created_analyses) == 0:  # All created analyses are ready
             return True
 
         conn = get_franklin_http_conn()
         token = get_franklin_token(conn)
-        statuses = get_analysis_status(conn, started_analyses, token)
+        statuses = get_analysis_status(conn, created_analyses, token)
 
         ready_count = 0
         for status in statuses:
@@ -63,7 +63,7 @@ class FranklinAPISensor(BaseSensorOperator):
                 analysis_id = status['id']
                 aliquot_id = extract_from_name_aliquot_id(status['name'])
                 family_id = extract_from_name_family_id(status['name'])
-                writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, FranklinStatus.READY)
+                writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, FranklinStatus.READY, id=analysis_id)
                 ready_count+=1
 
         logging.info(f'READY: {ready_count}/{len(statuses)}')

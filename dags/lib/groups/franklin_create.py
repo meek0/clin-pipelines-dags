@@ -1,7 +1,7 @@
 import logging
 
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
 from lib import config
@@ -21,18 +21,17 @@ def FranklinCreate(
 
     with TaskGroup(group_id=group_id) as group:
 
-        def skip_franklin(batch_id):
+        def check_metadata(batch_id):
             clin_s3 = S3Hook(config.s3_conn_id)
             metadata = get_metadata_content(clin_s3, batch_id)
             submission_schema = metadata.get('submissionSchema', '')
             logging.info(f'Schema: {submission_schema}')
             if (submission_schema != 'CQGC_Germline'):
-                raise AirflowSkipException()
+                raise AirflowFailException('Not Germline Batch')
 
         @task
         def group_families(batch_id):
-            skip_franklin(batch_id)
-
+            check_metadata(batch_id)
             clin_s3 = S3Hook(config.s3_conn_id)
             metadata = get_metadata_content(clin_s3, batch_id)
             [grouped_by_families, without_families] = group_families_from_metadata(metadata)
@@ -41,8 +40,6 @@ def FranklinCreate(
 
         @task
         def upload_files(obj, batch_id):
-            skip_franklin(batch_id)
-
             clin_s3 = S3Hook(config.s3_conn_id)
             franklin_s3 = S3Hook(config.s3_franklin)
             aliquot_ids = {}
@@ -54,8 +51,6 @@ def FranklinCreate(
 
         @task
         def create_analysis(obj, batch_id):
-            skip_franklin(batch_id)
-
             clin_s3 = S3Hook(config.s3_conn_id)
             franklin_s3 = S3Hook(config.s3_franklin)
             conn = get_franklin_http_conn()

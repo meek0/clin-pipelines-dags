@@ -19,6 +19,7 @@ class FranklinStatus(Enum):
     UNKNOWN = 0
     CREATED = 1
     READY = 3
+    COMPLETED = 4
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
@@ -174,13 +175,21 @@ def writeS3AnalysesStatus(clin_s3, batch_id, family_id, analyses, status, ids = 
     for analysis in analyses:
         writeS3AnalysisStatus(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
 
-def writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, status, ids = None):
+def writeS3AnalysisStatus(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
     clin_s3.load_string(status.name, buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
     if ids is not None:
         clin_s3.load_string(','.join(map(str, ids)), buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+    if id is not None:
+        clin_s3.load_string(str(id), buildS3AnalysesIdKey(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+
+def buildS3AnalysesJSONKey(batch_id, family_id, aliquot_id):
+    return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id}/analysis.json'
 
 def buildS3AnalysesStatusKey(batch_id, family_id, aliquot_id):
     return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id}/_FRANKLIN_STATUS_.txt'
+
+def buildS3AnalysesIdKey(batch_id, family_id, aliquot_id):
+    return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id}/_FRANKLIN_ID_.txt'
 
 def buildS3AnalysesIdsKey(batch_id, family_id, aliquot_id):
     if family_id is not None:
@@ -279,12 +288,15 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 
     return payload
 
-def parseResponseJSON(res):
+def parseResponse(res):
     data = res.read()
     body = data.decode('utf-8')
     if res.status != 200:
         raise AirflowFailException(f'{res.status} - {body}')
-    return json.loads(body)
+    return body
+
+def parseResponseJSON(res):
+    return json.loads(parseResponse(res))
 
 def post_create_analysis(conn, family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
@@ -302,20 +314,8 @@ def get_analysis_status(conn, started_analyses, token):
     return parseResponseJSON(conn.getresponse())
 
 
-def get_completed_analysis(id, token):
-    conn = http.client.HTTPSConnection(config.franklin_url)
-
-    logging.info(f'id {id}')
-    headers = {
-        'Content-Type': "application/json",
-        'Authorization': f"Bearer {token}"
-    }
-    conn.request("GET", f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
-
-    res = conn.getresponse()
-    data = res.read()
-    logging.info(f'data {data}')
-
-    decoded = data.decode("utf-8")
-    logging.info(decoded)
-    return decoded
+def get_completed_analysis(conn, id, token):
+    headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
+    logging.info(f'Get completed analysis: {id}')
+    conn.request("GET", franklin_url_parts.path + f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
+    return parseResponse(conn.getresponse())
