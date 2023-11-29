@@ -7,11 +7,11 @@ from airflow.utils.task_group import TaskGroup
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
-                          can_create_analysis, get_franklin_token,
-                          get_metadata_content, group_families_from_metadata,
-                          import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, vcf_suffix,
-                          write_s3_analyses_status)
+                          can_create_analysis, extract_vcf_prefix,
+                          get_franklin_token, get_metadata_content,
+                          group_families_from_metadata, import_bucket,
+                          post_create_analysis, transfer_vcf_to_franklin,
+                          vcf_suffix, write_s3_analyses_status)
 
 
 def FranklinCreate(
@@ -45,15 +45,14 @@ def FranklinCreate(
             return {}
 
         @task
-        def upload_files(families, batch_id):
+        def vcf_to_analyses(families, batch_id):
             if check_metadata(batch_id):
                 clin_s3 = S3Hook(config.s3_conn_id)
-                franklin_s3 = S3Hook(config.s3_franklin)
                 vcfs = {}
-                matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
-                for key in matching_keys:
+                keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
+                for key in keys:
                     if key.endswith(vcf_suffix):
-                        vcfs[key] = transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
+                        vcfs[key] = extract_vcf_prefix(key)
                 return attach_vcf_to_analyses(families, vcfs) # we now have analysis <=> vcf
             return {}
 
@@ -68,6 +67,7 @@ def FranklinCreate(
 
                 for family_id, analyses in families['families'].items():
                     if (can_create_analysis(clin_s3, batch_id, family_id, analyses)): # already created before
+                        transfer_vcf_to_franklin(clin_s3, franklin_s3, analyses)
                         ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
                         write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
                         created_ids += ids
@@ -75,6 +75,7 @@ def FranklinCreate(
                 for patient in families['no_family']:
                     analyses = [patient]
                     if (can_create_analysis(clin_s3, batch_id, None, analyses)): # already created before
+                        transfer_vcf_to_franklin(clin_s3, franklin_s3, analyses)
                         ids = post_create_analysis(None, analyses, token, clin_s3, franklin_s3, batch_id)
                         write_s3_analyses_status(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
                         created_ids += ids
@@ -84,7 +85,7 @@ def FranklinCreate(
             return {}
 
         create_analyses(
-            upload_files(
+            vcf_to_analyses(
                 group_families(
                     batch_id), 
                 batch_id),

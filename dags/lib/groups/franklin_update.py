@@ -20,7 +20,8 @@ from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
                           get_completed_analysis, get_franklin_token,
                           get_metadata_content, group_families_from_metadata,
                           import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, write_s3_analysis_status)
+                          transfer_vcf_to_franklin, vcf_suffix,
+                          write_s3_analysis_status)
 from lib.operators.pipeline import PipelineOperator
 from sensors.franklin import FranklinAPISensor
 
@@ -32,7 +33,7 @@ def FranklinUpdate(
 
     with TaskGroup(group_id=group_id) as group:
 
-        def download_json(batch_id):
+        def download_results(batch_id):
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
@@ -61,7 +62,7 @@ def FranklinUpdate(
             
             logging.info(f'Completed analyses: {completed_analyses}')
         
-        def clean_up(batch_id):
+        def clean_up_clin(batch_id):
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
             for key in keys:
@@ -79,6 +80,14 @@ def FranklinUpdate(
 
                         clin_s3.delete_objects(export_bucket, keys_to_delete)
                         logging.info(f'Delete: {keys_to_delete}')
+
+        def clean_up_franklin(batch_id):
+            franklin_s3 = S3Hook(config.s3_franklin)
+            keys = franklin_s3.list_keys(config.s3_franklin_bucket, f'{env}/{batch_id}')
+            for key in keys:
+                if key.endswith(vcf_suffix): # delete all VCFs in Franklin bucket
+                    franklin_s3.delete_objects(config.s3_franklin_bucket, [key])
+                    logging.info(f'Delete: {key}')
                     
 
         api_sensor = FranklinAPISensor(
@@ -88,18 +97,24 @@ def FranklinUpdate(
             timeout=1*60*60,
         )
 
-        download = PythonOperator(
-            task_id='download',
+        download_results = PythonOperator(
+            task_id='download_results',
             op_args=[batch_id],
-            python_callable=download_json,
+            python_callable=download_results,
         )
 
-        clean_up = PythonOperator(
-            task_id='clean_up',
+        clean_up_clin = PythonOperator(
+            task_id='clean_up_clin',
             op_args=[batch_id],
-            python_callable=clean_up,
+            python_callable=clean_up_clin,
         )
 
-        api_sensor >> download >> clean_up
+        clean_up_franklin = PythonOperator(
+            task_id='clean_up_franklin',
+            op_args=[batch_id],
+            python_callable=clean_up_franklin,
+        )
+
+        api_sensor >> download_results >> clean_up_clin >> clean_up_franklin
 
     return group

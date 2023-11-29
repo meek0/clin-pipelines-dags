@@ -48,20 +48,19 @@ def group_families_from_metadata(data):
             analyses_without_family.append(analysis)
     return [family_groups, analyses_without_family]
 
-def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
-
-    logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
-    vcf_file = s3_clin.get_key(source_key, import_bucket)
-    vcf_content = vcf_file.get()['Body'].read()
-    logging.info(f'VCF content size: {len(vcf_content)}')
-
-    destination_key = f'{env}/{source_key}'
-    logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
-    s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
-
-    vcf_prefix = extract_vcf_prefix(source_key)
-    logging.info(f'VCF prefix: {vcf_prefix}')
-    return vcf_prefix # return VCF prefix
+def transfer_vcf_to_franklin(s3_clin, s3_franklin, analyses):
+    for analysis in analyses:
+        source_key = analysis['vcf']
+        destination_key = f'{env}/{source_key}'
+        if (not s3_franklin.check_for_key(destination_key, config.s3_franklin_bucket)): 
+            logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
+            vcf_file = s3_clin.get_key(source_key, import_bucket)
+            vcf_content = vcf_file.get()['Body'].read()
+            logging.info(f'VCF content size: {len(vcf_content)}')
+            logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
+            s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+        else:
+            logging.info(f'Already on Franklin: {config.s3_franklin_bucket}/{destination_key}')
 
 def extract_vcf_prefix(vcf_key):
     name = vcf_key.split('/')[-1].replace(vcf_suffix, '').replace(".case", "")

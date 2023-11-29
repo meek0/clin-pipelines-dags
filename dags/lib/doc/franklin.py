@@ -67,13 +67,13 @@ Extract families and solo from **<batch_id>/metadata.json** such as bellow:
     ]
 }
 
-### upload_files
-
-Copy every relevant **VCFs** from our **S3** to **S3 Franklin**.
+### vcf_to_analyses
 
 We extract all the VCF prefixes and try to attach each of them to an analysis either by aliquot_id or family_id or if we only have one VCF for everything.
 
 ### create_analyses
+
+Copy every relevant **VCFs** from our **S3** to **S3 Franklin**.
 
 Request **Franklin** to create every analyses based on **group_families**
 
