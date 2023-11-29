@@ -71,9 +71,7 @@ Extract families and solo from **<batch_id>/metadata.json** such as bellow:
 
 Copy every relevant **VCFs** from our **S3** to **S3 Franklin**.
 
-Already copied VCFs will be ignored if their content size is the same.
-
-VCFs are extracted and parsed to build a mapping between **VCF** <=> **aliquot IDs**.
+We extract all the VCF prefixes and try to attach each of them to an analysis either by aliquot_id or family_id or if we only have one VCF for everything.
 
 ### create_analyses
 
@@ -204,9 +202,9 @@ Some problematics appeared during dev:
 **Solution:** create two re-usable groups: create and update
 
 
-**Mapping between VCFs <=> aliquot IDs doesn't exist**
+**Mapping between VCFs <=> aliquot IDs isnt that easy ... **
 
-**Solution:** during the copy of the VCF to S3 Franklin, we extract the aliquot IDs
+**Solution:** we try to match the VCF name prefix with aliquot ID or family ID or if it's the only VCF in the batch
 
 
 **We dont want to request Franklin to create already done analyses**

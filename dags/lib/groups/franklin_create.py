@@ -10,7 +10,8 @@ from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
                           can_create_analysis, get_franklin_token,
                           get_metadata_content, group_families_from_metadata,
                           import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, write_s3_analyses_status)
+                          transfer_vcf_to_franklin, vcf_suffix,
+                          write_s3_analyses_status)
 
 
 def FranklinCreate(
@@ -48,13 +49,12 @@ def FranklinCreate(
             if check_metadata(batch_id):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 franklin_s3 = S3Hook(config.s3_franklin)
-                aliquot_ids = {}
+                vcfs = {}
                 matching_keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
                 for key in matching_keys:
-                    if key.endswith('hard-filtered.formatted.norm.VEP.vcf.gz'):
-                        # we extract the aliquot IDs while transferring the VCF
-                        aliquot_ids[key] = transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
-                return attach_vcf_to_analyses(families, aliquot_ids) # we now have analysis <=> vcf
+                    if key.endswith(vcf_suffix):
+                        vcfs[key] = transfer_vcf_to_franklin(clin_s3, franklin_s3, key)
+                return attach_vcf_to_analyses(families, vcfs) # we now have analysis <=> vcf
             return {}
 
         @task

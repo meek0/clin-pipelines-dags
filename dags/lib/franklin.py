@@ -25,7 +25,8 @@ class FranklinStatus(Enum):
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
-familyAnalysisKeyword = 'family'
+family_analysis_keyword = 'family'
+vcf_suffix = '.hard-filtered.formatted.norm.VEP.vcf.gz'
 
 def get_metadata_content(clin_s3, batch_id):
     metadata_path = f'{batch_id}/metadata.json'
@@ -53,17 +54,20 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key):
     vcf_file = s3_clin.get_key(source_key, import_bucket)
     vcf_content = vcf_file.get()['Body'].read()
     logging.info(f'VCF content size: {len(vcf_content)}')
-    aliquot_ids = extract_aliquot_ids_from_vcf(vcf_content)
-    logging.info(f'Aliquot IDs in VCF: {aliquot_ids}')
 
-    # ignore upload if already on Franklin S3 with the same length
     destination_key = f'{env}/{source_key}'
-    destination_vcf_content_size = get_s3_key_content_size(s3_franklin, config.s3_franklin_bucket, destination_key)
-    if (destination_vcf_content_size != len(vcf_content)):
-        logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
-        s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+    logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
+    s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
 
-    return aliquot_ids
+    vcf_prefix = extract_vcf_prefix(source_key)
+    logging.info(f'VCF prefix: {vcf_prefix}')
+    return vcf_prefix # return VCF prefix
+
+def extract_vcf_prefix(vcf_key):
+    name = vcf_key.split('/')[-1].replace(vcf_suffix, '').replace(".case", "")
+    if name is None or len(name) == 0: # robustness
+        raise AirflowFailException(f'Invalid VCF prefix: {vcf_key}') 
+    return name
 
 # took a lot of efforts to have something working, feel free to improve it in the future for fun
 def extract_aliquot_ids_from_vcf(vcf_content):
@@ -89,24 +93,27 @@ def extract_aliquot_ids_from_vcf(vcf_content):
         raise AirflowFailException(f'VCF aliquot IDs not found')
     return aliquot_ids
 
-def attach_vcf_to_analysis(analysis, aliquot_ids):
+def attach_vcf_to_analysis(analysis, vcfs):
     aliquot_id = analysis['labAliquotId']
-    for vcf in aliquot_ids:
-        if aliquot_id in aliquot_ids[vcf]:
+    family_id = analysis.get('patient', {}).get('familyId') # solo dont have familyId
+    for vcf in vcfs:
+        # if we have only one VCF and the prefix match aliquot_id or family_id
+        if (len(vcfs) == 1) or (aliquot_id == vcfs[vcf]) or (family_id == vcfs[vcf]):
+            logging.info(f'Attach VCF: {aliquot_id} {family_id} <=> {vcf}')
             analysis['vcf'] = vcf
             return
     # did we miss one during extraction ?
     raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
 
 # add a 'vcf' field to the analyses
-def attach_vcf_to_analyses(obj, aliquot_ids):
+def attach_vcf_to_analyses(obj, vcfs):
     families = obj['families']
     solos = obj['no_family']
     for family_id, analyses in families.items():
         for analysis in analyses:
-            attach_vcf_to_analysis(analysis, aliquot_ids)
+            attach_vcf_to_analysis(analysis, vcfs)
     for patient in solos:
-        attach_vcf_to_analysis(patient, aliquot_ids)
+        attach_vcf_to_analysis(patient, vcfs)
     return obj
 
 def get_s3_key_content_size(s3, bucket, key): 
@@ -185,7 +192,7 @@ def build_sample_name(aliquot_id, family_id):
 def extract_from_name_aliquot_id(name):
     id = name.split("-")[0].strip()
     # family analysis has no aliquot
-    return id if id != familyAnalysisKeyword else None
+    return id if id != family_analysis_keyword else None
 
 def extract_from_name_family_id(name):
     id = name.split("-")[1].strip()
@@ -279,7 +286,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
     if family_id:
         payload['family_analyses'] = [
             {
-                'case_name': build_sample_name(familyAnalysisKeyword, family_id),
+                'case_name': build_sample_name(family_analysis_keyword, family_id),
                 'family_samples': family_analyses,
                 "phenotypes": get_phenotypes(proband_id, batch_id, clin_s3)
             }
