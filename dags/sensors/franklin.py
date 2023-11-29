@@ -6,6 +6,7 @@ from airflow.sensors.base import BaseSensorOperator
 from lib import config
 from lib.franklin import (FranklinStatus, build_s3_analyses_ids_key,
                           export_bucket, extract_from_name_aliquot_id,
+                          extract_from_name_family_id,
                           extract_param_from_s3_key, get_analysis_status,
                           get_franklin_token, write_s3_analysis_status)
 
@@ -32,10 +33,8 @@ class FranklinAPISensor(BaseSensorOperator):
 
         token = get_franklin_token()  
 
-        families_done = []  # remember families we already ask for statuses, avoid spamming Franklin  
+        created_analyses = []
         ready_analyses = []
-        total_created = 0
-        total_ready = 0
 
         for key in keys:
             if '_FRANKLIN_STATUS_.txt' in key:
@@ -46,27 +45,27 @@ class FranklinAPISensor(BaseSensorOperator):
                     family_id = extract_param_from_s3_key(key, 'family_id') 
                     aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
 
-                    # SOLO are family_id = None otherwise check already done families
-                    if family_id is None or family_id not in families_done:
-                        families_done.append(family_id)
+                    ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket)
+                    ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
 
-                        ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket)
-                        ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
+                    created_analyses += ids
 
-                        total_created += len(ids)   # count of IDs may vary DUO, TRIO ...
+        # remove duplicated IDs if any
+        created_analyses = list(set(created_analyses))                
 
-                        statuses = get_analysis_status(ids, token)
-                        for status in statuses:
-                            if (status['processing_status'] == 'READY'):
+        statuses = get_analysis_status(created_analyses, token)
+        for status in statuses:
+            if (status['processing_status'] == 'READY'):
 
-                                total_ready += 1
+                analysis_id = status['id']
+                analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
+                analysis_family_id = extract_from_name_family_id(status['name'])
 
-                                analysis_id = status['id']
-                                analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
+                write_s3_analysis_status(clin_s3, batch_id, analysis_family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
 
-                                write_s3_analysis_status(clin_s3, batch_id, family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
+                ready_analyses.append(analysis_id)
 
-                                ready_analyses.append(analysis_id)
+        ready_count, created_count = len(ready_analyses), len(created_analyses)
 
-        logging.info(f'Ready analyses: {total_ready}/{total_created} {ready_analyses}')
-        return total_ready == total_created;  # All created analyses are ready
+        logging.info(f'Ready analyses: {ready_count}/{created_count}')
+        return ready_count == created_count  # All created analyses are ready
