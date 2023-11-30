@@ -92,7 +92,7 @@ def extract_aliquot_ids_from_vcf(vcf_content):
         raise AirflowFailException(f'VCF aliquot IDs not found')
     return aliquot_ids
 
-def attach_vcf_to_analysis(analysis, vcfs):
+def attach_vcf_to_analysis(analysis, vcfs, proband_aliquot_id):
     aliquot_id = analysis['labAliquotId']
     family_id = analysis.get('patient', {}).get('familyId') # solo dont have familyId
     for vcf in vcfs:
@@ -101,18 +101,31 @@ def attach_vcf_to_analysis(analysis, vcfs):
             logging.info(f'Attach VCF: {aliquot_id} {family_id} <=> {vcf}')
             analysis['vcf'] = vcf
             return
+    # last resort => use the proband VCF (should contain the entire family)
+    for vcf in vcfs:
+        if (proband_aliquot_id == vcfs[vcf]):
+            logging.info(f'Attach to proband VCF: {aliquot_id} {family_id} <=> {vcf}')
+            analysis['vcf'] = vcf
+            return
     # did we miss one during extraction ?
     raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
+
+def find_proband_aliquot_id(analyses):
+    for analysis in analyses:
+        if analysis["patient"]["familyMember"] == 'PROBAND':
+            return analysis["labAliquotId"]
+    raise AirflowFailException(f'Cant find proband aliquot id: {obj}')
 
 # add a 'vcf' field to the analyses
 def attach_vcf_to_analyses(obj, vcfs):
     families = obj['families']
     solos = obj['no_family']
     for family_id, analyses in families.items():
+        proband_aliquot_id = find_proband_aliquot_id(analyses)
         for analysis in analyses:
-            attach_vcf_to_analysis(analysis, vcfs)
+            attach_vcf_to_analysis(analysis, vcfs, proband_aliquot_id)
     for patient in solos:
-        attach_vcf_to_analysis(patient, vcfs)
+        attach_vcf_to_analysis(patient, vcfs, None)
     return obj
 
 def get_s3_key_content_size(s3, bucket, key): 
