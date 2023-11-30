@@ -240,7 +240,7 @@ def get_phenotypes(id, batch_id, s3):
 def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3):
     family_analyses = []
     analyses_payload = []
-    assay_id = str(uuid.uuid4()),
+    assay_id = f'{uuid.uuid4()}',
     for analysis in analyses:
         aliquot_id = analysis["labAliquotId"]
         family_member = analysis["patient"]["familyMember"]
