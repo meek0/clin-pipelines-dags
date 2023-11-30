@@ -1,33 +1,42 @@
+import gzip
+import http.client
 import json
 import logging
-import http.client
+import shutil
+import tempfile
 import urllib.parse
+import uuid
 from datetime import datetime
+from enum import Enum
+from io import BytesIO
 
+from airflow.exceptions import AirflowFailException
+from lib import config
 from lib.config import env
+
+
+# current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
+class FranklinStatus(Enum):
+    UNKNOWN     = 0 # equivalent to never created / not found
+    CREATED     = 1 # analysis created 
+    READY       = 3 # status of the analysis is READY
+    COMPLETED   = 4 # we have successfully retrieved the JSON and save into S3
 
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
+franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
+family_analysis_keyword = 'family'
+vcf_suffix = '.hard-filtered.formatted.norm.VEP.vcf.gz'
 
+def get_metadata_content(clin_s3, batch_id):
+    metadata_path = f'{batch_id}/metadata.json'
+    file_obj = clin_s3.get_key(metadata_path, import_bucket)
+    return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
 
-def authenticate(email, password):
-    conn = http.client.HTTPSConnection("api.genoox.com")
-
-    payload = urllib.parse.urlencode({'email': email, 'password': password})
-    path = '/v1/auth/login?'
-    conn.request("GET", path + payload,
-                 "")
-
-    res = conn.getresponse()
-    data = res.read()
-    decoded_data = json.loads(data.decode('utf-8'))
-    return decoded_data['token']
-
-
-def group_families(data):
+# group the metadata analyses by families or solos
+def group_families_from_metadata(data):
     family_groups = {}
     analyses_without_family = []
-
     for analysis in data['analyses']:
         if 'familyId' in analysis['patient']:
             family_id = analysis['patient']['familyId']
@@ -39,37 +48,154 @@ def group_families(data):
             analyses_without_family.append(analysis)
     return [family_groups, analyses_without_family]
 
+def transfer_vcf_to_franklin(s3_clin, s3_franklin, analyses):
+    for analysis in analyses:
+        source_key = analysis['vcf']
+        destination_key = f'{env}/{source_key}'
+        if (not s3_franklin.check_for_key(destination_key, config.s3_franklin_bucket)): 
+            logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
+            vcf_file = s3_clin.get_key(source_key, import_bucket)
+            vcf_content = vcf_file.get()['Body'].read()
+            logging.info(f'VCF content size: {len(vcf_content)}')
+            logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
+            s3_franklin.load_bytes(vcf_content, destination_key, config.s3_franklin_bucket, replace=True)
+        else:
+            logging.info(f'Already on Franklin: {config.s3_franklin_bucket}/{destination_key}')
 
-def transfer_vcf_to_franklin(s3_clin, s3_franklin, source_key, batch_id):
-    clin_bucket = import_bucket
-    franklin_bucket = 'genoox-upload-chu-st-justine'
-    destination_key = f'{env}/{source_key}'
+def extract_vcf_prefix(vcf_key):
+    name = vcf_key.split('/')[-1].replace(vcf_suffix, '').replace(".case", "")
+    if name is None or len(name) == 0: # robustness
+        raise AirflowFailException(f'Invalid VCF prefix: {vcf_key}') 
+    return name
 
-    try:
-        path = f'{batch_id}/{source_key}'
-        logging.info(f'trying to copy file {path}')
-        file = s3_clin.get_key(path, clin_bucket)
+# took a lot of efforts to have something working, feel free to improve it in the future for fun
+def extract_aliquot_ids_from_vcf(vcf_content):
+    aliquot_ids = []
+    with tempfile.NamedTemporaryFile(delete=True) as temp_zipped_file, tempfile.NamedTemporaryFile(delete=True) as temp_unzipped_file:
+        temp_zipped_file.write(vcf_content)
+        logging.info(f'VCF tmp location zipped: {temp_zipped_file.name} unzipped: {temp_unzipped_file.name}')
+        with gzip.open(temp_zipped_file.name, 'rb') as f_in, open(temp_unzipped_file.name, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out, length=100*1024*1024)
+            with open(temp_unzipped_file.name, 'r') as file:
+                for line in file:
+                    if line.startswith('#CHROM'):
+                        formatFound = False
+                        cols = line.split('\t')
+                        for col in cols:
+                            if col == 'FORMAT':
+                                formatFound = True
+                                continue
+                            if formatFound:
+                                aliquot_ids.append(col.replace('\n',''))
+                        break # aliquots line found, stop here
+    if len(aliquot_ids) == 0:
+        raise AirflowFailException(f'VCF aliquot IDs not found')
+    return aliquot_ids
+
+def attach_vcf_to_analysis(analysis, vcfs):
+    aliquot_id = analysis['labAliquotId']
+    family_id = analysis.get('patient', {}).get('familyId') # solo dont have familyId
+    for vcf in vcfs:
+        # if we have only one VCF and the prefix match aliquot_id or family_id
+        if (len(vcfs) == 1) or (aliquot_id == vcfs[vcf]) or (family_id == vcfs[vcf]):
+            logging.info(f'Attach VCF: {aliquot_id} {family_id} <=> {vcf}')
+            analysis['vcf'] = vcf
+            return
+    # did we miss one during extraction ?
+    raise AirflowFailException(f'No VCF to attach: {aliquot_id}') 
+
+# add a 'vcf' field to the analyses
+def attach_vcf_to_analyses(obj, vcfs):
+    families = obj['families']
+    solos = obj['no_family']
+    for family_id, analyses in families.items():
+        for analysis in analyses:
+            attach_vcf_to_analysis(analysis, vcfs)
+    for patient in solos:
+        attach_vcf_to_analysis(patient, vcfs)
+    return obj
+
+def get_s3_key_content_size(s3, bucket, key): 
+    if (s3.check_for_key(key, bucket)):
+        file = s3.get_key(key, bucket)
         file_content = file.get()['Body'].read()
-        logging.info(f'found the file {file}')
-        s3_franklin.load_bytes(file_content, destination_key, franklin_bucket)
-        # garbage collector ??
-        # del file_content
-        logging.info(f'{file} was copied correctly at {destination_key}')
-    except Exception as e:
-        logging.info(f'Error: {e}')
+        return len(file_content)
+    return 0
 
-
-def copy_files_to_franklin(s3_clin, s3_franklin, analyse, batch_id):
-    files_to_transfer = []
-    #  assuming the XXXXX.VEP.vcf.gz file for a family is the PROBAND's aliquot_id
-
-    if analyse['patient']['familyMember'] == 'PROBAND':
-        files_to_transfer.append(f"{analyse['labAliquotId']}.case.hard-filtered.formatted.norm.VEP.vcf.gz")
-    for to_transfer in files_to_transfer:
-        transfer_vcf_to_franklin(s3_clin, s3_franklin, to_transfer, batch_id)
-
+# avoid spamming franklin <!>
+def can_create_analysis(clin_s3, batch_id, family_id, analyses):
+    for analysis in analyses:
+        aliquot_id = analysis["labAliquotId"]
+        completed_analysis_keys = clin_s3.list_keys(export_bucket, build_s3_analyses_root_key(batch_id, family_id, aliquot_id))
+        for key in completed_analysis_keys:
+            if 'analysis_id=' in key:   # found at least one completed analysis
+                logging.info(f'Completed analysis found: {batch_id} {family_id} {aliquot_id}')
+                return False
+        status = check_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id)
+        if status != FranklinStatus.UNKNOWN: # fund at least one analysis with a STATUS
+            logging.info(f'Created analysis found: {batch_id} {family_id} {aliquot_id}')
+            return False
     return True
 
+def check_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
+    key = build_s3_analyses_status_key(batch_id, family_id, aliquot_id)
+    if (clin_s3.check_for_key(key, export_bucket)):
+        file = clin_s3.get_key(key, export_bucket)
+        file_content = file.get()['Body'].read()
+        return FranklinStatus[file_content.decode('utf-8')]
+    return FranklinStatus.UNKNOWN   # analysis doesn't exist
+
+def write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, status, ids = None):
+    for analysis in analyses:
+        write_s3_analysis_status(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
+
+def write_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
+    clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+    if ids is not None: # save TRIO, DUO ... analyses IDs
+        clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+    if id is not None:  # after status we can attached an ID to a specific family + aliquot id whatever it's SOLO or TRIO, DUO ...
+        clin_s3.load_string(str(id), build_s3_analyses_id_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+
+def build_s3_analyses_root_key(batch_id, family_id, aliquot_id):
+    return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id or "null"}'
+
+def build_s3_analyses_json_key(batch_id, family_id, aliquot_id, analysis_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/analysis_id={analysis_id}/analysis.json'
+
+def build_s3_analyses_status_key(batch_id, family_id, aliquot_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/_FRANKLIN_STATUS_.txt'
+
+def build_s3_analyses_id_key(batch_id, family_id, aliquot_id):
+    return f'{build_s3_analyses_root_key(batch_id, family_id, aliquot_id)}/_FRANKLIN_ID_.txt'
+
+def build_s3_analyses_ids_key(batch_id, family_id, aliquot_id):
+    if family_id is not None: # IDS are stored at family level TRIO, DUO ...
+        return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id}/_FRANKLIN_IDS_.txt'
+    else:   # SOLO
+        return f'raw/landing/franklin/batch_id={batch_id}/family_id=null/aliquot_id={aliquot_id}/_FRANKLIN_IDS_.txt'
+
+# extract_param_from_s3_key('raw/landing/franklin/batch_id=foo' ,'batch_id') -> foo
+def extract_param_from_s3_key(key, param_name):
+    for param in key.split('/'):
+        if param.startswith(f"{param_name}="):
+            value = param.split('=')[1]
+            if value == 'null':
+                return None # we want to have None when dealing with null in S3
+            else:
+                return value
+    raise AirflowFailException(f'Cant find param: {param_name} in s3 key: {key}')
+
+def build_sample_name(aliquot_id, family_id):
+    return f'{aliquot_id} - {family_id}'    # seems to convert SOLO family_id to 'None' as a str
+    
+def extract_from_name_aliquot_id(name):
+    id = name.split("-")[0].strip()
+    # family analysis has no aliquot
+    return id if id != family_analysis_keyword else None
+
+def extract_from_name_family_id(name):
+    id = name.split("-")[1].strip()
+    return id if id != 'None' else None # cf build_sample_name()
 
 def get_relation(relation):
     if relation == 'FTH':
@@ -78,7 +204,8 @@ def get_relation(relation):
         return 'mother'
     elif relation == 'PROBAND':
         return 'proband'
-
+    else:
+        raise AirflowFailException(f'Missing relation: {relation}')
 
 def format_date(input_date):
     input_format = "%d/%m/%Y"
@@ -86,71 +213,69 @@ def format_date(input_date):
     output_date = input_date.strftime("%Y-%m-%d")
     return output_date
 
-
 def get_phenotypes(id, batch_id, s3):
     key = f'{batch_id}/{id}.hpo'
     if s3.check_for_key(key, import_bucket):
-        logging.info(f'found the file {key}')
-        try:
-            file = s3.get_key(key, import_bucket)
-            logging.info(f'file {file}')
-            file_content = file.get()['Body'].read()
-            logging.info(f'file_content {file_content}')
-            return json.loads(file_content)
-        except Exception as e:
-            logging.info(f'Error when getting phenotypes: {e}')
-            return []
+        file = s3.get_key(key, import_bucket)
+        file_content = file.get()['Body'].read().decode('utf-8')
+        logging.info(f'HPO file found: {file_content}')
+        # it's not a JSON, ex: ['HP:0000001','HP:0000002','HP:0000003','HP:0000004']
+        return file_content.replace("[", "").replace("]", "").replace("'", "").replace("\"", "").replace(" ", "").replace("\n", "").split(',')
     else:
         return []
 
-
-def build_payload(family_id, analyses, batch_id, s3):
-    assay_id = "2765500d-8728-4830-94b5-269c306dbe71"  # value given from franklin
+def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3):
     family_analyses = []
     analyses_payload = []
+    assay_id = str(uuid.uuid4()),
     for analysis in analyses:
-        logging.info(f'in analysis {analysis}')
+        aliquot_id = analysis["labAliquotId"]
+        family_member = analysis["patient"]["familyMember"]
+        vcf = analysis['vcf']
+        sample_name = build_sample_name(aliquot_id, family_id)
         sample = {
-            "sample_name": f'{analysis["labAliquotId"]} - {analysis["patient"]["familyMember"]}',
-            "family_relation": get_relation(analysis["patient"]["familyMember"]),
-            "is_affected": analysis["patient"]["status"] == 'AFF',
+            "sample_name": sample_name,
+            "family_relation": get_relation(family_member),
+            "is_affected": analysis["patient"]["status"] == 'AFF'
         }
-        logging.info(f'sample {sample}')
         if family_id:
             family_analyses.append(sample)
-            if analysis["patient"]["familyMember"] == 'PROBAND':
-                proband_id = analysis["labAliquotId"]
+            if family_member == 'PROBAND':
+                proband_id = aliquot_id
         else:
-            proband_id = analysis["labAliquotId"]
+            proband_id = aliquot_id
 
-        logging.info(f'proband id {proband_id}')
-        phenotypes = get_phenotypes(proband_id, batch_id, s3)
-        logging.info(f'phenotypes {phenotypes}')
-        analyses_payload.append({
-            "assay_id": assay_id,
-            'sample_data': {
-                "sample_name": f'{analysis["labAliquotId"]} - {analysis["patient"]["familyMember"]}',
-                "name_in_vcf": analysis["labAliquotId"],
-                "aws_files": [
-                    {
-                        "key": f'{env}/{proband_id}.case.hard-filtered.formatted.norm.VEP.vcf.gz',
-                        "type": "VCF_SHORT"
+        vcf_franklin_s3_full_path = f'{env}/{vcf}'
+        # last resort before going further
+        # check if the VCF exists in Franklin S3
+        if franklin_s3.check_for_key(vcf_franklin_s3_full_path, config.s3_franklin_bucket):
+            analyses_payload.append({
+                "assay_id": assay_id,
+                'sample_data': {
+                    "sample_name": sample_name,
+                    "name_in_vcf": aliquot_id,
+                    "aws_files": [
+                        {
+                            "key": vcf,
+                            "type": "VCF_SHORT"
+                        }
+                    ],
+                    "tissue_type": "Whole Blood",
+                    "patient_details": {
+                        "name": analysis["patient"]["firstName"],
+                        "dob": format_date(analysis["patient"]["birthDate"]),
+                        "sex": analysis["patient"]["sex"].title()
                     }
-                ],
-                "tissue_type": "Whole Blood",
-                "patient_details": {
-                    "name": analysis["patient"]["firstName"],
-                    "dob": format_date(analysis["patient"]["birthDate"]),
-                    "sex": analysis["patient"]["sex"].title()
                 }
-            }
-        })
+            })
+        else:
+            raise AirflowFailException(f'VCF not found: {config.s3_franklin_bucket}/{vcf_franklin_s3_full_path}')
 
     payload = {
         'upload_specs': {
             "source": 'AWS',
             "details": {
-                "bucket": 'genoox-upload-chu-st-justine',
+                "bucket": config.s3_franklin_bucket,
                 'root_folder': env
             }
         },
@@ -160,9 +285,9 @@ def build_payload(family_id, analyses, batch_id, s3):
     if family_id:
         payload['family_analyses'] = [
             {
-                'case_name': f'family - {family_id}',
+                'case_name': build_sample_name(family_analysis_keyword, family_id),
                 'family_samples': family_analyses,
-                "phenotypes": phenotypes
+                "phenotypes": get_phenotypes(proband_id, batch_id, clin_s3)
             }
         ]
         payload["family_analyses_creation_specs"] = {
@@ -171,61 +296,54 @@ def build_payload(family_id, analyses, batch_id, s3):
 
     return payload
 
-
-def start_analysis(family_id, analyses, token, s3, batch_id):
-    try:
-        conn = http.client.HTTPSConnection("api.genoox.com")
-
-        headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
-        if family_id:
-            payload = build_payload(family_id, analyses, batch_id, s3)
-        else:
-            payload = build_payload(None, analyses, batch_id, s3)
-            logging.info(f'solo payload {payload}')
-        conn.request("POST", "/v1/analyses/create", json.dumps(payload).encode('utf-8'), headers)
-
-        logging.info(f'Request sent to franklin', json.dumps(payload).encode('utf-8'))
-        res = conn.getresponse()
-        data = res.read()
-        s = json.loads(data.decode('utf-8'))
-        logging.info(s)
-        return s
-    except Exception as e:
-        logging.info(f'Error: {e}')
-
-
-def get_analyses_status(started_analyses, token):
-    conn = http.client.HTTPSConnection("api.genoox.com")
-
-    payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
-    headers = {
-        'Content-Type': "application/json",
-        'Authorization': f"Bearer {token}"
-    }
-    conn.request("POST", "/v1/analyses/status", payload, headers)
-
-    res = conn.getresponse()
+def parse_response(res):
     data = res.read()
+    body = data.decode('utf-8')
+    if res.status != 200:   # log if something wrong
+        raise AirflowFailException(f'{res.status} - {body}')
+    return body
 
-    decoded = data.decode("utf-8")
-    logging.info(decoded)
-    return json.loads(decoded)
+def parse_response_json(res):
+    return json.loads(parse_response(res))
+
+def get_franklin_http_conn():
+    if config.franklin_url.startswith('https'):
+        conn = http.client.HTTPSConnection(franklin_url_parts.hostname)
+    else:
+        conn = http.client.HTTPConnection(franklin_url_parts.hostname, port=franklin_url_parts.port)
+    return conn
+
+def get_franklin_token():
+    conn = get_franklin_http_conn()
+    payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
+    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
+    conn.close
+    return parse_response_json(conn.getresponse())['token']
+
+def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
+    conn = get_franklin_http_conn()
+    headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
+    payload = json.dumps(build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)).encode('utf-8')
+    logging.info(f'Create analysis: {family_id} {analyses}')
+    conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", payload, headers)
+    conn.close
+    return parse_response_json(conn.getresponse())
+
+
+def get_analysis_status(started_analyses, token):
+    conn = get_franklin_http_conn()
+    headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
+    payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
+    logging.info(f'Get analysis status: {started_analyses}')
+    conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
+    conn.close
+    return parse_response_json(conn.getresponse())
 
 
 def get_completed_analysis(id, token):
-    conn = http.client.HTTPSConnection("api.genoox.com")
-
-    logging.info(f'id {id}')
-    headers = {
-        'Content-Type': "application/json",
-        'Authorization': f"Bearer {token}"
-    }
-    conn.request("GET", f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
-
-    res = conn.getresponse()
-    data = res.read()
-    logging.info(f'data {data}')
-
-    decoded = data.decode("utf-8")
-    logging.info(decoded)
-    return decoded
+    conn = get_franklin_http_conn()
+    headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
+    logging.info(f'Get completed analysis: {id}')
+    conn.request("GET", franklin_url_parts.path + f"/v2/analysis/variants/snp?analysis_id={id}", "", headers)
+    conn.close
+    return parse_response(conn.getresponse())

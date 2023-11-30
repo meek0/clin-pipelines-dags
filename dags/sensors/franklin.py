@@ -1,49 +1,71 @@
 import logging
 
+from airflow.exceptions import AirflowSkipException
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sensors.base import BaseSensorOperator
-
 from lib import config
-from lib.franklin import get_analyses_status, authenticate
+from lib.franklin import (FranklinStatus, build_s3_analyses_ids_key,
+                          export_bucket, extract_from_name_aliquot_id,
+                          extract_from_name_family_id,
+                          extract_param_from_s3_key, get_analysis_status,
+                          get_franklin_token, write_s3_analysis_status)
 
 
 class FranklinAPISensor(BaseSensorOperator):
-    def __init__(self, s3, export_bucket, *args, **kwargs):
+
+    template_fields = BaseSensorOperator.template_fields + (
+        'skip', 'batch_id',
+    )
+
+    def __init__(self, batch_id, skip: bool = False, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        logging.info(f'franklin sensor init {args} {kwargs}')
-        self.s3 = s3
-        self.export_bucket = export_bucket
-
-    def list_analysis(self, batch):
-        keys = self.s3.list_keys(self.export_bucket, f'raw/landing/franklin/batch_id={batch}/')
-
-        logging.info(f'list analysis {keys}')
-        ids = []
-        for key in keys:
-            if 'analysis_id=' in key:
-                _id = key.split('analysis_id=')[1].split('/')[0]
-                ids.append(_id)
-        logging.info(f'ids are {ids}')
-        return ids
+        self.skip = skip
+        self.batch_id = batch_id
 
     def poke(self, context):
-        try:
-            self.analyses_ids = self.list_analysis(context['params']['batch_id'])
-            logging.info(f'analysis are {self.analyses_ids} {context}')
-            token = authenticate(email=config.franklin_email, password=config.franklin_password)
+        if self.skip:
+            raise AirflowSkipException()
 
-            response = get_analyses_status(self.analyses_ids, token)
-            all_ready = False
+        batch_id = self.batch_id
+        clin_s3 = S3Hook(config.s3_conn_id)
 
-            for analysis in response:
-                logging.info(f'status {analysis["processing_status"]}')
-                if analysis['processing_status'] == 'READY':
-                    all_ready = True
-                else:
-                    all_ready = False
-                    break
+        keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
-            logging.info(f'all ready {all_ready}')
-            return all_ready
-        except Exception as e:
-            logging.error("API call failed with error: %s", str(e))
-            return False
+        token = get_franklin_token()  
+
+        created_analyses = []
+        ready_analyses = []
+
+        for key in keys:
+            if '_FRANKLIN_STATUS_.txt' in key:
+                key_obj = clin_s3.get_key(key, export_bucket)
+                status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
+                if status is FranklinStatus.CREATED:    # ignore others status
+
+                    family_id = extract_param_from_s3_key(key, 'family_id') 
+                    aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
+
+                    ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket)
+                    ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
+
+                    created_analyses += ids
+
+        # remove duplicated IDs if any
+        created_analyses = list(set(created_analyses))                
+
+        statuses = get_analysis_status(created_analyses, token)
+        for status in statuses:
+            if (status['processing_status'] == 'READY'):
+
+                analysis_id = status['id']
+                analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
+                analysis_family_id = extract_from_name_family_id(status['name'])
+
+                write_s3_analysis_status(clin_s3, batch_id, analysis_family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
+
+                ready_analyses.append(analysis_id)
+
+        ready_count, created_count = len(ready_analyses), len(created_analyses)
+
+        logging.info(f'Ready analyses: {ready_count}/{created_count}')
+        return ready_count == created_count  # All created analyses are ready
