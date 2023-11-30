@@ -177,6 +177,23 @@ def IngestBatch(
             skip=skip_franklin,
         )
 
+        franklin = SparkOperator(
+            task_id=getUniqueId('franklin'),
+            name='etl-ingest-franklin',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='config-etl-large',
+            skip=skip_franklin,
+            spark_jar=spark_jar,
+            arguments=[
+                'franklin',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl-ingest-franklin'
+                '--batchId', batch_id
+            ],
+        )
+
         '''
         varsome = SparkOperator(
             task_id=getUniqueId('varsome',
@@ -194,6 +211,6 @@ def IngestBatch(
         )
         '''
 
-        franklin_create >> snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update
+        franklin_create >> snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin
 
     return group

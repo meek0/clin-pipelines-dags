@@ -26,6 +26,7 @@ with DAG(
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
+        'franklin': Param('no', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
         'spark_jar': Param('', type='string'),
     },
@@ -53,6 +54,9 @@ with DAG(
 
     def skip_batch() -> str:
         return '{% if params.batch_id|length %}{% else %}yes{% endif %}'
+
+    def skip_franklin() -> str:
+        return '{% if params.batch_id|length and params.franklin == "yes" %}{% else %}yes{% endif %}'
 
     def default_or_initial() -> str:
         return '{% if params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
@@ -100,7 +104,7 @@ with DAG(
         skip_consequences=skip_batch(),
         skip_exomiser=skip_batch(),
         skip_coverage_by_gene=skip_batch(),
-        skip_franklin=skip_batch(),
+        skip_franklin=skip_franklin(),
         spark_jar=spark_jar(),
     )
 
