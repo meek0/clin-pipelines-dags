@@ -1,20 +1,21 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext, batch_ids
-from lib.groups.qa import qa
-from lib.groups.ingest_fhir import IngestFhir
+from lib.config import Env, K8sContext, batch_ids, env, es_url
 from lib.groups.ingest_batch import IngestBatch
+from lib.groups.ingest_fhir import IngestFhir
+from lib.groups.qa import qa
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from airflow.operators.empty import EmptyOperator
 
 with DAG(
     dag_id='etl_migrate',
@@ -30,6 +31,7 @@ with DAG(
         'consequences': Param('no', enum=['yes', 'no']),
         'exomiser': Param('no', enum=['yes', 'no']),
         'coverage_by_gene': Param('no', enum=['yes', 'no']),
+        'franklin': Param('no', enum=['yes', 'no']),
         'spark_jar': Param('', type='string'),
     },
     default_args={
@@ -72,6 +74,9 @@ with DAG(
     def skip_coverage_by_gene() -> str:
         return formatSkipCondition('coverage_by_gene')
 
+    def skip_franklin() -> str:
+        return formatSkipCondition('franklin')
+
     def _params_validate(color):
         if env == Env.QA:
             if color == '':
@@ -111,6 +116,7 @@ with DAG(
             skip_consequences=skip_consequences(),
             skip_exomiser=skip_exomiser(),
             skip_coverage_by_gene=skip_coverage_by_gene(),
+            skip_franklin=skip_franklin(),
             spark_jar=spark_jar(),
             batch_id_as_tag=True
         )

@@ -17,16 +17,17 @@ from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
 def FranklinCreate(
     group_id: str,
     batch_id: str,
+    skip: str,
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
 
-        def check_metadata(batch_id):
+        def validate_task(batch_id, skip):
             clin_s3 = S3Hook(config.s3_conn_id)
             metadata = get_metadata_content(clin_s3, batch_id)
             submission_schema = metadata.get('submissionSchema', '')
-            logging.info(f'Schema: {submission_schema}')
-            return submission_schema == 'CQGC_Germline' # do nothing for EXTUM
+            logging.info(f'Skip: {skip} Schema: {submission_schema}')
+            return not skip and submission_schema == 'CQGC_Germline' # only GERMLINE
 
         '''
         Some rules about tasks:
@@ -35,8 +36,8 @@ def FranklinCreate(
         '''
 
         @task
-        def group_families(batch_id):
-            if check_metadata(batch_id):
+        def group_families(batch_id, skip):
+            if validate_task(batch_id, skip):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 metadata = get_metadata_content(clin_s3, batch_id)
                 [grouped_by_families, without_families] = group_families_from_metadata(metadata)
@@ -45,8 +46,8 @@ def FranklinCreate(
             return {}
 
         @task
-        def vcf_to_analyses(families, batch_id):
-            if check_metadata(batch_id):
+        def vcf_to_analyses(families, batch_id, skip):
+            if validate_task(batch_id, skip):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 vcfs = {}
                 keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
@@ -57,8 +58,8 @@ def FranklinCreate(
             return {}
 
         @task
-        def create_analyses(families, batch_id):
-            if check_metadata(batch_id):
+        def create_analyses(families, batch_id, skip):
+            if validate_task(batch_id, skip):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 franklin_s3 = S3Hook(config.s3_franklin)
                 token = get_franklin_token()
@@ -87,8 +88,8 @@ def FranklinCreate(
         create_analyses(
             vcf_to_analyses(
                 group_families(
-                    batch_id), 
-                batch_id),
-            batch_id), 
+                    batch_id, skip), 
+                batch_id, skip),
+            batch_id, skip), 
 
     return group

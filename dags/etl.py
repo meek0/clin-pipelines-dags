@@ -6,8 +6,8 @@ from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-
-from lib.config import env, es_url, Env, K8sContext, indexer_context, config_file
+from lib.config import (Env, K8sContext, config_file, env, es_url,
+                        indexer_context)
 from lib.groups.ingest_batch import IngestBatch
 from lib.groups.ingest_fhir import IngestFhir
 from lib.groups.qa import qa
@@ -100,6 +100,7 @@ with DAG(
         skip_consequences=skip_batch(),
         skip_exomiser=skip_batch(),
         skip_coverage_by_gene=skip_batch(),
+        skip_franklin=skip_batch(),
         spark_jar=spark_jar(),
     )
 
