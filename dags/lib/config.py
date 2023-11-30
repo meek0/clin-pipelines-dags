@@ -22,6 +22,11 @@ k8s_context = {
 }
 base_url = Variable.get('base_url', None)
 s3_conn_id = Variable.get('s3_conn_id', None)
+s3_franklin = Variable.get('s3_franklin', None)
+s3_franklin_bucket = Variable.get('s3_franklin_bucket', None)
+franklin_url = Variable.get('franklin_url', None)
+franklin_email = Variable.get('franklin_email', None)
+franklin_password = Variable.get('franklin_password', None)
 slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
