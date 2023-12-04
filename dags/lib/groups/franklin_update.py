@@ -94,7 +94,7 @@ def FranklinUpdate(
             task_id='api_sensor',
             batch_id=batch_id,
             mode='poke',
-            poke_interval=1*60, # poke every 1 min for 1 hour
+            poke_interval=5*60, # poke every 5 min for 1 hour
             timeout=1*60*60,
         )
 
