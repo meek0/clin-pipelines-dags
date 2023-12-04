@@ -51,7 +51,11 @@ class FranklinAPISensor(BaseSensorOperator):
                     created_analyses += ids
 
         # remove duplicated IDs if any
-        created_analyses = list(set(created_analyses))                
+        created_analyses = list(set(created_analyses))
+        created_count = len(created_analyses)
+
+        if created_count == 0:
+            raise AirflowSkipException('No CREATED analyses')
 
         statuses = get_analysis_status(created_analyses, token)
         for status in statuses:
@@ -65,7 +69,7 @@ class FranklinAPISensor(BaseSensorOperator):
 
                 ready_analyses.append(analysis_id)
 
-        ready_count, created_count = len(ready_analyses), len(created_analyses)
+        ready_count = len(ready_analyses)
 
         logging.info(f'Ready analyses: {ready_count}/{created_count}')
         return ready_count == created_count  # All created analyses are ready
