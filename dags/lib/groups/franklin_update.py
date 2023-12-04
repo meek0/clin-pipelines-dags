@@ -82,18 +82,24 @@ def FranklinUpdate(
                         logging.info(f'Delete: {keys_to_delete}')
 
         def clean_up_franklin(batch_id):
+            clin_s3 = S3Hook(config.s3_conn_id)
+            keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
+            for key in keys:
+                if '_FRANKLIN_STATUS_.txt' in key:  # if any status remains then batch isnt completed yet
+                    raise AirflowSkipException('Not all analyses are completed')
+
             franklin_s3 = S3Hook(config.s3_franklin)
             keys = franklin_s3.list_keys(config.s3_franklin_bucket, f'{env}/{batch_id}')
             for key in keys:
                 if key.endswith(vcf_suffix): # delete all VCFs in Franklin bucket
                     franklin_s3.delete_objects(config.s3_franklin_bucket, [key])
                     logging.info(f'Delete: {key}')
-                    
 
         api_sensor = FranklinAPISensor(
             task_id='api_sensor',
             batch_id=batch_id,
             mode='poke',
+            soft_fail=True, # SKIP on failure
             poke_interval=5*60, # poke every 5 min for 1 hour
             timeout=1*60*60,
         )
