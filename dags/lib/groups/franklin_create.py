@@ -68,7 +68,7 @@ def FranklinCreate(
                 for family_id, analyses in families['families'].items():
                     if (can_create_analysis(clin_s3, batch_id, family_id, analyses)): # already created before
                         transfer_vcf_to_franklin(clin_s3, franklin_s3, analyses)
-                        ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)['analysis_ids']
+                        ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)
                         write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
                         created_ids += ids
                 

@@ -311,8 +311,9 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 def parse_response(res):
     data = res.read()
     body = data.decode('utf-8')
+    logging.info(f'{res.status} - {body}')
     if res.status != 200:   # log if something wrong
-        raise AirflowFailException(f'{res.status} - {body}')
+        raise AirflowFailException('Error from Franklin API call')
     return body
 
 def parse_response_json(res):
@@ -336,7 +337,7 @@ def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch
     conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     payload = json.dumps(build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, franklin_s3)).encode('utf-8')
-    logging.info(f'Create analysis: {family_id} {analyses}')
+    logging.info(f'Create analysis: {payload}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/create", payload, headers)
     conn.close
     return parse_response_json(conn.getresponse())
@@ -346,7 +347,7 @@ def get_analysis_status(started_analyses, token):
     conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
     payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
-    logging.info(f'Get analysis status: {started_analyses}')
+    logging.info(f'Get analysis status: {payload}')
     conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
     conn.close
     return parse_response_json(conn.getresponse())
