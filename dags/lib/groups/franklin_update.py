@@ -121,6 +121,7 @@ def FranklinUpdate(
                 if '_FRANKLIN_IDS_.txt' in key:
                     clin_s3.delete_objects(export_bucket, [key])
                     logging.info(f'Delete: {key}')
+                    did_something = True
 
             franklin_s3 = S3Hook(config.s3_franklin)
             keys = franklin_s3.list_keys(config.s3_franklin_bucket, f'{env}/{batch_id}')
@@ -128,6 +129,7 @@ def FranklinUpdate(
                 if key.endswith(vcf_suffix): # delete all VCFs in Franklin bucket
                     franklin_s3.delete_objects(config.s3_franklin_bucket, [key])
                     logging.info(f'Delete: {key}')
+                    did_something = True
             
             if not did_something:
                 raise AirflowSkipException('No COMPLETED analyses')
