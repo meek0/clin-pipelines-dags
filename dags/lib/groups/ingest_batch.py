@@ -1,7 +1,7 @@
 from airflow.utils.task_group import TaskGroup
-
-from lib.config import K8sContext
-from lib.config import config_file
+from lib.config import K8sContext, config_file
+from lib.groups.franklin_create import FranklinCreate
+from lib.groups.franklin_update import FranklinUpdate
 from lib.operators.spark import SparkOperator
 
 
@@ -16,6 +16,7 @@ def IngestBatch(
     skip_consequences: str,
     skip_exomiser: str,
     skip_coverage_by_gene: str,
+    skip_franklin: str,
     spark_jar: str,
     batch_id_as_tag = False,
 ) -> TaskGroup:
@@ -27,6 +28,14 @@ def IngestBatch(
             return taskOrGrp
 
     with TaskGroup(group_id=getUniqueId(group_id)) as group:
+
+        '''
+        franklin_create = FranklinCreate(
+            group_id='franklin_create',
+            batch_id=batch_id,
+            skip=skip_franklin,
+        )   
+        '''
 
         snv = SparkOperator(
             task_id=getUniqueId('snv'),
@@ -163,6 +172,31 @@ def IngestBatch(
                 '--batchId', batch_id
             ],
         )
+        
+        franklin_update = FranklinUpdate(
+            group_id=getUniqueId('franklin_update'),
+            batch_id=batch_id,
+            skip=skip_franklin,
+            poke_interval=0,
+            timeout=0,
+        )
+
+        franklin = SparkOperator(
+            task_id=getUniqueId('franklin'),
+            name='etl-ingest-franklin',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='config-etl-large',
+            skip=skip_franklin,
+            spark_jar=spark_jar,
+            arguments=[
+                'franklin',
+                '--config', config_file,
+                '--steps', 'default',
+                '--app-name', 'etl-ingest-franklin'
+                '--batchId', batch_id
+            ],
+        )
 
         '''
         varsome = SparkOperator(
@@ -181,6 +215,6 @@ def IngestBatch(
         )
         '''
 
-        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene
+        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin
 
     return group

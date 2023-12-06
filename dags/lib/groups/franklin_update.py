@@ -29,11 +29,18 @@ from sensors.franklin import FranklinAPISensor
 def FranklinUpdate(
     group_id: str,
     batch_id: str,
+    skip: str,
+    poke_interval = 300,
+    timeout = 3600
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
 
-        def download_results(batch_id):
+        def download_results(batch_id, skip):
+            
+            if skip:
+                raise AirflowSkipException()
+
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
@@ -68,7 +75,11 @@ def FranklinUpdate(
             
             logging.info(f'Completed analyses: {completed_analyses}')
         
-        def clean_up_clin(batch_id):
+        def clean_up_clin(batch_id, skip):
+
+            if skip:
+                raise AirflowSkipException()
+
             did_something = False
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
@@ -91,7 +102,11 @@ def FranklinUpdate(
             if not did_something:
                 raise AirflowSkipException('No COMPLETED analyses')
 
-        def clean_up_franklin(batch_id):
+        def clean_up_franklin(batch_id, skip):
+
+            if skip:
+                raise AirflowSkipException()
+
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
             for key in keys:
@@ -122,25 +137,26 @@ def FranklinUpdate(
             batch_id=batch_id,
             mode='poke',
             soft_fail=True, # SKIP on failure
-            poke_interval=5*60, # poke every 5 min for 1 hour
-            timeout=1*60*60,
+            skip=skip,
+            poke_interval=poke_interval,
+            timeout=timeout,
         )
 
         download_results = PythonOperator(
             task_id='download_results',
-            op_args=[batch_id],
+            op_args=[batch_id, skip],
             python_callable=download_results,
         )
 
         clean_up_clin = PythonOperator(
             task_id='clean_up_clin',
-            op_args=[batch_id],
+            op_args=[batch_id, skip],
             python_callable=clean_up_clin,
         )
 
         clean_up_franklin = PythonOperator(
             task_id='clean_up_franklin',
-            op_args=[batch_id],
+            op_args=[batch_id, skip],
             python_callable=clean_up_franklin,
         )
 

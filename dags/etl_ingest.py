@@ -1,20 +1,21 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
-from lib.groups.qa import qa
-from lib.groups.ingest_fhir import IngestFhir
+from lib.config import Env, K8sContext, env, es_url
 from lib.groups.ingest_batch import IngestBatch
+from lib.groups.ingest_fhir import IngestFhir
+from lib.groups.qa import qa
 from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from airflow.operators.empty import EmptyOperator
 
 with DAG(
     dag_id='etl_ingest',
@@ -85,6 +86,7 @@ with DAG(
         skip_consequences='',
         skip_exomiser='',
         skip_coverage_by_gene='',
+        skip_franklin='',
         spark_jar=spark_jar(),
     )
 
