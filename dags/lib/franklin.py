@@ -268,7 +268,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
                     "name_in_vcf": aliquot_id,
                     "aws_files": [
                         {
-                            "key": vcf,
+                            "key": vcf_franklin_s3_full_path,
                             "type": "VCF_SHORT"
                         }
                     ],
@@ -288,7 +288,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
             "source": 'AWS',
             "details": {
                 "bucket": config.s3_franklin_bucket,
-                'root_folder': env
+                'root_folder': '/'
             }
         },
         'analyses': analyses_payload,
