@@ -62,8 +62,8 @@ elif env == Env.STAGING:
     config_file = f'config/staging.conf'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:226081a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:2f44223'
+    fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:32b4b49'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.19.0.jar'
