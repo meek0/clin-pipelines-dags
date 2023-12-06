@@ -25,7 +25,6 @@ with DAG(
         'batch_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
-        'franklin': Param('no', enum=['yes', 'no']),
         'spark_jar': Param('', type='string'),
     },
     default_args={
@@ -46,9 +45,6 @@ with DAG(
 
     def skip_import() -> str:
         return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
-
-    def skip_franklin() -> str:
-        return '{% if params.franklin == "yes" %}{% else %}yes{% endif %}'
 
     def _params_validate(batch_id, color):
         if batch_id == '':
@@ -90,7 +86,7 @@ with DAG(
         skip_consequences='',
         skip_exomiser='',
         skip_coverage_by_gene='',
-        skip_franklin=skip_franklin(),
+        skip_franklin='',
         spark_jar=spark_jar(),
     )
 

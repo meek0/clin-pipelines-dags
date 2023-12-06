@@ -30,6 +30,8 @@ def FranklinUpdate(
     group_id: str,
     batch_id: str,
     skip: str,
+    poke_interval = 300,
+    timeout = 3600
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
@@ -136,8 +138,8 @@ def FranklinUpdate(
             mode='poke',
             soft_fail=True, # SKIP on failure
             skip=skip,
-            poke_interval=5*60, # poke every 5 min for 1 hour
-            timeout=1*60*60,
+            poke_interval=poke_interval,
+            timeout=timeout,
         )
 
         download_results = PythonOperator(

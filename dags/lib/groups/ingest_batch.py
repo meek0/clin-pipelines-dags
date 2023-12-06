@@ -29,11 +29,13 @@ def IngestBatch(
 
     with TaskGroup(group_id=getUniqueId(group_id)) as group:
 
+        '''
         franklin_create = FranklinCreate(
             group_id='franklin_create',
             batch_id=batch_id,
             skip=skip_franklin,
         )   
+        '''
 
         snv = SparkOperator(
             task_id=getUniqueId('snv'),
@@ -172,9 +174,11 @@ def IngestBatch(
         )
         
         franklin_update = FranklinUpdate(
-            group_id='franklin_update',
+            group_id=getUniqueId('franklin_update'),
             batch_id=batch_id,
             skip=skip_franklin,
+            poke_interval=0,
+            timeout=0,
         )
 
         franklin = SparkOperator(
@@ -211,6 +215,6 @@ def IngestBatch(
         )
         '''
 
-        franklin_create >> snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin
+        snv >> snv_somatic_tumor_only >> cnv >> cnv_somatic_tumor_only >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin
 
     return group
