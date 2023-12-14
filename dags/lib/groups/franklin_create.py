@@ -64,12 +64,12 @@ def FranklinCreate(
             if validate_task(batch_id, skip):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 franklin_s3 = S3Hook(config.s3_franklin)
-                token = get_franklin_token()
 
                 created_ids = []
 
                 for family_id, analyses in families['families'].items():
                     if (can_create_analysis(clin_s3, batch_id, family_id, analyses)): # already created before
+                        token = get_franklin_token()
                         transfer_vcf_to_franklin(clin_s3, franklin_s3, analyses)
                         ids = post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id)
                         write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, FranklinStatus.CREATED, ids)
@@ -78,6 +78,7 @@ def FranklinCreate(
                 for patient in families['no_family']:
                     analyses = [patient]
                     if (can_create_analysis(clin_s3, batch_id, None, analyses)): # already created before
+                        token = get_franklin_token()
                         transfer_vcf_to_franklin(clin_s3, franklin_s3, analyses)
                         ids = post_create_analysis(None, analyses, token, clin_s3, franklin_s3, batch_id)
                         write_s3_analyses_status(clin_s3, batch_id, None, analyses, FranklinStatus.CREATED, ids)
