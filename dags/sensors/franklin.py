@@ -31,8 +31,6 @@ class FranklinAPISensor(BaseSensorOperator):
 
         keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
-        token = get_franklin_token()  
-
         created_analyses = []
         ready_analyses = []
 
@@ -57,6 +55,7 @@ class FranklinAPISensor(BaseSensorOperator):
         if created_count == 0:
             raise AirflowSkipException('No CREATED analyses')
 
+        token = get_franklin_token()
         statuses = get_analysis_status(created_analyses, token)
         for status in statuses:
             if (status['processing_status'] == 'READY'):

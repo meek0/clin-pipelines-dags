@@ -21,6 +21,11 @@ class FranklinStatus(Enum):
     READY       = 3 # status of the analysis is READY
     COMPLETED   = 4 # we have successfully retrieved the JSON and save into S3
 
+class FamilyMember(Enum):
+    PROBAND     = 'PROBAND'
+    MOTHER      = 'MTH'
+    FATHER      = 'FTH'
+
 import_bucket = f'cqgc-{env}-app-files-import'
 export_bucket = f'cqgc-{env}-app-datalake'
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
@@ -47,6 +52,27 @@ def group_families_from_metadata(data):
         else:
             analyses_without_family.append(analysis)
     return [family_groups, analyses_without_family]
+
+def filter_families_valid_trios(grouped_by_families):
+    filtered_families = {}
+    for family_id, analyses in grouped_by_families.items():
+        has_proband = False
+        has_mother = False
+        has_father = False
+        for analysis in analyses:
+            family_member = analysis['patient']['familyMember']
+            if FamilyMember.PROBAND.value == family_member:
+                has_proband = True
+            if FamilyMember.MOTHER.value == family_member:
+                has_mother = True
+            if FamilyMember.FATHER.value == family_member:
+                has_father = True
+        if has_proband and has_mother and has_father:
+            filtered_families[family_id] = analyses
+        else:
+            logging.info(f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} analyses: {analyses}')
+    return filtered_families
+
 
 def transfer_vcf_to_franklin(s3_clin, s3_franklin, analyses):
     for analysis in analyses:
@@ -112,7 +138,7 @@ def attach_vcf_to_analysis(analysis, vcfs, proband_aliquot_id):
 
 def find_proband_aliquot_id(analyses):
     for analysis in analyses:
-        if analysis["patient"]["familyMember"] == 'PROBAND':
+        if analysis["patient"]["familyMember"] == FamilyMember.PROBAND.value:
             return analysis["labAliquotId"]
     raise AirflowFailException(f'Cant find proband aliquot id: {obj}')
 
@@ -211,11 +237,11 @@ def extract_from_name_family_id(name):
     return id if id != 'None' else None # cf build_sample_name()
 
 def get_relation(relation):
-    if relation == 'FTH':
+    if FamilyMember.FATHER.value == relation:
         return 'father'
-    elif relation == 'MTH':
+    elif FamilyMember.MOTHER.value == relation:
         return 'mother'
-    elif relation == 'PROBAND':
+    elif FamilyMember.PROBAND.value == relation:
         return 'proband'
     else:
         raise AirflowFailException(f'Missing relation: {relation}')
@@ -252,7 +278,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
         }
         if family_id:
             family_analyses.append(sample)
-            if family_member == 'PROBAND':
+            if family_member == FamilyMember.PROBAND.value:
                 proband_id = aliquot_id
         else:
             proband_id = aliquot_id
@@ -326,12 +352,14 @@ def get_franklin_http_conn():
         conn = http.client.HTTPConnection(franklin_url_parts.hostname, port=franklin_url_parts.port)
     return conn
 
-def get_franklin_token():
-    conn = get_franklin_http_conn()
-    payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
-    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
-    conn.close
-    return parse_response_json(conn.getresponse())['token']
+def get_franklin_token(current_token = None):
+    if current_token is None:
+        conn = get_franklin_http_conn()
+        payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
+        conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
+        conn.close
+        return parse_response_json(conn.getresponse())['token']
+    return current_token
 
 def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     conn = get_franklin_http_conn()
