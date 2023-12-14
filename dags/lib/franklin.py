@@ -23,7 +23,7 @@ class FranklinStatus(Enum):
 
 class FamilyMember(Enum):
     PROBAND     = 'PROBAND'
-    MOTHER      = "MTH"
+    MOTHER      = 'MTH'
     FATHER      = 'FTH'
 
 import_bucket = f'cqgc-{env}-app-files-import'
@@ -352,12 +352,14 @@ def get_franklin_http_conn():
         conn = http.client.HTTPConnection(franklin_url_parts.hostname, port=franklin_url_parts.port)
     return conn
 
-def get_franklin_token():
-    conn = get_franklin_http_conn()
-    payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
-    conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
-    conn.close
-    return parse_response_json(conn.getresponse())['token']
+def get_franklin_token(current_token = None):
+    if current_token is None:
+        conn = get_franklin_http_conn()
+        payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
+        conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
+        conn.close
+        return parse_response_json(conn.getresponse())['token']
+    return current_token
 
 def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch_id):
     conn = get_franklin_http_conn()

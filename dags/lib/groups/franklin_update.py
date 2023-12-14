@@ -44,6 +44,7 @@ def FranklinUpdate(
             clin_s3 = S3Hook(config.s3_conn_id)
             keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
+            token = None
             completed_analyses = []
 
             did_something = False
@@ -59,7 +60,7 @@ def FranklinUpdate(
                         id_key = clin_s3.get_key(build_s3_analyses_id_key(batch_id, family_id, aliquot_id), export_bucket)
                         id = id_key.get()['Body'].read().decode('utf-8')
 
-                        token = get_franklin_token()
+                        token = get_franklin_token(token)
                         json = get_completed_analysis(id, token)
                         json_s3_key = build_s3_analyses_json_key(batch_id, family_id, aliquot_id, id)
                         clin_s3.load_string(json, json_s3_key, export_bucket, replace=True)
