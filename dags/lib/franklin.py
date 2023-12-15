@@ -233,8 +233,10 @@ def extract_from_name_aliquot_id(name):
     return id if id != family_analysis_keyword else None
 
 def extract_from_name_family_id(name):
-    id = name.split("-")[1].strip()
-    return id if id != 'None' else None # cf build_sample_name()
+    id = name.split("-")[1].strip() # cf build_sample_name(), 
+    if (id == 'None' or id.startswith('None_')): # for some reasons franklin can add suffix like None_1
+        return None
+    return id
 
 def get_relation(relation):
     if FamilyMember.FATHER.value == relation:
