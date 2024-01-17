@@ -65,7 +65,16 @@ elif env == Env.STAGING:
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/staging.conf'
-    batch_ids = ['201106_A00516_0169_AHFM3HDSXY']
+    batch_ids = [
+        '201106_A00516_0169_AHFM3HDSXY',
+        '230928_A00516_0463_BHJ5NTDRX3',
+        '230724_A00516_0440_BH7L2FDRX3',
+        '231120_A00516_0484_BHMYT3DSX7_somatic',
+        '231211_A00516_0490_BHNK22DRX3_somatic',
+        '231113_A00516_0480_BHLJCMDRX3',
+        '230828_A00516_0454_BHLM57DMXY.dragen.WES_somatic-tumor_only',
+        '230609_A00516_0425_AHKNCFDMXY',
+    ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
     pipeline_image = 'ferlabcrsj/clin-pipelines:6326996'
