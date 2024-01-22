@@ -5,13 +5,13 @@ from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
 from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import (ClinSchema, ClinVCFSuffix, K8sContext,
+                        clin_import_bucket, config_file, env)
 from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
                           can_create_analysis, extract_vcf_prefix,
                           filter_families_valid_trios, get_franklin_token,
                           get_metadata_content, group_families_from_metadata,
-                          import_bucket, post_create_analysis,
-                          transfer_vcf_to_franklin, vcf_suffix,
+                          post_create_analysis, transfer_vcf_to_franklin,
                           write_s3_analyses_status)
 
 
@@ -28,7 +28,7 @@ def FranklinCreate(
             metadata = get_metadata_content(clin_s3, batch_id)
             submission_schema = metadata.get('submissionSchema', '')
             logging.info(f'Skip: {skip} Schema: {submission_schema}')
-            return not skip and submission_schema == 'CQGC_Germline' # only GERMLINE
+            return not skip and submission_schema == ClinSchema.GERMLINE.value # only GERMLINE
 
         '''
         Some rules about tasks:
@@ -52,9 +52,9 @@ def FranklinCreate(
             if validate_task(batch_id, skip):
                 clin_s3 = S3Hook(config.s3_conn_id)
                 vcfs = {}
-                keys = clin_s3.list_keys(import_bucket, f'{batch_id}/')
+                keys = clin_s3.list_keys(clin_import_bucket, f'{batch_id}/')
                 for key in keys:
-                    if key.endswith(vcf_suffix):
+                    if key.endswith(ClinVCFSuffix.SNV_GERMLINE.value):
                         vcfs[key] = extract_vcf_prefix(key)
                 return attach_vcf_to_analyses(families, vcfs) # we now have analysis <=> vcf
             return {}
