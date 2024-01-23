@@ -43,7 +43,7 @@ def IngestFhir(
                 raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
             
             logging.info(f'Schema: {submission_schema}')
-            logging.info(f'Expecting CNV VCF(s) suffix: {snv_vcf_suffix}')
+            logging.info(f'Expecting SNV VCF(s) suffix: {snv_vcf_suffix}')
             logging.info(f'Expecting CNV VCF(s) suffix: {cnv_vcf_suffix}')
 
             has_valid_snv_vcf = False
