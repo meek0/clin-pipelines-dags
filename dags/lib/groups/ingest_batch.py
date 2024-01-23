@@ -1,6 +1,5 @@
 from airflow.utils.task_group import TaskGroup
 from lib.config import K8sContext, config_file
-from lib.groups.franklin_create import FranklinCreate
 from lib.groups.franklin_update import FranklinUpdate
 from lib.operators.spark import SparkOperator
 
@@ -28,14 +27,6 @@ def IngestBatch(
             return taskOrGrp
 
     with TaskGroup(group_id=getUniqueId(group_id)) as group:
-
-        '''
-        franklin_create = FranklinCreate(
-            group_id='franklin_create',
-            batch_id=batch_id,
-            skip=skip_franklin,
-        )   
-        '''
 
         snv = SparkOperator(
             task_id=getUniqueId('snv'),

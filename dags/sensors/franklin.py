@@ -4,8 +4,9 @@ from airflow.exceptions import AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sensors.base import BaseSensorOperator
 from lib import config
+from lib.config import clin_datalake_bucket
 from lib.franklin import (FranklinStatus, build_s3_analyses_ids_key,
-                          export_bucket, extract_from_name_aliquot_id,
+                          extract_from_name_aliquot_id,
                           extract_from_name_family_id,
                           extract_param_from_s3_key, get_analysis_status,
                           get_franklin_token, write_s3_analysis_status)
@@ -29,21 +30,21 @@ class FranklinAPISensor(BaseSensorOperator):
         batch_id = self.batch_id
         clin_s3 = S3Hook(config.s3_conn_id)
 
-        keys = clin_s3.list_keys(export_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
+        keys = clin_s3.list_keys(clin_datalake_bucket, f'raw/landing/franklin/batch_id={batch_id}/')
 
         created_analyses = []
         ready_analyses = []
 
         for key in keys:
             if '_FRANKLIN_STATUS_.txt' in key:
-                key_obj = clin_s3.get_key(key, export_bucket)
+                key_obj = clin_s3.get_key(key, clin_datalake_bucket)
                 status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
                 if status is FranklinStatus.CREATED:    # ignore others status
 
                     family_id = extract_param_from_s3_key(key, 'family_id') 
                     aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
 
-                    ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket)
+                    ids_key = clin_s3.get_key(build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), clin_datalake_bucket)
                     ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
 
                     created_analyses += ids
