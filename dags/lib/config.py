@@ -50,7 +50,7 @@ clin_datalake_bucket = f'cqgc-{env}-app-datalake'
 
 class ClinVCFSuffix(Enum):
     SNV_GERMLINE    = '.hard-filtered.formatted.norm.VEP.vcf.gz'
-    SNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.hard-filtered.vcf.gz'
+    SNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
     CNV_GERMLINE    = '.cnv.vcf.gz'
     CNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.cnv.vcf.gz'
 
