@@ -59,8 +59,8 @@ class ClinSchema(Enum):
     SOMATIC      = 'CQGC_Exome_Tumeur_Seul'
 
 if env == Env.QA:
-    fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:375621a'
+    fhir_image = 'ferlabcrsj/clin-fhir'
+    pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
