@@ -69,7 +69,7 @@ if env == Env.QA:
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/qa.conf'
-    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
+    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
     pipeline_image = 'ferlabcrsj/clin-pipelines:6326996'
