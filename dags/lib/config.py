@@ -69,6 +69,7 @@ if env == Env.QA:
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/qa.conf'
+    franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
@@ -81,6 +82,7 @@ elif env == Env.STAGING:
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/staging.conf'
+    franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
         '230928_A00516_0463_BHJ5NTDRX3',
@@ -102,6 +104,7 @@ elif env == Env.PROD:
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/prod.conf'
+    franklin_assay_id = 'b8a30771-5689-4189-8157-c6063ad738d1'
     batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
         '221209_A00516_0377_BHHHJWDMXY',
