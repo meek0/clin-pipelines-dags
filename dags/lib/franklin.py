@@ -11,7 +11,8 @@ from io import BytesIO
 
 from airflow.exceptions import AirflowFailException
 from lib import config
-from lib.config import (clin_datalake_bucket, clin_import_bucket, env,
+from lib.config import (ClinVCFSuffix, clin_datalake_bucket,
+                        clin_import_bucket, env, franklin_assay_id,
                         get_metadata_content)
 
 
@@ -29,7 +30,6 @@ class FamilyMember(Enum):
 
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
 family_analysis_keyword = 'family'
-hg38_germline = '2765500d-8728-4830-94b5-269c306dbe71' # https://api.genoox.com/v1/assay/list
 
 # group the metadata analyses by families or solos
 def group_families_from_metadata(data):
@@ -283,7 +283,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
         # check if the VCF exists in Franklin S3
         if franklin_s3.check_for_key(vcf_franklin_s3_full_path, config.s3_franklin_bucket):
             analyses_payload.append({
-                "assay_id": hg38_germline,
+                "assay_id": franklin_assay_id,
                 'sample_data': {
                     "sample_name": sample_name,
                     "name_in_vcf": aliquot_id,
