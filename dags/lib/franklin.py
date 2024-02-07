@@ -11,7 +11,9 @@ from io import BytesIO
 
 from airflow.exceptions import AirflowFailException
 from lib import config
-from lib.config import env
+from lib.config import (ClinVCFSuffix, clin_datalake_bucket,
+                        clin_import_bucket, env, franklin_assay_id,
+                        get_metadata_content)
 
 
 # current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
@@ -26,17 +28,8 @@ class FamilyMember(Enum):
     MOTHER      = 'MTH'
     FATHER      = 'FTH'
 
-import_bucket = f'cqgc-{env}-app-files-import'
-export_bucket = f'cqgc-{env}-app-datalake'
 franklin_url_parts = urllib.parse.urlparse(config.franklin_url)
 family_analysis_keyword = 'family'
-vcf_suffix = '.hard-filtered.formatted.norm.VEP.vcf.gz'
-hg38_germline = '2765500d-8728-4830-94b5-269c306dbe71' # https://api.genoox.com/v1/assay/list
-
-def get_metadata_content(clin_s3, batch_id):
-    metadata_path = f'{batch_id}/metadata.json'
-    file_obj = clin_s3.get_key(metadata_path, import_bucket)
-    return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
 
 # group the metadata analyses by families or solos
 def group_families_from_metadata(data):
@@ -79,8 +72,8 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, analyses):
         source_key = analysis['vcf']
         destination_key = f'{env}/{source_key}'
         if (not s3_franklin.check_for_key(destination_key, config.s3_franklin_bucket)): 
-            logging.info(f'Retrieve VCF content: {import_bucket}/{source_key}')
-            vcf_file = s3_clin.get_key(source_key, import_bucket)
+            logging.info(f'Retrieve VCF content: {clin_import_bucket}/{source_key}')
+            vcf_file = s3_clin.get_key(source_key, clin_import_bucket)
             vcf_content = vcf_file.get()['Body'].read()
             logging.info(f'VCF content size: {len(vcf_content)}')
             logging.info(f'Upload to Franklin: {config.s3_franklin_bucket}/{destination_key}')
@@ -89,7 +82,7 @@ def transfer_vcf_to_franklin(s3_clin, s3_franklin, analyses):
             logging.info(f'Already on Franklin: {config.s3_franklin_bucket}/{destination_key}')
 
 def extract_vcf_prefix(vcf_key):
-    name = vcf_key.split('/')[-1].replace(vcf_suffix, '').replace(".case", "")
+    name = vcf_key.split('/')[-1].replace(ClinVCFSuffix.SNV_GERMLINE.value, '').replace(".case", "")
     if name is None or len(name) == 0: # robustness
         raise AirflowFailException(f'Invalid VCF prefix: {vcf_key}') 
     return name
@@ -165,7 +158,7 @@ def get_s3_key_content_size(s3, bucket, key):
 def can_create_analysis(clin_s3, batch_id, family_id, analyses):
     for analysis in analyses:
         aliquot_id = analysis["labAliquotId"]
-        completed_analysis_keys = clin_s3.list_keys(export_bucket, build_s3_analyses_root_key(batch_id, family_id, aliquot_id))
+        completed_analysis_keys = clin_s3.list_keys(clin_datalake_bucket, build_s3_analyses_root_key(batch_id, family_id, aliquot_id))
         for key in completed_analysis_keys:
             if 'analysis_id=' in key:   # found at least one completed analysis
                 logging.info(f'Completed analysis found: {batch_id} {family_id} {aliquot_id}')
@@ -178,8 +171,8 @@ def can_create_analysis(clin_s3, batch_id, family_id, analyses):
 
 def check_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id) -> FranklinStatus : 
     key = build_s3_analyses_status_key(batch_id, family_id, aliquot_id)
-    if (clin_s3.check_for_key(key, export_bucket)):
-        file = clin_s3.get_key(key, export_bucket)
+    if (clin_s3.check_for_key(key, clin_datalake_bucket)):
+        file = clin_s3.get_key(key, clin_datalake_bucket)
         file_content = file.get()['Body'].read()
         return FranklinStatus[file_content.decode('utf-8')]
     return FranklinStatus.UNKNOWN   # analysis doesn't exist
@@ -189,11 +182,11 @@ def write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, status, ids
         write_s3_analysis_status(clin_s3, batch_id, family_id, analysis['labAliquotId'], status, ids)
 
 def write_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
-    clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+    clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
     if ids is not None: # save TRIO, DUO ... analyses IDs
-        clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+        clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
     if id is not None:  # after status we can attached an ID to a specific family + aliquot id whatever it's SOLO or TRIO, DUO ...
-        clin_s3.load_string(str(id), build_s3_analyses_id_key(batch_id, family_id, aliquot_id), export_bucket, replace=True)
+        clin_s3.load_string(str(id), build_s3_analyses_id_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
 
 def build_s3_analyses_root_key(batch_id, family_id, aliquot_id):
     return f'raw/landing/franklin/batch_id={batch_id}/family_id={family_id or "null"}/aliquot_id={aliquot_id or "null"}'
@@ -256,8 +249,8 @@ def format_date(input_date):
 
 def get_phenotypes(id, batch_id, s3):
     key = f'{batch_id}/{id}.hpo'
-    if s3.check_for_key(key, import_bucket):
-        file = s3.get_key(key, import_bucket)
+    if s3.check_for_key(key, clin_import_bucket):
+        file = s3.get_key(key, clin_import_bucket)
         file_content = file.get()['Body'].read().decode('utf-8')
         logging.info(f'HPO file found: {file_content}')
         # it's not a JSON, ex: ['HP:0000001','HP:0000002','HP:0000003','HP:0000004']
@@ -290,7 +283,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
         # check if the VCF exists in Franklin S3
         if franklin_s3.check_for_key(vcf_franklin_s3_full_path, config.s3_franklin_bucket):
             analyses_payload.append({
-                "assay_id": hg38_germline,
+                "assay_id": franklin_assay_id,
                 'sample_data': {
                     "sample_name": sample_name,
                     "name_in_vcf": aliquot_id,

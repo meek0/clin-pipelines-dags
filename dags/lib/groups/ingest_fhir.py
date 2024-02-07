@@ -1,7 +1,12 @@
-from airflow.utils.task_group import TaskGroup
+import logging
 
-from lib.config import config_file
-from lib.config import env, K8sContext
+from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.operators.python import PythonOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.task_group import TaskGroup
+from lib.config import (ClinSchema, ClinVCFSuffix, K8sContext,
+                        clin_import_bucket, config_file, env,
+                        get_metadata_content, s3_conn_id)
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 
@@ -16,6 +21,59 @@ def IngestFhir(
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
+
+        def check_vcfs_by_schema(batch_id, skip):
+
+            if skip:
+                raise AirflowSkipException()
+
+            clin_s3 = S3Hook(s3_conn_id)
+            metadata = get_metadata_content(clin_s3, batch_id)
+            submission_schema = metadata.get('submissionSchema', '')
+
+            snv_vcf_suffix = None
+            cnv_vcf_suffix = None
+            if submission_schema == ClinSchema.GERMLINE.value:
+                snv_vcf_suffix = ClinVCFSuffix.SNV_GERMLINE.value
+                cnv_vcf_suffix = ClinVCFSuffix.CNV_GERMLINE.value
+            elif submission_schema == ClinSchema.SOMATIC.value:
+                snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC.value
+                cnv_vcf_suffix = ClinVCFSuffix.CNV_SOMATIC.value
+            else:
+                raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
+            
+            logging.info(f'Schema: {submission_schema}')
+            logging.info(f'Expecting SNV VCF(s) suffix: {snv_vcf_suffix}')
+            logging.info(f'Expecting CNV VCF(s) suffix: {cnv_vcf_suffix}')
+
+            has_valid_snv_vcf = False
+            keys = clin_s3.list_keys(clin_import_bucket, f'{batch_id}/')
+            for key in keys:
+                if key.endswith(snv_vcf_suffix):
+                    logging.info(f'Valid SNV VCF file: {key}')
+                    has_valid_snv_vcf = True
+
+            if not has_valid_snv_vcf:
+                raise AirflowFailException(f'No valid SNV VCF(s) found')
+            
+            all_cnv_vcf_valid = True
+            for analysis in metadata['analyses']:
+                cnv_file = analysis.get('files', {}).get('cnv_vcf')
+                if cnv_file:
+                    if cnv_file.endswith(cnv_vcf_suffix):
+                        logging.info(f'Valid CNV VCF file: {cnv_file}')
+                    else:
+                        logging.info(f'Invalid CNV VCF file: {cnv_file}')
+                        all_cnv_vcf_valid = False
+
+            if not all_cnv_vcf_valid:
+                raise AirflowFailException(f'Not all valid CNV VCF(s) found')
+
+        check_vcfs = PythonOperator(
+            task_id='validate_vcfs',
+            op_args=[batch_id, skip_import],
+            python_callable=check_vcfs_by_schema,
+        )
 
         fhir_import = PipelineOperator(
             task_id='fhir_import',
@@ -57,6 +115,6 @@ def IngestFhir(
             ],
         )
 
-        fhir_import >> fhir_export >> fhir_normalize
+        check_vcfs >> fhir_import >> fhir_export >> fhir_normalize
 
     return group

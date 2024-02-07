@@ -1,3 +1,6 @@
+import json
+from enum import Enum
+
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
@@ -42,29 +45,44 @@ spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
 
+clin_import_bucket = f'cqgc-{env}-app-files-import'
+clin_datalake_bucket = f'cqgc-{env}-app-datalake'
+
+class ClinVCFSuffix(Enum):
+    SNV_GERMLINE    = '.hard-filtered.formatted.norm.VEP.vcf.gz'
+    SNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
+    CNV_GERMLINE    = '.cnv.vcf.gz'
+    CNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.cnv.vcf.gz'
+
+class ClinSchema(Enum):
+    GERMLINE     = 'CQGC_Germline'
+    SOMATIC      = 'CQGC_Exome_Tumeur_Seul'
+
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.22.1.jar'
+    spark_jar = 's3a://cqgc-qa-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/qa.conf'
-    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas']
+    franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
+    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:6326996'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:f834e2c'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.22.1.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/staging.conf'
+    franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
         '230928_A00516_0463_BHJ5NTDRX3',
@@ -77,15 +95,16 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:6326996'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:f834e2c'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.22.1.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/prod.conf'
+    franklin_assay_id = 'b8a30771-5689-4189-8157-c6063ad738d1'
     batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
         '221209_A00516_0377_BHHHJWDMXY',
@@ -141,3 +160,8 @@ def k8s_load_config(context: str) -> None:
             config_file=k8s_config_file(context),
             context=k8s_context[context],
         )
+
+def get_metadata_content(clin_s3, batch_id):
+    metadata_path = f'{batch_id}/metadata.json'
+    file_obj = clin_s3.get_key(metadata_path, clin_import_bucket)
+    return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
