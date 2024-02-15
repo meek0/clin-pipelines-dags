@@ -46,7 +46,7 @@ def group_families_from_metadata(data):
             analyses_without_family.append(analysis)
     return [family_groups, analyses_without_family]
 
-def filter_families_valid_trios(grouped_by_families):
+def filter_valid_families(grouped_by_families):
     filtered_families = {}
     for family_id, analyses in grouped_by_families.items():
         has_proband = False
@@ -56,11 +56,15 @@ def filter_families_valid_trios(grouped_by_families):
             family_member = analysis['patient']['familyMember']
             if FamilyMember.PROBAND.value == family_member:
                 has_proband = True
-            if FamilyMember.MOTHER.value == family_member:
+            elif FamilyMember.MOTHER.value == family_member:
                 has_mother = True
-            if FamilyMember.FATHER.value == family_member:
+            elif FamilyMember.FATHER.value == family_member:
                 has_father = True
-        if has_proband and has_mother and has_father:
+            else:
+                raise AirflowFailException(f'Unknown relation: {family_member}')
+        if has_proband and has_mother and has_father: # TRIO
+            filtered_families[family_id] = analyses
+        elif has_proband and (has_mother or has_father): # DUO
             filtered_families[family_id] = analyses
         else:
             logging.info(f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} analyses: {analyses}')

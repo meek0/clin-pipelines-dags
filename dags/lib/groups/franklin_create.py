@@ -9,7 +9,7 @@ from lib.config import (ClinSchema, ClinVCFSuffix, K8sContext,
                         clin_import_bucket, config_file, env)
 from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
                           can_create_analysis, extract_vcf_prefix,
-                          filter_families_valid_trios, get_franklin_token,
+                          filter_valid_families, get_franklin_token,
                           get_metadata_content, group_families_from_metadata,
                           post_create_analysis, transfer_vcf_to_franklin,
                           write_s3_analyses_status)
@@ -42,7 +42,7 @@ def FranklinCreate(
                 clin_s3 = S3Hook(config.s3_conn_id)
                 metadata = get_metadata_content(clin_s3, batch_id)
                 [grouped_by_families, without_families] = group_families_from_metadata(metadata)
-                filtered_families = filter_families_valid_trios(grouped_by_families)
+                filtered_families = filter_valid_families(grouped_by_families)
                 logging.info(filtered_families)
                 return {'families': filtered_families, 'no_family': without_families}
             return {}
