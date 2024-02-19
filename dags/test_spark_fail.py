@@ -1,9 +1,10 @@
-from airflow import DAG
 from datetime import datetime
-from lib import config
-from lib.config import env, K8sContext
-from lib.operators.spark import SparkOperator
+
+from airflow import DAG
 from airflow.models.param import Param
+from lib import config
+from lib.config import K8sContext, env
+from lib.operators.spark import SparkOperator
 
 if (config.show_test_dags):
 
@@ -12,7 +13,7 @@ if (config.show_test_dags):
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         params={
-            'spark_jar': Param('', type='string'),
+            'spark_jar': Param('', type=['null', 'string']),
         },
     ) as dag:
 

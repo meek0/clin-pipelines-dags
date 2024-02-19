@@ -1,12 +1,13 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
-from datetime import datetime
 from lib.doc import qa as doc
 from lib.groups.qa import qa
-from airflow.operators.empty import EmptyOperator
 from lib.slack import Slack
 
 with DAG(
@@ -16,7 +17,7 @@ with DAG(
     schedule_interval=None,
     params={
         'release_id': Param('', type='string'),
-        'spark_jar': Param('', type='string'),
+        'spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,

@@ -32,7 +32,7 @@ with DAG(
         'exomiser': Param('no', enum=['yes', 'no']),
         'coverage_by_gene': Param('no', enum=['yes', 'no']),
         'franklin': Param('no', enum=['yes', 'no']),
-        'spark_jar': Param('', type='string'),
+        'spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
