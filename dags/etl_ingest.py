@@ -25,7 +25,7 @@ with DAG(
         'batch_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
-        'spark_jar': Param('', type='string'),
+        'spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,

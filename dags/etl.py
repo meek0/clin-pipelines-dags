@@ -22,12 +22,12 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
-        'batch_id':  Param('', type='string'),
+        'batch_id':  Param('', type=['null', 'string']),
         'release_id': Param('', type='string'),
         'color': Param('', enum=['', 'blue', 'green']),
         'import': Param('yes', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
-        'spark_jar': Param('', type='string'),
+        'spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
