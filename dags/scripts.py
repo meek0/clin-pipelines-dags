@@ -1,12 +1,12 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-from datetime import datetime
-from lib.config import env, Env, K8sContext
+from lib.config import Env, K8sContext, env
 from lib.operators.pipeline import PipelineOperator
 from lib.slack import Slack
-
 
 with DAG(
     dag_id='scripts',
@@ -14,7 +14,7 @@ with DAG(
     schedule_interval=None,
     params={
         'script': Param('', type='string'),
-        'args': Param('', type='string'),
+        'args': Param('', type=['null', 'string']),
         'color': Param('', enum=['', 'blue', 'green']),
         'bucket': Param('', enum=['', f'cqgc-{env}-app-files-import', f'cqgc-{env}-app-datalake',]),
     },
