@@ -73,7 +73,7 @@ if env == Env.QA:
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:f834e2c'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:b967640'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
@@ -95,7 +95,7 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:f834e2c'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:b967640'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
@@ -132,6 +132,8 @@ elif env == Env.PROD:
         '240119_A00516_0506_BHN3J2DMXY_germinal.part1',
         '240126_A00516_0509_BHTK5LDRX3_somatic',
         '240119_A00516_0506_BHN3J2DMXY_germinal.part3.2024-02-02',
+        '240212_A00516_0516_AHNFMKDMXY_germinal',
+        '240212_A00516_0517_BHNLLCDRX3_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
