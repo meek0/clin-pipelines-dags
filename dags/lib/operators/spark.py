@@ -1,12 +1,13 @@
-import kubernetes
 import logging
-from airflow.exceptions import AirflowFailException
-from airflow.exceptions import AirflowSkipException
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from typing import List
+
+import kubernetes
+from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
 from lib.config import env
-from typing import List
 
 
 class SparkOperator(KubernetesPodOperator):
@@ -55,7 +56,7 @@ class SparkOperator(KubernetesPodOperator):
         if self.skip:
             raise AirflowSkipException()
         
-        if self.spark_jar == '':
+        if not self.spark_jar or self.spark_jar == '':
             self.spark_jar = config.spark_jar
         else:
             self.spark_jar = 's3a://cqgc-' + env + '-app-datalake/jars/clin-variant-etl-' + self.spark_jar + '.jar'

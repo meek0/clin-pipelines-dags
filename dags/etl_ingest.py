@@ -23,7 +23,7 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id': Param('', type='string'),
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('', type=['null', 'string']),
         'import': Param('yes', enum=['yes', 'no']),
         'spark_jar': Param('', type=['null', 'string']),
     },
@@ -35,26 +35,26 @@ with DAG(
 ) as dag:
 
     def batch_id() -> str:
-        return '{{ params.batch_id }}'
+        return '{{ params.batch_id or "" or "" }}'
 
     def spark_jar() -> str:
-        return '{{ params.spark_jar }}'
+        return '{{ params.spark_jar or "" or "" }}'
 
     def color(prefix: str = '') -> str:
-        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+        return '{% if params.color and params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def skip_import() -> str:
-        return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
     def _params_validate(batch_id, color):
         if batch_id == '':
             raise AirflowFailException('DAG param "batch_id" is required')
         if env == Env.QA:
-            if color == '':
+            if color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        elif color != '':
+        elif color and color != '':
             raise AirflowFailException(
                 f'DAG param "color" is forbidden in {env} environment'
             )

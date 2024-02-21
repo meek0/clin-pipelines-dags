@@ -22,7 +22,7 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('', type=['null', 'string']),
         'snv': Param('no', enum=['yes', 'no']),
         'snv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
         'cnv': Param('no', enum=['yes', 'no']),
@@ -45,10 +45,10 @@ with DAG(
         return '{% if params.'+param+' == "yes" %}{% else %}yes{% endif %}'
 
     def spark_jar() -> str:
-        return '{{ params.spark_jar }}'
+        return '{{ params.spark_jar or "" }}'
 
     def color(prefix: str = '') -> str:
-        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
     
     def skip_snv() -> str:
         return formatSkipCondition('snv')
@@ -79,11 +79,11 @@ with DAG(
 
     def _params_validate(color):
         if env == Env.QA:
-            if color == '':
+            if not color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        elif color != '':
+        elif color and color != '':
             raise AirflowFailException(
                 f'DAG param "color" is forbidden in {env} environment'
             )
