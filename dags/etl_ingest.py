@@ -35,10 +35,10 @@ with DAG(
 ) as dag:
 
     def batch_id() -> str:
-        return '{{ params.batch_id or "" or "" }}'
+        return '{{ params.batch_id or "" }}'
 
     def spark_jar() -> str:
-        return '{{ params.spark_jar or "" or "" }}'
+        return '{{ params.spark_jar or "" }}'
 
     def color(prefix: str = '') -> str:
         return '{% if params.color and params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
