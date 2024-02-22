@@ -18,7 +18,7 @@ if (config.show_test_dags):
     ) as dag:
 
         def spark_jar() -> str:
-            return '{{ params.spark_jar }}'
+            return '{{ params.spark_jar or "" }}'
             
         test_spark_fail = SparkOperator(
             task_id='test_spark_fail',

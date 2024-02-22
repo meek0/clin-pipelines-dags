@@ -24,7 +24,7 @@ with DAG(
     params={
         'batch_id':  Param('', type=['null', 'string']),
         'release_id': Param('', type='string'),
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('', type=['null', 'string']),
         'import': Param('yes', enum=['yes', 'no']),
         'notify': Param('no', enum=['yes', 'no']),
         'spark_jar': Param('', type=['null', 'string']),
@@ -37,38 +37,38 @@ with DAG(
 ) as dag:
 
     def batch_id() -> str:
-        return '{{ params.batch_id }}'
+        return '{{ params.batch_id or "" }}'
 
     def release_id() -> str:
         return '{{ params.release_id }}'
 
     def spark_jar() -> str:
-        return '{{ params.spark_jar }}'
+        return '{{ params.spark_jar or "" }}'
 
     def color(prefix: str = '') -> str:
-        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def skip_import() -> str:
-        return '{% if params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
 
     def skip_batch() -> str:
-        return '{% if params.batch_id|length %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id and params.batch_id|length %}{% else %}yes{% endif %}'
 
     def default_or_initial() -> str:
-        return '{% if params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
+        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
 
     def skip_notify() -> str:
-        return '{% if params.batch_id|length and params.notify == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.batch_id and params.batch_id|length and params.notify == "yes" %}{% else %}yes{% endif %}'
 
     def _params_validate(release_id, color):
         if release_id == '':
             raise AirflowFailException('DAG param "release_id" is required')
         if env == Env.QA:
-            if color == '':
+            if not color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        elif color != '':
+        elif color and color != '':
             raise AirflowFailException(
                 f'DAG param "color" is forbidden in {env} environment'
             )

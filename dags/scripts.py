@@ -15,7 +15,7 @@ with DAG(
     params={
         'script': Param('', type='string'),
         'args': Param('', type=['null', 'string']),
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('', type=['null', 'string']),
         'bucket': Param('', enum=['', f'cqgc-{env}-app-files-import', f'cqgc-{env}-app-datalake',]),
     },
     default_args={
@@ -27,13 +27,13 @@ with DAG(
         return '{{ params.script }}'
 
     def args() -> str:
-        return '{{ params.args }}'
+        return '{{ params.args or "" }}'
 
     def bucket() -> str:
         return '{{ params.bucket }}'
 
     def color(prefix: str = '') -> str:
-        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def _params_validate(script, color):
         if script == '':
@@ -41,11 +41,11 @@ with DAG(
                 'DAG param "script" is required'
             )
         if env == Env.QA:
-            if color == '':
+            if not color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        elif color != '':
+        elif color and color != '':
             raise AirflowFailException(
                 f'DAG param "color" is forbidden in {env} environment'
             )

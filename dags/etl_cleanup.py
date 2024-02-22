@@ -1,9 +1,10 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
+from lib.config import Env, K8sContext, env, es_url
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
@@ -13,7 +14,6 @@ from lib.operators.postgres import PostgresOperator
 from lib.operators.wait import WaitOperator
 from lib.slack import Slack
 
-
 if env in [Env.QA, Env.STAGING]:
 
     with DAG(
@@ -21,7 +21,7 @@ if env in [Env.QA, Env.STAGING]:
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         params={
-            'color': Param('', enum=['', 'blue', 'green']),
+            'color': Param('', type=['null', 'string']),
         },
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
@@ -29,21 +29,21 @@ if env in [Env.QA, Env.STAGING]:
     ) as dag:
 
         def color(prefix: str = '') -> str:
-            return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+            return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
         def _params_validate(color):
             if env == Env.QA:
-                if color == '':
+                if not color or color == '':
                     raise AirflowFailException(
                         f'DAG param "color" is required in {env} environment'
                     )
             elif env == Env.STAGING:
-                if color != '':
+                if color and color != '':
                     raise AirflowFailException(
                         f'DAG param "color" is forbidden in {env} environment'
                     )
             elif env == Env.PROD:
-                if color != '':
+                if color and color != '':
                     raise AirflowFailException(
                         f'DAG param "color" is forbidden in {env} environment'
                     )
