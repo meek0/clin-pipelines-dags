@@ -97,7 +97,7 @@ elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
     pipeline_image = 'ferlabcrsj/clin-pipelines:b967640'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
-    es_url = 'https://192.168.12.54:9200,https://192.168.12.55:9200,https://192.168.12.52:9200,https://192.168.12.57:9200,https://192.168.12.53:9200'
+    es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
