@@ -26,7 +26,7 @@ with DAG(
 ) as dag:
     
     def batch_id() -> str:
-        return '{{ params.batch_id }}'
+        return '{{ params.batch_id or "" }}'
 
     def validate_params(batch_id):
         if batch_id == '':

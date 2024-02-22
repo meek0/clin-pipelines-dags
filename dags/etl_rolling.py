@@ -1,14 +1,14 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-from datetime import datetime
-from lib.config import env, es_url, Env, K8sContext
-from lib.operators.curl import CurlOperator
+from lib.config import Env, K8sContext, env, es_url
 from lib.operators.arranger import ArrangerOperator
+from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.slack import Slack
-
 
 if env == Env.QA:
 
@@ -18,7 +18,7 @@ if env == Env.QA:
         schedule_interval=None,
         params={
             'release_id': Param('', type='string'),
-            'color': Param('', enum=['', 'blue', 'green']),
+            'color': Param('', type=['null', 'string']),
         },
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
@@ -29,7 +29,7 @@ if env == Env.QA:
             return '{{ params.release_id }}'
 
         def color(prefix: str = '') -> str:
-            return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+            return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
         def _params_validate(release_id, color):
             if release_id == '':
@@ -37,7 +37,7 @@ if env == Env.QA:
                     'DAG param "release_id" is required'
                 )
             if env == Env.QA:
-                if color == '':
+                if not color or color == '':
                     raise AirflowFailException(
                         f'DAG param "color" is required in {env} environment'
                     )

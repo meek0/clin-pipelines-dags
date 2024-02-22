@@ -1,12 +1,12 @@
+from datetime import datetime
+
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-from datetime import datetime
-from lib.config import env, Env, K8sContext
+from lib.config import Env, K8sContext, env
 from lib.operators.pipeline import PipelineOperator
 from lib.slack import Slack
-
 
 with DAG(
     dag_id='etl_notify',
@@ -14,7 +14,7 @@ with DAG(
     schedule_interval=None,
     params={
         'batch_id':  Param('', type='string'),
-        'color': Param('', enum=['', 'blue', 'green']),
+        'color': Param('', type=['null', 'string']),
     },
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
@@ -22,20 +22,20 @@ with DAG(
 ) as dag:
 
     def batch_id() -> str:
-        return '{{ params.batch_id }}'
+        return '{{ params.batch_id or "" }}'
 
     def color(prefix: str = '') -> str:
-        return '{% if params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
+        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def _params_validate(batch_id, color):
         if batch_id == '':
             raise AirflowFailException('DAG param "batch_id" is required')
         if env == Env.QA:
-            if color == '':
+            if not color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
-        elif color != '':
+        elif color and color != '':
             raise AirflowFailException(
                 f'DAG param "color" is forbidden in {env} environment'
             )

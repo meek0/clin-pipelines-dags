@@ -4,8 +4,7 @@ from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
-
-from lib.config import env, Env, K8sContext, config_file
+from lib.config import Env, K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 
@@ -24,7 +23,7 @@ if env in [Env.PROD]:
     ) as dag:
 
         def batch_id() -> str:
-            return '{{ params.batch_id }}'
+            return '{{ params.batch_id or "" }}'
 
         def _params_validate(batch_id):
             if batch_id == '':

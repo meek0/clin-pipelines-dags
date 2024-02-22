@@ -29,7 +29,7 @@ with DAG(
         return '{{ params.release_id }}'
 
     def spark_jar() -> str:
-        return '{{ params.spark_jar }}'
+        return '{{ params.spark_jar or "" }}'
 
     def _params_validate(release_id):
         if release_id == '':
