@@ -1,8 +1,9 @@
 from airflow.exceptions import AirflowSkipException
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import env, env_url, auth_url
+from lib.config import auth_url, env, env_url
 from lib.utils import join
 
 
@@ -120,6 +121,10 @@ class PipelineOperator(KubernetesPodOperator):
             k8s.V1EnvVar(
                 name='AWS_PREFIX',
                 value=self.color,
+            ),
+            k8s.V1EnvVar(
+                name='AWS_COPY_FILE_MODE',
+                value='async',
             ),
             k8s.V1EnvVar(
                 name='MAILER_HOST',
