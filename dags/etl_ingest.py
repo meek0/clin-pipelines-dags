@@ -50,7 +50,7 @@ with DAG(
         if batch_id == '':
             raise AirflowFailException('DAG param "batch_id" is required')
         if env == Env.QA:
-            if color or color == '':
+            if not color or color == '':
                 raise AirflowFailException(
                     f'DAG param "color" is required in {env} environment'
                 )
