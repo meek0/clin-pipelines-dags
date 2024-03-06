@@ -73,10 +73,10 @@ if env == Env.QA:
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:b967640'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:dcd5a6a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v2.23.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
