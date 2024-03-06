@@ -92,6 +92,7 @@ elif env == Env.STAGING:
         '231113_A00516_0480_BHLJCMDRX3',
         '230828_A00516_0454_BHLM57DMXY.dragen.WES_somatic-tumor_only',
         '230609_A00516_0425_AHKNCFDMXY',
+        '240201_A00516_0001_SYNTH',
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
