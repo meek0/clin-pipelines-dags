@@ -52,6 +52,7 @@ def filter_valid_families(grouped_by_families):
         has_proband = False
         has_mother = False
         has_father = False
+        has_something_else = None
         for analysis in analyses:
             family_member = analysis['patient']['familyMember']
             if FamilyMember.PROBAND.value == family_member:
@@ -61,13 +62,14 @@ def filter_valid_families(grouped_by_families):
             elif FamilyMember.FATHER.value == family_member:
                 has_father = True
             else:
-                raise AirflowFailException(f'Unknown relation: {family_member}')
-        if has_proband and has_mother and has_father: # TRIO
+                has_something_else = family_member
+                logging.warn(f'Unknown relation: {family_member}')
+        if not has_something_else and has_proband and has_mother and has_father: # TRIO
             filtered_families[family_id] = analyses
-        elif has_proband and (has_mother or has_father): # DUO
+        elif not has_something_else and has_proband and (has_mother or has_father): # DUO
             filtered_families[family_id] = analyses
         else:
-            logging.info(f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} analyses: {analyses}')
+            logging.info(f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} UNSUPPORTED: {has_something_else} analyses: {analyses}')
     return filtered_families
 
 
