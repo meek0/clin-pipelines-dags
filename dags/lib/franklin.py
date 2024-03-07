@@ -223,16 +223,18 @@ def extract_param_from_s3_key(key, param_name):
                 return value
     raise AirflowFailException(f'Cant find param: {param_name} in s3 key: {key}')
 
+name_separator = " - "
+
 def build_sample_name(aliquot_id, family_id):
-    return f'{aliquot_id} - {family_id}'    # seems to convert SOLO family_id to 'None' as a str
+    return f'{aliquot_id}{name_separator}{family_id}'    # seems to convert SOLO family_id to 'None' as a str
     
 def extract_from_name_aliquot_id(name):
-    id = name.split("-")[0].strip()
+    id = name.split(name_separator)[0].strip()
     # family analysis has no aliquot
     return id if id != family_analysis_keyword else None
 
 def extract_from_name_family_id(name):
-    id = name.split("-")[1].strip() # cf build_sample_name(), 
+    id = name.split(name_separator)[1].strip() # cf build_sample_name(), 
     if (id == 'None' or id.startswith('None_')): # for some reasons franklin can add suffix like None_1
         return None
     return id
