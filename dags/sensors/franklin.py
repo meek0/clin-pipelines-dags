@@ -50,14 +50,13 @@ class FranklinAPISensor(BaseSensorOperator):
 
                     created_analyses += ids
 
-        logging.info(f'000')
         # remove duplicated IDs if any
         created_analyses = list(set(created_analyses))
         created_count = len(created_analyses)
-        logging.info(f'001')
+
         if created_count == 0:
             raise AirflowSkipException('No CREATED analyses')
-        logging.info(f'002')
+
         token = get_franklin_token()
         statuses = get_analysis_status(created_analyses, token)
         for status in statuses:
