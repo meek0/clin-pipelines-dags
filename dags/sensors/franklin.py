@@ -36,13 +36,12 @@ class FranklinAPISensor(BaseSensorOperator):
         ready_analyses = []
 
         for key in keys:
-            logging.info(f'key: {key}')
             if '_FRANKLIN_STATUS_.txt' in key:
                 key_obj = clin_s3.get_key(key, clin_datalake_bucket)
                 status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
                 if status is FranklinStatus.CREATED:    # ignore others status
 
-                    logging.info(f'CREATED: {key}')
+                    logging.info(f'Found CREATED: {key}')
                     family_id = extract_param_from_s3_key(key, 'family_id') 
                     aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
 

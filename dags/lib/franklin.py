@@ -340,7 +340,7 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 def parse_response(res, log_body = True):
     data = res.read()
     body = data.decode('utf-8')
-    if log_body:
+    if log_body is True:
         logging.info(f'{res.status} - {body}')
     else:
         logging.info(f'{res.status}')
