@@ -367,7 +367,7 @@ def get_franklin_token(current_token = None):
         conn = get_franklin_http_conn()
         logging.info(f'004')
         payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
-        logging.info(f'004_1')
+        logging.info(f'004_1 {franklin_url_parts.path} {payload}')
         conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
         logging.info(f'004_2')
         conn.close
