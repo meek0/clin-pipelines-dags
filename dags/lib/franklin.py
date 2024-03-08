@@ -340,15 +340,18 @@ def build_create_analysis_payload(family_id, analyses, batch_id, clin_s3, frankl
 def parse_response(res, log_body = True):
     data = res.read()
     body = data.decode('utf-8')
+    logging.info(f'007')
     if log_body is True:
         logging.info(f'{res.status} - {body}')
     else:
         logging.info(f'{res.status}')
     if res.status != 200:   # log if something wrong
         raise AirflowFailException('Error from Franklin API call')
+    logging.info(f'008')
     return body
 
 def parse_response_json(res):
+    logging.info(f'006')
     return json.loads(parse_response(res))
 
 def get_franklin_http_conn():
@@ -360,10 +363,13 @@ def get_franklin_http_conn():
 
 def get_franklin_token(current_token = None):
     if current_token is None:
+        logging.info(f'003')
         conn = get_franklin_http_conn()
+        logging.info(f'004')
         payload = urllib.parse.urlencode({'email': config.franklin_email, 'password': config.franklin_password})
         conn.request("GET", franklin_url_parts.path + '/v1/auth/login?' + payload)
         conn.close
+        logging.info(f'005')
         return parse_response_json(conn.getresponse())['token']
     return current_token
 
