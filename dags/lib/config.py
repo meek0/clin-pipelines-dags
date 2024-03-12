@@ -96,10 +96,10 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:b967640'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:dcd5a6a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.22.2.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.23.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
@@ -136,6 +136,8 @@ elif env == Env.PROD:
         '240212_A00516_0516_AHNFMKDMXY_germinal',
         '240212_A00516_0517_BHNLLCDRX3_somatic',
         '240229_A00516_0524_BHWFHWDRX3_somatic',
+        '240119_A00516_0506_BHN3J2DMXY_germinal.part2.2024-02-02',
+        '240229_A00516_0525_AHNHWFDMXY_germinal'
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
