@@ -41,6 +41,7 @@ class FranklinAPISensor(BaseSensorOperator):
                 status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
                 if status is FranklinStatus.CREATED:    # ignore others status
 
+                    logging.info(f'Found CREATED: {key}')
                     family_id = extract_param_from_s3_key(key, 'family_id') 
                     aliquot_id = extract_param_from_s3_key(key, 'aliquot_id')
 
@@ -61,15 +62,19 @@ class FranklinAPISensor(BaseSensorOperator):
         for status in statuses:
             if (status['processing_status'] == 'READY'):
 
-                analysis_id = status['id']
-                analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
-                analysis_family_id = extract_from_name_family_id(status['name'])
+                analysis_id = str(status['id'])
 
-                write_s3_analysis_status(clin_s3, batch_id, analysis_family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
+                if (analysis_id in created_analyses):
+                    analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
+                    analysis_family_id = extract_from_name_family_id(status['name'])
 
-                ready_analyses.append(analysis_id)
+                    write_s3_analysis_status(clin_s3, batch_id, analysis_family_id, analysis_aliquot_id, FranklinStatus.READY, id=analysis_id)
+
+                    ready_analyses.append(analysis_id)
+                else:
+                    logging.warn(f'Unexpected analyse ID: {analysis_id} in status response')
 
         ready_count = len(ready_analyses)
 
-        logging.info(f'Ready analyses: {ready_count}/{created_count}')
+        logging.info(f'Ready analyses: {ready_count}/{created_count} {ready_analyses}')
         return ready_count == created_count  # All created analyses are ready
