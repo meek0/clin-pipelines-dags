@@ -91,7 +91,7 @@ def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
     submission_schema = metadata.get('submissionSchema', '')
 
     if batch_type == ClinAnalysis.GERMLINE:
-        if submission_schema != ClinSchema.GERMLINE:
+        if submission_schema != ClinSchema.GERMLINE.value:
             raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
         logging.info(f'Schema: {submission_schema}')
@@ -103,7 +103,7 @@ def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
         _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
 
     elif batch_type == ClinAnalysis.SOMATIC_TUMOR_ONLY:
-        if submission_schema != ClinSchema.SOMATIC_TUMOR_ONLY:
+        if submission_schema != ClinSchema.SOMATIC_TUMOR_ONLY.value:
             raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
         logging.info(f'Schema: {submission_schema}')
