@@ -1,543 +1,223 @@
 from datetime import datetime
+from typing import List
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
+from airflow.decorators import task, task_group
+from airflow.models import DagRun
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import (Env, K8sContext, config_file, env, es_url,
-                        indexer_context)
-from lib.groups.ingest_batch import IngestBatch
-from lib.groups.ingest_fhir import IngestFhir
+
+from lib.config import K8sContext
+from lib.groups.index.index import index
+from lib.groups.index.prepare_index import prepare_index
+from lib.groups.index.publish_index import publish_index
 from lib.groups.qa import qa
-from lib.operators.arranger import ArrangerOperator
-from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
-from lib.operators.pipeline import PipelineOperator
-from lib.operators.spark import SparkOperator
+from lib.operators.notify import NotifyOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks import batch_type, enrich
+from lib.tasks.params_validate import validate_release_color
+from lib.utils_etl import (release_id, color, spark_jar, default_or_initial,
+                           ClinAnalysis, skip_notify)
+
+
+def any_in(values, iterable):
+    """
+    Macro for Jinja templating.
+    """
+    return any(value in iterable for value in values)
+
 
 with DAG(
-    dag_id='etl',
-    start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
-    params={
-        'batch_id':  Param('', type=['null', 'string']),
-        'release_id': Param('', type='string'),
-        'color': Param('', type=['null', 'string']),
-        'import': Param('yes', enum=['yes', 'no']),
-        'notify': Param('no', enum=['yes', 'no']),
-        'spark_jar': Param('', type=['null', 'string']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure,
-    },
-    max_active_tasks=4
+        dag_id='etl',
+        start_date=datetime(2022, 1, 1),
+        schedule_interval=None,
+        params={
+            'batch_ids': Param([], type=['null', 'array'],
+                               description='Put a single batch id per line. Leave empty to skip ingest.'),
+            'release_id': Param('', type='string'),
+            'color': Param('', type=['null', 'string']),
+            'import': Param('yes', enum=['yes', 'no']),
+            'notify': Param('no', enum=['yes', 'no']),
+            'qc': Param('yes', enum=['yes', 'no']),
+            'rolling': Param('no', enum=['yes', 'no']),
+            'spark_jar': Param('', type=['null', 'string']),
+        },
+        default_args={
+            'trigger_rule': TriggerRule.NONE_FAILED,
+            'on_failure_callback': Slack.notify_task_failure,
+        },
+        max_active_tasks=4,
+        render_template_as_native_obj=True,
+        user_defined_macros={'any_in': any_in}
 ) as dag:
+    def skip_if_no_target_batches(target_batch_types: List[ClinAnalysis]) -> str:
+        """
+        Checks if at least one current batch type matches at least one of the target batch types. If there is a single
+        match or if no batch_ids were passed, returns False so task won't be skipped. Otherwise, if there are no matches,
+        returns True so task will be skipped.
 
-    def batch_id() -> str:
-        return '{{ params.batch_id or "" }}'
+        To use, pass macro any_in as user_defined_macros in DAG definition.
+        """
+        return f"{{% set targets = {[target.value for target in target_batch_types]} %}}" \
+               "{% set batch_types = task_instance.xcom_pull(task_ids='detect_batch_type') %}" \
+               "{% if not batch_types or any_in(targets, batch_types) %}{% else %}'yes'{% endif %}"
 
-    def release_id() -> str:
-        return '{{ params.release_id }}'
 
-    def spark_jar() -> str:
-        return '{{ params.spark_jar or "" }}'
+    def skip_qc() -> str:
+        return '{% if params.qc == "yes" %}{% else %}yes{% endif %}'
 
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
-    def skip_import() -> str:
-        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+    def skip_rolling() -> str:
+        return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
 
-    def skip_batch() -> str:
-        return '{% if params.batch_id and params.batch_id|length %}{% else %}yes{% endif %}'
 
-    def default_or_initial() -> str:
-        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
-
-    def skip_notify() -> str:
-        return '{% if params.batch_id and params.batch_id|length and params.notify == "yes" %}{% else %}yes{% endif %}'
-
-    def _params_validate(release_id, color):
-        if release_id == '':
-            raise AirflowFailException('DAG param "release_id" is required')
-        if env == Env.QA:
-            if not color or color == '':
-                raise AirflowFailException(
-                    f'DAG param "color" is required in {env} environment'
-                )
-        elif color and color != '':
-            raise AirflowFailException(
-                f'DAG param "color" is forbidden in {env} environment'
-            )
-
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[release_id(), color()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
-    )
-
-    ingest_fhir = IngestFhir(
-        group_id='fhir',
-        batch_id=batch_id(),
-        color=color(),
-        skip_import=skip_import(),
-        skip_batch=skip_batch(),
-        spark_jar=spark_jar(),
-    )
-
-    ingest_batch = IngestBatch(
-        group_id='ingest',
-        batch_id=batch_id(),
-        skip_snv=skip_batch(),
-        skip_snv_somatic_tumor_only=skip_batch(),
-        skip_cnv=skip_batch(),
-        skip_cnv_somatic_tumor_only=skip_batch(),
-        skip_variants=skip_batch(),
-        skip_consequences=skip_batch(),
-        skip_exomiser=skip_batch(),
-        skip_coverage_by_gene=skip_batch(),
-        skip_franklin=skip_batch(),
-        spark_jar=spark_jar(),
-    )
-
-    with TaskGroup(group_id='enrich') as enrich:
-        snv = SparkOperator(
-            task_id='snv',
-            name='etl-enrich-snv',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'snv',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_snv',
-            ],
-        )
-
-        snv_somatic_tumor_only = SparkOperator(
-            task_id='snv_somatic_tumor_only',
-            name='etl-enrich-snv-somatic',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-medium',
-            spark_jar=spark_jar(),
-            arguments=[
-                'snv_somatic_tumor_only',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_snv_somatic',
-            ],
-        )
-
-        variants = SparkOperator(
-            task_id='variants',
-            name='etl-enrich-variants',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'variants',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_variants',
-            ],
-        )
-
-        consequences = SparkOperator(
-            task_id='consequences',
-            name='etl-enrich-consequences',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'consequences',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_consequences',
-            ],
-        )
-
-        cnv = SparkOperator(
-            task_id='cnv',
-            name='etl-enrich-cnv',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'cnv',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_cnv',
-            ],
-        )
-
-        coverage_by_gene = SparkOperator(
-            task_id='coverage_by_gene',
-            name='etl-enrich-coverage-by-gene',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'coverage_by_gene',
-                '--config', config_file,
-                '--steps', default_or_initial(),
-                '--app-name', 'etl_enrich_coverage_by_gene',
-            ],
-        )
-
-        snv >> snv_somatic_tumor_only >> variants >> consequences >> cnv >> coverage_by_gene
-
-    with TaskGroup(group_id='prepare') as prepare:
-
-        gene_centric = SparkOperator(
-            task_id='gene_centric',
-            name='etl-prepare-gene-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'gene_centric',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_gene_centric',
-                '--releaseId', release_id()
-            ],
-        )
-
-        gene_suggestions = SparkOperator(
-            task_id='gene_suggestions',
-            name='etl-prepare-gene-suggestions',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'gene_suggestions',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_gene_suggestions',
-                '--releaseId', release_id()
-            ],
-        )
-
-        variant_centric = SparkOperator(
-            task_id='variant_centric',
-            name='etl-prepare-variant-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'variant_centric',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_variant_centric',
-                '--releaseId', release_id()
-            ],
-        )
-
-        variant_suggestions = SparkOperator(
-            task_id='variant_suggestions',
-            name='etl-prepare-variant-suggestions',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'variant_suggestions',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_variant_suggestions',
-                '--releaseId', release_id()
-            ],
-        )
-
-        cnv_centric = SparkOperator(
-            task_id='cnv_centric',
-            name='etl-prepare-cnv-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'cnv_centric',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_cnv_centric',
-                '--releaseId', release_id()
-            ],
-        )
-
-        coverage_by_gene_centric = SparkOperator(
-            task_id='coverage_by_gene',
-            name='etl-prepare-coverage-by-gene',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
-            spark_config='config-etl-large',
-            spark_jar=spark_jar(),
-            arguments=[
-                'coverage_by_gene_centric',
-                '--config', config_file,
-                '--steps', 'initial',
-                '--app-name', 'etl_prepare_coverage_by_gene',
-                '--releaseId', release_id()
-            ],
-        )
-
-        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> cnv_centric >> coverage_by_gene_centric
-
-    qa = qa(
-        group_id='qa',
+    params_validate_task = validate_release_color.override(on_execute_callback=Slack.notify_dag_start)(
         release_id=release_id(),
-        spark_jar=spark_jar(),
+        color=color()
     )
 
-    with TaskGroup(group_id='index') as index:
 
-        gene_centric = SparkOperator(
-            task_id='gene_centric',
-            name='etl-index-gene-centric',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
+    @task(task_id='get_batch_ids')
+    def get_batch_ids(ti=None) -> List[str]:
+        dag_run: DagRun = ti.dag_run
+        return dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
+
+
+    @task(task_id='get_ingest_dag_configs')
+    def get_ingest_dag_config(batch_id: str, ti=None) -> dict:
+        dag_run: DagRun = ti.dag_run
+        return {
+            'batch_id': batch_id,
+            'color': dag_run.conf['color'],
+            'import': dag_run.conf['import'],
+            'spark_jar': dag_run.conf['spark_jar']
+        }
+
+
+    get_batch_ids_task = get_batch_ids()
+    detect_batch_types_task = batch_type.detect.expand(batch_id=get_batch_ids_task)
+    get_ingest_dag_configs_task = get_ingest_dag_config.expand(batch_id=get_batch_ids_task)
+
+    trigger_ingest_dags = TriggerDagRunOperator.partial(
+        task_id='ingest_batches',
+        trigger_dag_id='etl_ingest',
+        wait_for_completion=True
+    ).expand(conf=get_ingest_dag_configs_task)
+
+    steps = default_or_initial(batch_param_name='batch_ids')
+
+
+    @task_group(group_id='enrich')
+    def enrich_group():
+        # Only run snv if at least one germline batch
+        snv = enrich.snv(
+            steps=steps,
             spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_gene_centric',
-                release_id(),
-                'gene_centric_template.json',
-                'gene_centric',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
+            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE])
         )
 
-        gene_suggestions = SparkOperator(
-            task_id='gene_suggestions',
-            name='etl-index-gene-suggestions',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
+        # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
+        # Run snv_somatic_all if no batch ids are provided. Otherwise, run snv_somatic for each batch_id.
+        @task.branch(task_id='run_snv_somatic')
+        def run_snv_somatic(batch_ids: List[str]):
+            if not batch_ids:
+                return 'enrich.snv_somatic_all'
+            else:
+                return 'enrich.snv_somatic'
+
+        run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
+
+        snv_somatic_all = enrich.snv_somatic_all(
             spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_gene_suggestions',
-                release_id(),
-                'gene_suggestions_template.json',
-                'gene_suggestions',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
+            steps=steps,
+            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
+                                                               ClinAnalysis.SOMATIC_TUMOR_NORMAL])
         )
 
-        variant_centric = SparkOperator(
-            task_id='variant_centric',
-            name='etl-index-variant-centric',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
+        snv_somatic = enrich.snv_somatic(
+            batch_ids=get_batch_ids_task,
             spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_variant_centric',
-                release_id(),
-                'variant_centric_template.json',
-                'variant_centric',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
+            steps=steps,
+            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
+                                                               ClinAnalysis.SOMATIC_TUMOR_NORMAL])
         )
 
-        variant_suggestions = SparkOperator(
-            task_id='variant_suggestions',
-            name='etl-index-variant-suggestions',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
+        # Only run if at least one germline or somatic tumor only batch
+        cnv = enrich.cnv(
             spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_variant_suggestions',
-                release_id(),
-                'variant_suggestions_template.json',
-                'variant_suggestions',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
+            steps=steps,
+            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                               ClinAnalysis.SOMATIC_TUMOR_ONLY])
         )
 
-        cnv_centric = SparkOperator(
-            task_id='cnv_centric',
-            name='etl-index-cnv-centric',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_cnv_centric',
-                release_id(),
-                'cnv_centric_template.json',
-                'cnv_centric',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
-        )
+        # Always run variants, consequences and coverage by gene
+        variants = enrich.variants(spark_jar=spark_jar(), steps=steps)
+        consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
+        coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
-        coverage_by_gene_centric = SparkOperator(
-            task_id='coverage_by_gene_centric',
-            name='etl-index-coverage-by-gene',
-            k8s_context=indexer_context,
-            spark_class='bio.ferlab.clin.etl.es.Indexer',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_coverage_by_gene_centric',
-                release_id(),
-                'coverage_by_gene_centric_template.json',
-                'coverage_by_gene_centric',
-                '1900-01-01 00:00:00',
-                f'config/{env}.conf',
-            ],
-        )
+        snv >> run_snv_somatic_task >> [snv_somatic_all,
+                                        snv_somatic] >> variants >> consequences >> cnv >> coverage_by_gene
 
-        [gene_centric, gene_suggestions] >> variant_centric >> [variant_suggestions, cnv_centric, coverage_by_gene_centric]
 
-    with TaskGroup(group_id='publish') as publish:
+    prepare_group = prepare_index(
+        spark_jar=spark_jar(),
+        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+    )
 
-        gene_centric = SparkOperator(
-            task_id='gene_centric',
-            name='etl-publish-gene-centric',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_gene_centric',
-                release_id(),
-            ],
-        )
+    qa_group = qa(
+        release_id=release_id(),
+        spark_jar=spark_jar()
+    )
 
-        gene_suggestions = SparkOperator(
-            task_id='gene_suggestions',
-            name='etl-publish-gene-suggestions',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_gene_suggestions',
-                release_id(),
-            ],
-        )
+    index_group = index(
+        release_id=release_id(),
+        color=color('_'),
+        spark_jar=spark_jar(),
+        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+    )
 
-        variant_centric = SparkOperator(
-            task_id='variant_centric',
-            name='etl-publish-variant-centric',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_variant_centric',
-                release_id(),
-            ],
-        )
+    publish_group = publish_index(
+        release_id=release_id(),
+        color=color('_'),
+        spark_jar=spark_jar(),
+        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+    )
 
-        variant_suggestions = SparkOperator(
-            task_id='variant_suggestions',
-            name='etl-publish-variant-suggestions',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_variant_suggestions',
-                release_id(),
-            ],
-        )
-
-        cnv_centric = SparkOperator(
-            task_id='cnv_centric',
-            name='etl-publish-cnv-centric',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_cnv_centric',
-                release_id(),
-            ],
-        )
-
-        coverage_by_gene_centric = SparkOperator(
-            task_id='coverage_by_gene_centric',
-            name='etl-publish-cnv-centric',
-            k8s_context=K8sContext.DEFAULT,
-            spark_class='bio.ferlab.clin.etl.es.Publish',
-            spark_config='config-etl-singleton',
-            spark_jar=spark_jar(),
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-            arguments=[
-                es_url, '', '',
-                f'clin_{env}' + color('_') + '_coverage_by_gene_centric',
-                release_id(),
-            ],
-        )
-
-        arranger_remove_project = ArrangerOperator(
-            task_id='arranger_remove_project',
-            name='etl-publish-arranger-remove-project',
-            k8s_context=K8sContext.DEFAULT,
-            cmds=[
-                'node',
-                '--experimental-modules=node',
-                '--es-module-specifier-resolution=node',
-                'cmd/remove_project.js',
-                env,
-            ],
-        )
-
-        arranger_restart = K8sDeploymentRestartOperator(
-            task_id='arranger_restart',
-            k8s_context=K8sContext.DEFAULT,
-            deployment='arranger',
-            on_success_callback=Slack.notify_dag_completion,
-        )
-
-        [gene_centric, gene_suggestions, variant_centric, variant_suggestions, cnv_centric, coverage_by_gene_centric] >> arranger_remove_project >> arranger_restart
-
-    notify = PipelineOperator(
+    # Use operator directly for dynamic task mapping
+    notify_task = NotifyOperator.partial(
         task_id='notify',
-        name='etl-notify',
+        name='notify',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
-        skip=skip_notify(),
-        arguments=[
-            'bio.ferlab.clin.etl.LDMNotifier', batch_id(),
-        ],
+        skip=skip_notify(batch_param_name='batch_ids')
+    ).expand(
+        batch_id=get_batch_ids_task
     )
 
-    params_validate >> ingest_fhir >> ingest_batch >> enrich >> prepare >> qa >> index >> publish >> notify
+    trigger_qc_dag = TriggerDagRunOperator(
+        task_id='qc',
+        trigger_dag_id='etl_qc',
+        wait_for_completion=True,
+        skip=skip_qc(),
+        conf={
+            'release_id': release_id(),
+            'spark_jar': spark_jar()
+        }
+    )
+
+    trigger_rolling_dag = TriggerDagRunOperator(
+        task_id='rolling',
+        trigger_dag_id='etl_rolling',
+        wait_for_completion=True,
+        skip=skip_rolling(),
+        conf={
+            'release_id': release_id(),
+            'color': color()
+        }
+    )
+
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_qc_dag >> trigger_rolling_dag

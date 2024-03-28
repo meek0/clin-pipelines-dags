@@ -1,135 +1,152 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import Env, K8sContext, batch_ids, env, es_url
-from lib.groups.ingest_batch import IngestBatch
-from lib.groups.ingest_fhir import IngestFhir
-from lib.groups.qa import qa
-from lib.operators.arranger import ArrangerOperator
-from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
-from lib.operators.pipeline import PipelineOperator
-from lib.operators.spark import SparkOperator
+
+from lib.config import batch_ids
+from lib.groups.ingest.ingest_fhir import ingest_fhir
+from lib.groups.migrate.migrate_germline import migrate_germline
+from lib.groups.migrate.migrate_somatic_tumor_normal import migrate_somatic_tumor_normal
+from lib.groups.migrate.migrate_somatic_tumor_only import migrate_somatic_tumor_only
 from lib.slack import Slack
+from lib.tasks import batch_type
+from lib.tasks.params_validate import validate_color
+from lib.utils_etl import color, spark_jar, get_group_id
 
 with DAG(
-    dag_id='etl_migrate',
-    start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
-    params={
-        'color': Param('', type=['null', 'string']),
-        'snv': Param('no', enum=['yes', 'no']),
-        'snv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
-        'cnv': Param('no', enum=['yes', 'no']),
-        'cnv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
-        'variants': Param('no', enum=['yes', 'no']),
-        'consequences': Param('no', enum=['yes', 'no']),
-        'exomiser': Param('no', enum=['yes', 'no']),
-        'coverage_by_gene': Param('no', enum=['yes', 'no']),
-        'franklin': Param('no', enum=['yes', 'no']),
-        'spark_jar': Param('', type=['null', 'string']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure,
-    },
-    max_active_tasks=4
+        dag_id='etl_migrate',
+        start_date=datetime(2022, 1, 1),
+        schedule_interval=None,
+        params={
+            'color': Param('', type=['null', 'string']),
+            'snv': Param('no', enum=['yes', 'no']),
+            'snv_somatic': Param('no', enum=['yes', 'no']),
+            'cnv': Param('no', enum=['yes', 'no']),
+            'cnv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
+            'variants': Param('no', enum=['yes', 'no']),
+            'consequences': Param('no', enum=['yes', 'no']),
+            'exomiser': Param('no', enum=['yes', 'no']),
+            'coverage_by_gene': Param('no', enum=['yes', 'no']),
+            'franklin': Param('no', enum=['yes', 'no']),
+            'spark_jar': Param('', type=['null', 'string']),
+        },
+        default_args={
+            'trigger_rule': TriggerRule.NONE_FAILED,
+            'on_failure_callback': Slack.notify_task_failure,
+        },
+        max_active_tasks=4
 ) as dag:
+    def format_skip_condition(param: str) -> str:
+        return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
 
-    def formatSkipCondition(param: str) -> str:
-        return '{% if params.'+param+' == "yes" %}{% else %}yes{% endif %}'
 
-    def spark_jar() -> str:
-        return '{{ params.spark_jar or "" }}'
-
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-    
     def skip_snv() -> str:
-        return formatSkipCondition('snv')
+        return format_skip_condition('snv')
 
-    def skip_snv_somatic_tumor_only() -> str:
-        return formatSkipCondition('snv_somatic_tumor_only')
+
+    def skip_snv_somatic() -> str:
+        return format_skip_condition('snv_somatic')
+
 
     def skip_cnv() -> str:
-        return formatSkipCondition('cnv')
+        return format_skip_condition('cnv')
+
 
     def skip_cnv_somatic_tumor_only() -> str:
-        return formatSkipCondition('cnv_somatic_tumor_only')
+        return format_skip_condition('cnv_somatic_tumor_only')
+
 
     def skip_variants() -> str:
-        return formatSkipCondition('variants')
+        return format_skip_condition('variants')
+
 
     def skip_consequences() -> str:
-        return formatSkipCondition('consequences')
+        return format_skip_condition('consequences')
+
 
     def skip_exomiser() -> str:
-        return formatSkipCondition('exomiser')
+        return format_skip_condition('exomiser')
+
 
     def skip_coverage_by_gene() -> str:
-        return formatSkipCondition('coverage_by_gene')
+        return format_skip_condition('coverage_by_gene')
+
 
     def skip_franklin() -> str:
-        return formatSkipCondition('franklin')
+        return format_skip_condition('franklin')
 
-    def _params_validate(color):
-        if env == Env.QA:
-            if not color or color == '':
-                raise AirflowFailException(
-                    f'DAG param "color" is required in {env} environment'
-                )
-        elif color and color != '':
-            raise AirflowFailException(
-                f'DAG param "color" is forbidden in {env} environment'
-            )
 
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[color()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
+    params_validate_task = validate_color.override(on_execute_callback=Slack.notify_dag_start)(
+        color=color()
     )
 
-    allDags = IngestFhir(
-        group_id='fhir',
+    all_dags = ingest_fhir(
         batch_id='',
         color=color(),
+        skip_all='',
         skip_import='yes',  # always skip import, not the purpose of that dag
-        skip_batch='', # we want to do fhir normalized once
+        skip_batch='',  # we want to do fhir normalized once
         spark_jar=spark_jar(),
     )
 
-    def migrateBatchId(id):
-        return IngestBatch(
-            group_id='ingest',
-            batch_id=id,
-            skip_snv=skip_snv(),
-            skip_snv_somatic_tumor_only=skip_snv_somatic_tumor_only(),
-            skip_cnv=skip_cnv(),
-            skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only(),
-            skip_variants=skip_variants(),
-            skip_consequences=skip_consequences(),
-            skip_exomiser=skip_exomiser(),
-            skip_coverage_by_gene=skip_coverage_by_gene(),
-            skip_franklin=skip_franklin(),
-            spark_jar=spark_jar(),
-            batch_id_as_tag=True
-        )
-    
+    params_validate_task >> all_dags
+
+
+    def migrate_batch_id(batch_id: str) -> TaskGroup:
+        with TaskGroup(group_id=get_group_id('migrate', batch_id)) as group:
+            detect_batch_type_task = batch_type.detect(batch_id)
+
+            migrate_germline_group = migrate_germline(
+                batch_id=batch_id,
+                skip_snv=skip_snv(),
+                skip_cnv=skip_cnv(),
+                skip_variants=skip_variants(),
+                skip_consequences=skip_consequences(),
+                skip_exomiser=skip_exomiser(),
+                skip_coverage_by_gene=skip_coverage_by_gene(),
+                skip_franklin=skip_franklin(),
+                spark_jar=spark_jar()
+            )
+
+            migrate_somatic_tumor_only_group = migrate_somatic_tumor_only(
+                batch_id=batch_id,
+                skip_snv_somatic=skip_snv_somatic(),
+                skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only(),
+                skip_variants=skip_variants(),
+                skip_consequences=skip_consequences(),
+                skip_coverage_by_gene=skip_coverage_by_gene(),
+                spark_jar=spark_jar()
+            )
+
+            migrate_somatic_tumor_normal_group = migrate_somatic_tumor_normal(
+                batch_id=batch_id,
+                skip_snv_somatic=skip_snv_somatic(),
+                skip_variants=skip_variants(),
+                skip_consequences=skip_consequences(),
+                skip_coverage_by_gene=skip_coverage_by_gene(),
+                spark_jar=spark_jar()
+            )
+
+            detect_batch_type_task >> [migrate_germline_group,
+                                       migrate_somatic_tumor_only_group,
+                                       migrate_somatic_tumor_normal_group]
+
+        return group
+
+
     # concat every dags inside a loop
-    for id in batch_ids:
-        batch = migrateBatchId(id)
-        allDags >> batch
-        allDags = batch
+    for batch_id in batch_ids:
+        batch = migrate_batch_id(batch_id)
+        all_dags >> batch
+        all_dags = batch
 
     slack = EmptyOperator(
         task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
+        on_success_callback=Slack.notify_dag_completion,
+        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS
     )
 
-    params_validate >> allDags >> slack
+    all_dags >> slack
