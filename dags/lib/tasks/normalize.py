@@ -31,7 +31,7 @@ def snv_somatic(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
         spark_jar=spark_jar,
         skip=skip,
         arguments=[
-            'snv',
+            'snv_somatic',
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_normalize_snv_somatic',
