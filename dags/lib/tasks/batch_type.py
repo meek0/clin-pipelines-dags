@@ -109,7 +109,7 @@ def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
         logging.info(f'Schema: {submission_schema}')
 
         snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_ONLY.value
-        cnv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_ONLY.value
+        cnv_vcf_suffix = ClinVCFSuffix.CNV_SOMATIC_TUMOR_ONLY.value
 
         _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
         _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
