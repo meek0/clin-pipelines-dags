@@ -4,10 +4,11 @@ from airflow import DAG
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.groups.ingest.ingest_germline import ingest_germline
-from lib.groups.ingest.ingest_somatic_tumor_normal import ingest_somatic_tumor_normal
-from lib.groups.ingest.ingest_somatic_tumor_only import ingest_somatic_tumor_only
+from lib.groups.ingest.ingest_somatic_tumor_normal import \
+    ingest_somatic_tumor_normal
+from lib.groups.ingest.ingest_somatic_tumor_only import \
+    ingest_somatic_tumor_only
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_batch_color
@@ -30,7 +31,7 @@ with DAG(
         max_active_tasks=4,
         max_active_runs=1
 ) as dag:
-    params_validate = validate_batch_color.override(on_execute_callback=Slack.notify_dag_start)(
+    params_validate = validate_batch_color(
         batch_id=batch_id(),
         color=color()
     )

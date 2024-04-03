@@ -5,16 +5,17 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import batch_ids
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.migrate.migrate_germline import migrate_germline
-from lib.groups.migrate.migrate_somatic_tumor_normal import migrate_somatic_tumor_normal
-from lib.groups.migrate.migrate_somatic_tumor_only import migrate_somatic_tumor_only
+from lib.groups.migrate.migrate_somatic_tumor_normal import \
+    migrate_somatic_tumor_normal
+from lib.groups.migrate.migrate_somatic_tumor_only import \
+    migrate_somatic_tumor_only
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import color, spark_jar, get_group_id
+from lib.utils_etl import color, get_group_id, spark_jar
 
 with DAG(
         dag_id='etl_migrate',
@@ -79,7 +80,7 @@ with DAG(
         return format_skip_condition('franklin')
 
 
-    params_validate_task = validate_color.override(on_execute_callback=Slack.notify_dag_start)(
+    params_validate_task = validate_color(
         color=color()
     )
 

@@ -5,6 +5,7 @@ from airflow import DAG
 from airflow.decorators import task, task_group
 from airflow.models import DagRun
 from airflow.models.param import Param
+from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import Env, K8sContext, env
 from lib.groups.index.index import index
@@ -74,7 +75,7 @@ with DAG(
             return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
 
 
-    params_validate_task = validate_release_color.override(on_execute_callback=Slack.notify_dag_start)(
+    params_validate_task = validate_release_color(
         release_id=release_id(),
         color=color()
     )
@@ -222,4 +223,10 @@ with DAG(
         }
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> trigger_qc_dag
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion,
+        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS  # Run after one ingest group succeeds
+    )
+
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_dag
