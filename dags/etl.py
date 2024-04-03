@@ -68,7 +68,7 @@ with DAG(
 
 
     def skip_rolling() -> str:
-        if env == Env.QA:
+        if env != Env.QA:
             return 'yes'
         else:
             return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
