@@ -40,7 +40,6 @@ if env == Env.QA:
                         {{ "remove": {{ "index": "*", "alias": "clin-{env}-analyses" }} }},
                         {{ "remove": {{ "index": "*", "alias": "clin-{env}-sequencings" }} }},
                         {{ "remove": {{ "index": "*", "alias": "clin_{env}_gene_centric" }} }},
-                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_cnv_centric" }} }},
                         {{ "remove": {{ "index": "*", "alias": "clin_{env}_gene_suggestions" }} }},
                         {{ "remove": {{ "index": "*", "alias": "clin_{env}_variant_centric" }} }},
                         {{ "remove": {{ "index": "*", "alias": "clin_{env}_variant_suggestions" }} }},
@@ -50,7 +49,6 @@ if env == Env.QA:
                         {{ "add": {{ "index": "clin_{env}{under_color}_gene_centric_{release_id}", "alias": "clin_{env}_gene_centric" }} }},
                         {{ "add": {{ "index": "clin_{env}{under_color}_gene_suggestions_{release_id}", "alias": "clin_{env}_gene_suggestions" }} }},
                         {{ "add": {{ "index": "clin_{env}{under_color}_variant_centric_{release_id}", "alias": "clin_{env}_variant_centric" }} }},
-                        {{ "add": {{ "index": "clin_{env}{under_color}_cnv_centric_{release_id}", "alias": "clin_{env}_cnv_centric" }} }},
                         {{ "add": {{ "index": "clin_{env}{under_color}_variant_suggestions_{release_id}", "alias": "clin_{env}_variant_suggestions" }} }},
                         {{ "add": {{ "index": "clin_{env}{under_color}_coverage_by_gene_centric_{release_id}", "alias": "clin_{env}_coverage_by_gene_centric" }} }}
                     ]
