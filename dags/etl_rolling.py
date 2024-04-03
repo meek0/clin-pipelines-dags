@@ -3,13 +3,12 @@ from datetime import datetime
 from airflow import DAG
 from airflow.models.param import Param
 from airflow.utils.trigger_rule import TriggerRule
-
-from lib.config import env, es_url, Env, K8sContext
+from lib.config import Env, K8sContext, env, es_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
 from lib.tasks import arranger
 from lib.tasks.params_validate import validate_release_color
-from lib.utils_etl import release_id, color
+from lib.utils_etl import color, release_id
 
 if env == Env.QA:
     with DAG(
@@ -73,7 +72,7 @@ if env == Env.QA:
                 {{
                     "actions": [
                         {{ "remove": {{ "index": "*", "alias": "clin_{env}_cnv_centric" }} }},
-                        {{ "add": {{ "index": "clin_{env}{under_color}_cnv_centric_{release_id}", "alias": "clin_{env}_cnv_centric" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_cnv_centric_{release_id}", "alias": "clin_{env}_cnv_centric" }} }}
                     ]
                 }}
                 '''.format(
