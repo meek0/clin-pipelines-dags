@@ -18,7 +18,7 @@ def qc(
             name='etl-qc-vcf-snv',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.fromVCF.ContainedInSNV',
-            spark_config='config-etl-medium',
+            spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -30,7 +30,7 @@ def qc(
             name='etl-qc-vcf-nor-variants',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.fromVCF.ContainedInNorVariants',
-            spark_config='config-etl-medium',
+            spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -78,7 +78,7 @@ def qc(
             name='etl-qc-no-null-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullVariantCentric',
-            spark_config='config-etl-medium',
+            spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -114,7 +114,7 @@ def qc(
             name='etl-qc-only-null-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric',
-            spark_config='config-etl-large',
+            spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -150,7 +150,7 @@ def qc(
             name='etl-qc-same-value-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric',
-            spark_config='config-etl-large',
+            spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_'), release_id],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
@@ -349,5 +349,5 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_gene_centric, no_null_cnv_centric] >> only_null_variant_centric >> [only_null_gene_centric, only_null_cnv_centric] >> same_value_variant_centric >> [same_value_gene_centric, same_value_cnv_centric, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected]
+        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_gene_centric, no_null_cnv_centric, only_null_variant_centric, only_null_gene_centric, only_null_cnv_centric, same_value_variant_centric, same_value_gene_centric, same_value_cnv_centric, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected]
     return group
