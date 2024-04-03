@@ -6,8 +6,7 @@ from airflow.decorators import task, task_group
 from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.utils.trigger_rule import TriggerRule
-
-from lib.config import K8sContext
+from lib.config import Env, K8sContext, env
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
 from lib.groups.index.publish_index import publish_index
@@ -17,8 +16,8 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.params_validate import validate_release_color
-from lib.utils_etl import (release_id, color, spark_jar, default_or_initial,
-                           ClinAnalysis, skip_notify)
+from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
+                           skip_notify, spark_jar)
 
 
 def any_in(values, iterable):
@@ -69,7 +68,10 @@ with DAG(
 
 
     def skip_rolling() -> str:
-        return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
+        if env == Env.QA:
+            return 'yes'
+        else:
+            return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
 
 
     params_validate_task = validate_release_color.override(on_execute_callback=Slack.notify_dag_start)(
@@ -220,4 +222,4 @@ with DAG(
         }
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_qc_dag >> trigger_rolling_dag
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> trigger_qc_dag
