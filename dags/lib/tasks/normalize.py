@@ -69,7 +69,7 @@ def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: str) -> SparkOpe
         spark_jar=spark_jar,
         skip=skip,
         arguments=[
-            'cnv',
+            'cnv_somatic_tumor_only',
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_normalize_cnv_somatic',
