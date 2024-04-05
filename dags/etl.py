@@ -151,7 +151,6 @@ with DAG(
     )
 
     qa_group = qa(
-        release_id=release_id(),
         spark_jar=spark_jar()
     )
 
@@ -188,7 +187,6 @@ with DAG(
         wait_for_completion=True,
         skip=skip_qc(),
         conf={
-            'release_id': release_id(),
             'spark_jar': spark_jar()
         }
     )
