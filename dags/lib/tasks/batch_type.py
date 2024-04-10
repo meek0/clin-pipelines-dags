@@ -81,7 +81,7 @@ def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
     If the bach type was not detected, it means the batch should not be skipped.
     """
     if batch_type_detected:
-        return f"{{% if task_instance.xcom_pull(task_ids='{detect_batch_type_task_id}') == '{batch_type.value}' %}}" \
+        return f"{{% if task_instance.xcom_pull(task_ids='{detect_batch_type_task_id}').values()|first == '{batch_type.value}' %}}" \
                "{% else %}yes{% endif %}"
     else:
         return ''  # Tasks won't be skipped
