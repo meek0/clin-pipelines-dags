@@ -377,14 +377,23 @@ def post_create_analysis(family_id, analyses, token, clin_s3, franklin_s3, batch
     return parse_response_json(conn.getresponse())
 
 
-def get_analysis_status(started_analyses, token):
+def get_analysis_status(started_analyses, token, chunk_size = 10):
     conn = get_franklin_http_conn()
     headers = {'Content-Type': "application/json", 'Authorization': "Bearer " + token}
-    payload = json.dumps({'analysis_ids': started_analyses}).encode('utf-8')
-    logging.info(f'Get analysis status: {payload}')
-    conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
-    conn.close
-    return parse_response_json(conn.getresponse())
+
+    # Split started_analyses into chunks
+    analysis_chunks = [started_analyses[i:i+chunk_size] for i in range(0, len(started_analyses), chunk_size)]
+    response_data = []
+    
+    for chunk in analysis_chunks:
+        payload = json.dumps({'analysis_ids': chunk}).encode('utf-8')
+        logging.info(f'Get analysis status: {payload}')
+        conn.request("POST", franklin_url_parts.path + "/v1/analyses/status", payload, headers)
+        response = conn.getresponse()
+        response_data.extend(parse_response_json(response))
+    
+    conn.close()
+    return response_data
 
 
 def get_completed_analysis(id, token):
