@@ -14,7 +14,7 @@ class ClinAnalysis(Enum):
 class ClinVCFSuffix(Enum):
     SNV_GERMLINE = '.hard-filtered.formatted.norm.VEP.vcf.gz'
     SNV_SOMATIC_TUMOR_ONLY = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
-    SNV_SOMATIC_TUMOR_NORMAL = '*.vcf.gz'
+    SNV_SOMATIC_TUMOR_NORMAL = '.vcf.gz'
     CNV_GERMLINE = '.cnv.vcf.gz'
     CNV_SOMATIC_TUMOR_ONLY = '.dragen.WES_somatic-tumor_only.cnv.vcf.gz'
 
