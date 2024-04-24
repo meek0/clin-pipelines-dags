@@ -72,7 +72,7 @@ if env == Env.QA:
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
+    fhir_image = 'ferlabcrsj/clin-fhir:4b7a8f2'
     pipeline_image = 'ferlabcrsj/clin-pipelines:dcd5a6a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
@@ -95,7 +95,7 @@ elif env == Env.STAGING:
         '240201_A00516_0001_SYNTH',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
+    fhir_image = 'ferlabcrsj/clin-fhir:4b7a8f2'
     pipeline_image = 'ferlabcrsj/clin-pipelines:dcd5a6a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
@@ -144,6 +144,7 @@ elif env == Env.PROD:
         '240402_A00516_0538_AHWVNVDRX3_germinal',
         '240321_A00516_0534_AH5NV3DSXC_germinal_prise2',
         '240412_A00516_0544_BH5J7KDRX5_somatic',
+        '240418_A00516_0546_AHTWCFDMXY_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
