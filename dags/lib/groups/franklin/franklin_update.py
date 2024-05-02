@@ -4,15 +4,14 @@ from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
-
 from lib import config
-from lib.config import (clin_datalake_bucket,
-                        env)
-from lib.franklin import (FranklinStatus, build_s3_analyses_id_key, build_s3_analyses_json_key,
+from lib.config import clin_datalake_bucket, env
+from lib.franklin import (FranklinStatus, build_s3_analyses_id_key,
+                          build_s3_analyses_json_key,
                           build_s3_analyses_status_key,
-                          extract_param_from_s3_key, get_completed_analysis, get_franklin_token,
-                          write_s3_analysis_status)
-from lib.utils_etl import (ClinVCFSuffix)
+                          extract_param_from_s3_key, get_completed_analysis,
+                          get_franklin_token, write_s3_analysis_status)
+from lib.utils_etl import ClinVCFSuffix
 from sensors.franklin import FranklinAPISensor
 
 
@@ -129,7 +128,7 @@ def FranklinUpdate(
             task_id='api_sensor',
             batch_id=batch_id,
             mode='poke',
-            soft_fail=True, # SKIP on failure
+            soft_fail=False, # error on failure
             skip=skip,
             poke_interval=poke_interval,
             timeout=timeout,
