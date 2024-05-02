@@ -87,11 +87,11 @@ elif env == Env.STAGING:
         'test_dragen_4_2_4_germline',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:2abdd14'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:dcd5a6a'
+    fhir_image = 'ferlabcrsj/clin-fhir:da75f48'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:4b7a8f2'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v2.23.2.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.1.2.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
