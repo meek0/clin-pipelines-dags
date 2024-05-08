@@ -2,11 +2,11 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.models.param import Param
-
+from airflow.operators.empty import EmptyOperator
 from lib.slack import Slack
 from lib.tasks.notify import notify
 from lib.tasks.params_validate import validate_batch_color
-from lib.utils_etl import color, batch_id
+from lib.utils_etl import batch_id, color
 
 with DAG(
         dag_id='etl_notify',
@@ -28,4 +28,9 @@ with DAG(
         skip=''  # Don't skip -- purpose of this DAG
     )
 
-    params_validate >> notify_task
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
+    )
+
+    params_validate >> notify_task >> slack
