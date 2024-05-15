@@ -63,8 +63,8 @@ if env == Env.QA:
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:da75f48'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:a5413eb'
+    fhir_image = 'ferlabcrsj/clin-fhir:5a30555'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:81eb8a6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v3.1.2.jar'
@@ -87,8 +87,8 @@ elif env == Env.STAGING:
         'test_dragen_4_2_4_germline',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:da75f48'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:a5413eb'
+    fhir_image = 'ferlabcrsj/clin-fhir:5a30555'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:81eb8a6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.1.2.jar'
@@ -142,6 +142,14 @@ elif env == Env.PROD:
         '240308_A00516_0531_BHWVJJDRX3_somatic_normal',
         '240328_A00516_0537_BHWWH5DRX3_somatic_normal',
         '240412_A00516_0544_BH5J7KDRX5_somatic_normal',
+        '230427_A00516_0410_BH5NT3DRX3_somatic',
+        '230703_A00516_0432_BHVW7WDRX2_somatic',
+        '230724_A00516_0440_BH7L2FDRX3_somatic',
+        '230828_A00516_0454_BHLM57DMXY_somatic',
+        '230928_A00516_0463_BHJ5NTDRX3_somatic',
+        '231113_A00516_0480_BHLJCMDRX3_somatic',
+        '231120_A00516_0484_BHMYT3DSX7_somatic',
+        '231211_A00516_0490_BHNK22DRX3_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
