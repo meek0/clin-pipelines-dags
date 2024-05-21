@@ -83,6 +83,42 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        no_null_variant_centric_donors = SparkOperator(
+            task_id='no_null_variant_centric_donors',
+            doc_md=doc.no_null_variant_centric_donors,
+            name='etl-qc-no-null-variant-centric-donors',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullVariantCentric_Donors',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        no_null_variant_centric_freqbyanal = SparkOperator(
+            task_id='no_null_variant_centric_freqbyanal',
+            doc_md=doc.no_null_variant_centric_freqbyanal,
+            name='etl-qc-no-null-variant-centric-freqbyanal',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullVariantCentric_FreqByAnal',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        no_null_variant_centric_freqrqdm = SparkOperator(
+            task_id='no_null_variant_centric_freqrqdm',
+            doc_md=doc.no_null_variant_centric_freqrqdm,
+            name='etl-qc-no-null-variant-centric-freqrqdm',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullVariantCentric_FreqRQDM',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         no_null_gene_centric = SparkOperator(
             task_id='no_null_gene_centric',
             doc_md=doc.no_null_gene_centric,
@@ -107,12 +143,132 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        no_null_coverage_by_gene = SparkOperator(
+            task_id='no_null_coverage_by_gene',
+            doc_md=doc.no_null_coverage_by_gene,
+            name='etl-qc-no-null-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullCoverageByGene',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         only_null_variant_centric = SparkOperator(
             task_id='only_null_variant_centric',
             doc_md=doc.only_null_variant_centric,
             name='etl-qc-only-null-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_cmc = SparkOperator(
+            task_id='only_null_variant_centric_cmc',
+            doc_md=doc.only_null_variant_centric_cmc,
+            name='etl-qc-only-null-variant-centric-cmc',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_CMC',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_clinvar = SparkOperator(
+            task_id='only_null_variant_centric_clinvar',
+            doc_md=doc.only_null_variant_centric_clinvar,
+            name='etl-qc-only-null-variant-centric-clinvar',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_Clinvar',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_consequences = SparkOperator(
+            task_id='only_null_variant_centric_consequences',
+            doc_md=doc.only_null_variant_centric_consequences,
+            name='etl-qc-only-null-variant-centric-consequences',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_Consequences',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_donors = SparkOperator(
+            task_id='only_null_variant_centric_donors',
+            doc_md=doc.only_null_variant_centric_donors,
+            name='etl-qc-only-null-variant-centric-donors',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_Donors',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_exomax = SparkOperator(
+            task_id='only_null_variant_centric_exomax',
+            doc_md=doc.only_null_variant_centric_exomax,
+            name='etl-qc-only-null-variant-centric-exomax',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_ExoMax',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_extfreq = SparkOperator(
+            task_id='only_null_variant_centric_extfreq',
+            doc_md=doc.only_null_variant_centric_extfreq,
+            name='etl-qc-only-null-variant-centric-extfreq',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_ExtFreq',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_framax = SparkOperator(
+            task_id='only_null_variant_centric_framax',
+            doc_md=doc.only_null_variant_centric_framax,
+            name='etl-qc-only-null-variant-centric-framax',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_FraMax',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_freqbyanal = SparkOperator(
+            task_id='only_null_variant_centric_freqbyanal',
+            doc_md=doc.only_null_variant_centric_freqbyanal,
+            name='etl-qc-only-null-variant-centric-freqbyanal',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_FreqByAnal',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        only_null_variant_centric_freqrqdm = SparkOperator(
+            task_id='only_null_variant_centric_freqrqdm',
+            doc_md=doc.only_null_variant_centric_freqrqdm,
+            name='etl-qc-only-null-variant-centric-freqrqdm',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_FreqRQDM',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_')],
@@ -143,12 +299,132 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        only_null_coverage_by_gene = SparkOperator(
+            task_id='only_null_coverage_by_gene',
+            doc_md=doc.only_null_coverage_by_gene,
+            name='etl-qc-only-null-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullCoverageByGene',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         same_value_variant_centric = SparkOperator(
             task_id='same_value_variant_centric',
             doc_md=doc.same_value_variant_centric,
             name='etl-qc-same-value-variant-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_cmc = SparkOperator(
+            task_id='same_value_variant_centric_cmc',
+            doc_md=doc.same_value_variant_centric_cmc,
+            name='etl-qc-same-value-variant-centric-cmc',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_CMC',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_clinvar = SparkOperator(
+            task_id='same_value_variant_centric_clinvar',
+            doc_md=doc.same_value_variant_centric_clinvar,
+            name='etl-qc-same-value-variant-centric-clinvar',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_Clinvar',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_consequences = SparkOperator(
+            task_id='same_value_variant_centric_consequences',
+            doc_md=doc.same_value_variant_centric_consequences,
+            name='etl-qc-same-value-variant-centric-consequences',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_Consequences',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_donors = SparkOperator(
+            task_id='same_value_variant_centric_donors',
+            doc_md=doc.same_value_variant_centric_donors,
+            name='etl-qc-same-value-variant-centric-donors',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_Donors',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_exomax = SparkOperator(
+            task_id='same_value_variant_centric_exomax',
+            doc_md=doc.same_value_variant_centric_exomax,
+            name='etl-qc-same-value-variant-centric-exomax',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_ExoMax',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_extfreq = SparkOperator(
+            task_id='same_value_variant_centric_extfreq',
+            doc_md=doc.same_value_variant_centric_extfreq,
+            name='etl-qc-same-value-variant-centric-extfreq',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_ExtFreq',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_framax = SparkOperator(
+            task_id='same_value_variant_centric_framax',
+            doc_md=doc.same_value_variant_centric_framax,
+            name='etl-qc-same-value-variant-centric-framax',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_FraMax',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_freqbyanal = SparkOperator(
+            task_id='same_value_variant_centric_freqbyanal',
+            doc_md=doc.same_value_variant_centric_freqbyanal,
+            name='etl-qc-same-value-variant-centric-freqbyanal',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_FreqByAnal',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_freqrqdm = SparkOperator(
+            task_id='same_value_variant_centric_freqrqdm',
+            doc_md=doc.same_value_variant_centric_freqrqdm,
+            name='etl-qc-same-value-variant-centric-freqrqdm',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_FreqRQDM',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_')],
@@ -173,6 +449,18 @@ def qc(
             name='etl-qc-same-value-cnv-centric',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueCNV',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_coverage_by_gene = SparkOperator(
+            task_id='same_value_coverage_by_gene',
+            doc_md=doc.same_value_coverage_by_gene,
+            name='etl-qc-same-value-coverage-by-gene',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueCoverageByGene',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_')],
@@ -226,55 +514,6 @@ def qc(
             arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
-        '''
-        variants_should_be_annotated = SparkOperator(
-            task_id='variants_should_be_annotated',
-            doc_md=doc.variants_should_be_annotated,
-            name='etl-qc-variants-should-be-annotated',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeAnnotated',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_')],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        variants_should_not_be_annotated = SparkOperator(
-            task_id='variants_should_not_be_annotated',
-            doc_md=doc.variants_should_not_be_annotated,
-            name='etl-qc-variants-should-not-be-annotated',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeAnnotated',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_')],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        variants_should_be_reannotated = SparkOperator(
-            task_id='variants_should_be_reannotated',
-            doc_md=doc.variants_should_be_reannotated,
-            name='etl-qc-variants-should-be-reannotated',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeReannotated',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_')],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        variants_should_not_be_reannotated = SparkOperator(
-            task_id='variants_should_not_be_reannotated',
-            doc_md=doc.variants_should_not_be_reannotated,
-            name='etl-qc-variants-should-not-be-reannotated',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeReannotated',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_')],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-        '''
 
         freq_rqdm_total = SparkOperator(
             task_id='freq_rqdm_total',
@@ -348,5 +587,5 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_gene_centric, no_null_cnv_centric, only_null_variant_centric, only_null_gene_centric, only_null_cnv_centric, same_value_variant_centric, same_value_gene_centric, same_value_cnv_centric, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected]
+        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_variant_centric_donors, no_null_variant_centric_freqbyanal, no_null_variant_centric_freqrqdm, no_null_gene_centric, no_null_cnv_centric, no_null_coverage_by_gene, only_null_variant_centric, only_null_variant_centric_cmc, only_null_variant_centric_clinvar, only_null_variant_centric_consequences, only_null_variant_centric_donors, only_null_variant_centric_exomax, only_null_variant_centric_extfreq, only_null_variant_centric_framax, only_null_variant_centric_freqbyanal, only_null_variant_centric_freqrqdm, only_null_gene_centric, only_null_cnv_centric, only_null_coverage_by_gene, same_value_variant_centric, same_value_variant_centric_cmc, same_value_variant_centric_clinvar, same_value_variant_centric_consequences, same_value_variant_centric_donors, same_value_variant_centric_exomax, same_value_variant_centric_extfreq, same_value_variant_centric_framax, same_value_variant_centric_freqbyanal, same_value_variant_centric_freqrqdm, same_value_gene_centric, same_value_cnv_centric, same_value_coverage_by_gene, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected]
     return group

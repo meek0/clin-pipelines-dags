@@ -27,7 +27,7 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 - Table variants
 - Table variant_centric
 - Table cnv_centric
-- Table varsome
+- Table coverage_by_gene
 
 ## Série de tests comparant la liste des variants entre les tables
 
@@ -116,10 +116,10 @@ no_dup_cnv_centric = '''
 - Objectif : Les CNVs doivent être unique dans la table cnv_centric
 '''
 
-no_dup_varsome = '''
+no_dup_coverage_by_gene = '''
 ### Documentation
-- Test : Non duplication - Table varsome
-- Objectif : Les variants doivent être unique dans la table varsome
+- Test : Non duplication - Table coverage_by_gene
+- Objectif : Les coverages doivent être unique dans la table coverage_by_gene
 '''
 
 same_list_nor_snv_nor_variants = '''

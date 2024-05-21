@@ -171,13 +171,13 @@ def no_dup_cnv_centric(spark_jar: str) -> SparkOperator:
     )
 
 
-def no_dup_varsome(spark_jar: str) -> SparkOperator:
+def no_dup_coverage_by_gene(spark_jar: str) -> SparkOperator:
     return SparkOperator(
-        task_id='no_dup_varsome',
-        doc_md=doc.no_dup_varsome,
-        name='etl-qc-no-dup-varsome',
+        task_id='no_dup_coverage_by_gene',
+        doc_md=doc.no_dup_coverage_by_gene,
+        name='etl-qc-no-dup-coverage-by-gene',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVarsome',
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationCoverageByGene',
         spark_config='config-etl-small',
         spark_jar=spark_jar,
         arguments=['clin' + env_url('_')],
