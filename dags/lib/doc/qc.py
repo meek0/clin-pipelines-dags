@@ -64,27 +64,6 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
 - Les colonnes de variant_centric.donors
 - Les colonnes de variant_centric
 
-<!--## Séries de tests sur l’annotation Varsome
-
-### Différentes règles
-- Annoter seulement les variants
-  - Appartenant à un panel de gènes
-  - Référence <= 200pb et Alternante <= 200pb
-  - Rares (freq <=0.01 dans gnomAD) **** TODO ****
-- Ne pas ré-annoter les variants déjà annotés, sauf si l'annotation date de plus de 7 jours
-
-### Fonctionnement des tests
-- Filtrer les variants appartenant ou non à un panel de gènes ainsi que la longueur de Référence et Alternate à partir de la table variants
-- Comparer avec les variants annotés de la table varsome
-- Vérifier au besoin les dates de création et/ou d'annotation
-
-### Différents tests
-- Les variants annotés
-- Les variants non annotés
-- Mise-à-jour de l'annotation après 7 jours
-- Mise-à-jour de l'annotation pas avant 7 jours
--->
-
 ## Série de tests validant le calcul des fréquences
 
 ### Définitions des calculs
@@ -148,6 +127,24 @@ no_null_variant_centric = '''
 - Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
 '''
 
+no_null_variant_centric_donors = '''
+### Documentation
+- Test : Table variant_centric sous donors - Les colonnes de données sans null
+- Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
+'''
+
+no_null_variant_centric_freqbyanal = '''
+### Documentation
+- Test : Table variant_centric sous frequencies_by_analysis - Les colonnes de données sans null
+- Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
+'''
+
+no_null_variant_centric_freqrqdm = '''
+### Documentation
+- Test : Table variant_centric sous frequency_RQDM - Les colonnes de données sans null
+- Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
+'''
+
 no_null_gene_centric = '''
 ### Documentation
 - Test : Table gene_centric - Les colonnes de données sans null
@@ -160,9 +157,69 @@ no_null_cnv_centric = '''
 - Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
 '''
 
+no_null_coverage_by_gene = '''
+### Documentation
+- Test : Table coverage_by_gene - Les colonnes de données sans null
+- Objectif : Les données dans les colonnes spécifiées ne contiennent pas de null
+'''
+
 only_null_variant_centric = '''
 ### Documentation
 - Test : Table variant_centric - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_cmc = '''
+### Documentation
+- Test : Table variant_centric sous cmc - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_clinvar = '''
+### Documentation
+- Test : Table variant_centric sous clinvar - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_consequences = '''
+### Documentation
+- Test : Table variant_centric sous consequences - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_donors = '''
+### Documentation
+- Test : Table variant_centric sous donors - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_exomax = '''
+### Documentation
+- Test : Table variant_centric sous exomiser_max - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_extfreq = '''
+### Documentation
+- Test : Table variant_centric sous external_frequencies - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_framax = '''
+### Documentation
+- Test : Table variant_centric sous franklin_max - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_freqbyanal = '''
+### Documentation
+- Test : Table variant_centric sous frequencies_by_analysis - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
+only_null_variant_centric_freqrqdm = '''
+### Documentation
+- Test : Table variant_centric sous frequency_RQDM - Les colonnes de données entièrement null
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
 '''
 
@@ -178,9 +235,69 @@ only_null_cnv_centric = '''
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
 '''
 
+only_null_coverage_by_gene = '''
+### Documentation
+- Test : Table coverage_by_gene - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
 same_value_variant_centric = '''
 ### Documentation
 - Test : Table variant_centric - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_cmc = '''
+### Documentation
+- Test : Table variant_centric sous cmc - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_clinvar = '''
+### Documentation
+- Test : Table variant_centric sous clinvar - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_consequences = '''
+### Documentation
+- Test : Table variant_centric sous consequences - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_donors = '''
+### Documentation
+- Test : Table variant_centric sous donors - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_exomax = '''
+### Documentation
+- Test : Table variant_centric sous exomiser_max - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_extfreq = '''
+### Documentation
+- Test : Table variant_centric sous external_frequencies - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_framax = '''
+### Documentation
+- Test : Table variant_centric sous franklin_max - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_freqbyanal = '''
+### Documentation
+- Test : Table variant_centric sous frequencies_by_analysis - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_freqrqdm = '''
+### Documentation
+- Test : Table variant_centric sous frequency_RQDM - Les colonnes de données à valeur unique
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
 '''
 
@@ -193,6 +310,12 @@ same_value_gene_centric = '''
 same_value_cnv_centric = '''
 ### Documentation
 - Test : Table cnv_centric - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_coverage_by_gene = '''
+### Documentation
+- Test : Table coverage_by_gene - Les colonnes de données à valeur unique
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
 '''
 
@@ -218,30 +341,6 @@ dictionary_snv = '''
 ### Documentation
 - Test : Table variant_centric
 - Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
-'''
-
-variants_should_be_annotated = '''
-### Documentation
-- Test : Les variants annotés
-- Objectif : La liste des variants dans la table variants appartenant à un panel de gènes dont la longueur de reference ou alternate n'est pas plus grande que 200 est présente dans la table varsome
-'''
-
-variants_should_not_be_annotated = '''
-### Documentation
-- Test : Les variants non annotés
-- Objectif : La liste des variants dans la table variants n'appartenant pas à un panel de gènes ou dont la longueur de reference ou alternate est plus grande que 200 n'ont pas d'annotation
-'''
-
-variants_should_be_reannotated = '''
-### Documentation
-- Test : Mise-à-jour de l'annotation après 7 jours
-- Objectif : Les variants de la dernière batch (appartenant à un panel de gènes) n'ont pas un updated_on plus vieux que 7 jours dans la table varsome
-'''
-
-variants_should_not_be_reannotated = '''
-### Documentation
-- Test : Mise-à-jour de l'annotation pas avant 7 jours
-- Objectif : Les variants de la dernière batch (appartenant à un panel de gènes) n'ont pas été ré-annotés à l'intérieur de 7 jours depuis leur création (created_on = updated_on)
 '''
 
 freq_rqdm_total = '''
