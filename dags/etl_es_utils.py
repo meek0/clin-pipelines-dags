@@ -17,9 +17,9 @@ with DAG(
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         params={
+            'delete_release': Param('no', enum=['yes', 'no']),
             'show_indexes': Param('no', enum=['yes', 'no']),
             'show_disk_usage': Param('no', enum=['yes', 'no']),
-            'delete_release': Param('no', enum=['yes', 'no']),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
         },
@@ -51,6 +51,22 @@ with DAG(
         python_callable=_validate_action_params,
     )
 
+    es_delete_release = CurlOperator(
+        task_id='es_delete_release',
+        name='es-delete-release',
+        k8s_context=K8sContext.DEFAULT,
+        skip=skip_if_param_not(delete_release(), "yes"),
+        arguments=[
+            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_gene_suggestions_{release_id},clin_{env}{under_color}_variant_suggestions_{release_id},clin_{env}{under_color}_gene_centric_{release_id},clin_{env}{under_color}_variant_centric_{release_id},clin_{env}{under_color}_cnv_centric_{release_id},clin_{env}{under_color}_coverage_by_gene_centric_{release_id}?ignore_unavailable=true'
+            .format(
+                es_url=es_url,
+                env=env,
+                release_id=release_id(),
+                under_color=color('_'),
+                ),
+        ],
+    )
+
     es_list_indexes = CurlOperator(
         task_id='es_list_indexes',
         name='es-list-indexes',
@@ -72,20 +88,9 @@ with DAG(
         ],
     )
 
-    es_delete_release = CurlOperator(
-        task_id='es_delete_release',
-        name='es-delete-release',
-        k8s_context=K8sContext.DEFAULT,
-        skip=skip_if_param_not(delete_release(), "yes"),
-        arguments=[
-            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_gene_suggestions_{release_id},clin_{env}{under_color}_variant_suggestions_{release_id},clin_{env}{under_color}_gene_centric_{release_id},clin_{env}{under_color}_variant_centric_{release_id},clin_{env}{under_color}_cnv_centric_{release_id},clin_{env}{under_color}_coverage_by_gene_centric_{release_id}?ignore_unavailable=true'
-            .format(
-                es_url=es_url,
-                env=env,
-                release_id=release_id(),
-                under_color=color('_'),
-                ),
-        ],
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> params_action_validate >> es_list_indexes >> es_disk_usage >> es_delete_release
+    params_validate >> params_action_validate >> es_delete_release >> es_list_indexes >> es_disk_usage >> slack
