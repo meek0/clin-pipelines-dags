@@ -1,8 +1,9 @@
 from typing import List
 
 from airflow import AirflowException
-from airflow.exceptions import AirflowSkipException, AirflowFailException
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
 from lib.config import env
@@ -10,9 +11,14 @@ from lib.config import env
 
 class CurlOperator(KubernetesPodOperator):
 
+    template_fields = KubernetesPodOperator.template_fields + (
+        'skip',
+    )
+
     def __init__(
         self,
         k8s_context: str,
+        skip: bool = False,
         skip_fail_env: List[str] = None,
         **kwargs,
     ) -> None:
@@ -25,9 +31,14 @@ class CurlOperator(KubernetesPodOperator):
             image=config.curl_image,
             **kwargs,
         )
+        self.skip = skip
         self.skip_fail_env = skip_fail_env
 
     def execute(self, **kwargs):
+
+        if self.skip:
+            raise AirflowSkipException()
+
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
@@ -56,4 +67,4 @@ class CurlOperator(KubernetesPodOperator):
             if self.skip_fail_env is not None and env in self.skip_fail_env:
                 raise AirflowSkipException()
             else:
-                raise AirflowFailException('Spark job failed')
+                raise AirflowFailException('Curl request failed')
