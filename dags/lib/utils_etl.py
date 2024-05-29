@@ -29,7 +29,7 @@ def batch_id() -> str:
 
 
 def release_id() -> str:
-    return '{{ params.release_id }}'
+    return '{{ params.release_id or "" }}'
 
 
 def spark_jar() -> str:
@@ -55,6 +55,8 @@ def default_or_initial(batch_param_name: str = 'batch_id') -> str:
 def skip_notify(batch_param_name: str = 'batch_id') -> str:
     return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
 
+def skip_if_param_not(param_template, value) -> str:
+    return f'{{% if ({param_template}) and ({param_template}|length) and ({param_template}) == "{value}" %}}{{% else %}}yes{{% endif %}}'.replace('{{', '').replace('}}', '')
 
 def skip(cond1: str, cond2: str) -> str:
     """

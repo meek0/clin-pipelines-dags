@@ -1,20 +1,23 @@
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.exceptions import AirflowSkipException
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import env_url, auth_url
+from lib.config import auth_url, env_url
 from lib.utils import join
 
 
 class FhirOperator(KubernetesPodOperator):
 
     template_fields = KubernetesPodOperator.template_fields + (
-        'color',
+        'color','skip'
     )
 
     def __init__(
         self,
         k8s_context: str,
         color: str = '',
+        skip: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -26,9 +29,13 @@ class FhirOperator(KubernetesPodOperator):
             image=config.fhir_image,
             **kwargs,
         )
+        self.skip = skip
         self.color = color
 
     def execute(self, **kwargs):
+
+        if self.skip:
+            raise AirflowSkipException()
 
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
