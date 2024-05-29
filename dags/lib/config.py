@@ -67,7 +67,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:731a13a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v3.1.2.jar'
+    spark_jar = 's3a://cqgc-staging-app-datalake/jars/clin-variant-etl-v3.1.5.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
@@ -91,7 +91,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:731a13a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.1.2.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.1.5.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
@@ -154,6 +154,9 @@ elif env == Env.PROD:
         '240513_A00516_0554_BHTWGGDMXY_germinal',
         '240522_A00977_0744_BH5TY7DRX5_somatic',
         '231211_A00516_0490_BHNK22DRX3_somatic_normal',
+        "240522_A00977_0744_BH5TY7DRX5_somatic_normal",
+        "240320_A00516_0532_AHW7YHDRX3_somatic_normal",
+        "240513_A00516_0555_AH5J3VDRX5_somatic_normal"
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
