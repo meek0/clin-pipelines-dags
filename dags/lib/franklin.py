@@ -9,11 +9,10 @@ from datetime import datetime
 from enum import Enum
 
 from airflow.exceptions import AirflowFailException
-
 from lib import config
-from lib.config import (clin_datalake_bucket,
-                        clin_import_bucket, env, franklin_assay_id)
-from lib.utils_etl import (ClinVCFSuffix)
+from lib.config import (clin_datalake_bucket, clin_import_bucket, env,
+                        franklin_assay_id)
+from lib.utils_etl import ClinVCFSuffix
 
 
 # current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
@@ -345,7 +344,7 @@ def parse_response(res, log_body = True):
     else:
         logging.info(f'{res.status}')
     if res.status != 200:   # log if something wrong
-        raise AirflowFailException('Error from Franklin API call')
+        raise AirflowFailException(f'Error from Franklin API call: {body}')
     return body
 
 def parse_response_json(res):
