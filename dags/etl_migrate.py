@@ -139,7 +139,7 @@ with DAG(
 
 
     # concat every dags inside a loop
-    for batch_id in batch_ids:
+    for batch_id in sorted(set(batch_ids)):
         batch = migrate_batch_id(batch_id)
         all_dags >> batch
         all_dags = batch
