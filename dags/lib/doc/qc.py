@@ -223,6 +223,12 @@ only_null_variant_centric_freqrqdm = '''
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
 '''
 
+only_null_variant_centric_freqrqdmtumor = '''
+### Documentation
+- Test : Table variant_centric sous freq_rqdm_tumor_only et freq_rqdm_tumor_normal - Les colonnes de données entièrement null
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes null
+'''
+
 only_null_gene_centric = '''
 ### Documentation
 - Test : Table gene_centric - Les colonnes de données entièrement null
@@ -298,6 +304,12 @@ same_value_variant_centric_freqbyanal = '''
 same_value_variant_centric_freqrqdm = '''
 ### Documentation
 - Test : Table variant_centric sous frequency_RQDM - Les colonnes de données à valeur unique
+- Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
+'''
+
+same_value_variant_centric_freqrqdmtumor = '''
+### Documentation
+- Test : Table variant_centric sous freq_rqdm_tumor_only et freq_rqdm_tumor_normal - Les colonnes de données à valeur unique
 - Objectif : Les données dans les colonnes (sauf celles spécifiées) ne sont pas toutes de la même valeur
 '''
 
@@ -377,5 +389,17 @@ freq_by_analysis_non_affected = '''
 ### Documentation
 - Test : Calcul de frequencies_by_analysis - non_affected
 - Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequencies_by_analysis.non_affected sont bien calculées par rapport aux données de la table normalized_snv
+'''
+
+freq_rqdm_tumor_only = '''
+### Documentation
+- Test : Calcul de freq_rqdm_tumor_only
+- Objectif : Les valeurs de pc et pn pour variant_centric.freq_rqdm_tumor_only sont bien calculées par rapport aux données de la table normalized_snv_somatic
+'''
+
+freq_rqdm_tumor_normal = '''
+### Documentation
+- Test : Calcul de freq_rqdm_tumor_normal
+- Objectif : Les valeurs de pc et pn pour variant_centric.freq_rqdm_tumor_normal sont bien calculées par rapport aux données de la table normalized_snv_somatic
 '''
 
