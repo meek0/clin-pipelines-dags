@@ -275,6 +275,18 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        only_null_variant_centric_freqrqdmtumor = SparkOperator(
+            task_id='only_null_variant_centric_freqrqdmtumor',
+            doc_md=doc.only_null_variant_centric_freqrqdmtumor,
+            name='etl-qc-only-null-variant-centric-freqrqdmtumor',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric_FreqRQDMTumor',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         only_null_gene_centric = SparkOperator(
             task_id='only_null_gene_centric',
             doc_md=doc.only_null_gene_centric,
@@ -425,6 +437,18 @@ def qc(
             name='etl-qc-same-value-variant-centric-freqrqdm',
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_FreqRQDM',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        same_value_variant_centric_freqrqdmtumor = SparkOperator(
+            task_id='same_value_variant_centric_freqrqdmtumor',
+            doc_md=doc.same_value_variant_centric_freqrqdmtumor,
+            name='etl-qc-same-value-variant-centric-freqrqdmtumor',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric_FreqRQDMTumor',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
             arguments=['clin' + env_url('_')],
@@ -587,5 +611,29 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_variant_centric_donors, no_null_variant_centric_freqbyanal, no_null_variant_centric_freqrqdm, no_null_gene_centric, no_null_cnv_centric, no_null_coverage_by_gene, only_null_variant_centric, only_null_variant_centric_cmc, only_null_variant_centric_clinvar, only_null_variant_centric_consequences, only_null_variant_centric_donors, only_null_variant_centric_exomax, only_null_variant_centric_extfreq, only_null_variant_centric_framax, only_null_variant_centric_freqbyanal, only_null_variant_centric_freqrqdm, only_null_gene_centric, only_null_cnv_centric, only_null_coverage_by_gene, same_value_variant_centric, same_value_variant_centric_cmc, same_value_variant_centric_clinvar, same_value_variant_centric_consequences, same_value_variant_centric_donors, same_value_variant_centric_exomax, same_value_variant_centric_extfreq, same_value_variant_centric_framax, same_value_variant_centric_freqbyanal, same_value_variant_centric_freqrqdm, same_value_gene_centric, same_value_cnv_centric, same_value_coverage_by_gene, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected]
+        freq_rqdm_tumor_only = SparkOperator(
+            task_id='freq_rqdm_tumor_only',
+            doc_md=doc.freq_rqdm_tumor_only,
+            name='etl-qc-freq-rqdm-tumor-only',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.frequency.RQDMTumorOnly',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        freq_rqdm_tumor_normal = SparkOperator(
+            task_id='freq_rqdm_tumor_normal',
+            doc_md=doc.freq_rqdm_tumor_normal,
+            name='etl-qc-freq-rqdm-tumor-normal',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.frequency.RQDMTumorNormal',
+            spark_config='config-etl-small',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
+        [vcf_snv, vcf_nor_variants, filters_snv, filters_frequency_extra, filters_frequency_missed, no_null_variant_centric, no_null_variant_centric_donors, no_null_variant_centric_freqbyanal, no_null_variant_centric_freqrqdm, no_null_gene_centric, no_null_cnv_centric, no_null_coverage_by_gene, only_null_variant_centric, only_null_variant_centric_cmc, only_null_variant_centric_clinvar, only_null_variant_centric_consequences, only_null_variant_centric_donors, only_null_variant_centric_exomax, only_null_variant_centric_extfreq, only_null_variant_centric_framax, only_null_variant_centric_freqbyanal, only_null_variant_centric_freqrqdm, only_null_variant_centric_freqrqdmtumor, only_null_gene_centric, only_null_cnv_centric, only_null_coverage_by_gene, same_value_variant_centric, same_value_variant_centric_cmc, same_value_variant_centric_clinvar, same_value_variant_centric_consequences, same_value_variant_centric_donors, same_value_variant_centric_exomax, same_value_variant_centric_extfreq, same_value_variant_centric_framax, same_value_variant_centric_freqbyanal, same_value_variant_centric_freqrqdm, same_value_variant_centric_freqrqdmtumor, same_value_gene_centric, same_value_cnv_centric, same_value_coverage_by_gene, dictionary_cnv, dictionary_consequences, dictionary_donors, dictionary_snv, freq_rqdm_total, freq_rqdm_affected, freq_rqdm_non_affected, freq_by_analysis_total, freq_by_analysis_affected, freq_by_analysis_non_affected, freq_rqdm_tumor_only, freq_rqdm_tumor_normal]
     return group
