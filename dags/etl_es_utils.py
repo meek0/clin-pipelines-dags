@@ -1,11 +1,15 @@
+import logging
 from datetime import datetime
 
+import requests
 from airflow import DAG
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import Env, K8sContext, env, es_url
+from lib.groups.es import format_es_url, test_duplicated_by_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
 from lib.tasks import arranger
@@ -18,6 +22,7 @@ with DAG(
         schedule_interval=None,
         params={
             'delete_release': Param('no', enum=['yes', 'no']),
+            'test_duplicated_variants': Param('no', enum=['yes', 'no']),
             'show_indexes': Param('no', enum=['yes', 'no']),
             'show_disk_usage': Param('no', enum=['yes', 'no']),
             'release_id': Param('', type=['null', 'string']),
@@ -25,7 +30,7 @@ with DAG(
         },
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
-            'trigger_rule': TriggerRule.NONE_FAILED,
+            'trigger_rule': TriggerRule.ALL_DONE,   # as opposed to other dags, we run everything even if a previous task fails
         },
 ) as dag:
 
@@ -39,15 +44,18 @@ with DAG(
     def delete_release() -> str:
         return '{{ params.delete_release or "" }}'
 
+    def test_duplicated_variants() -> str:
+        return '{{ params.test_duplicated_variants or "" }}'
+
     params_validate = validate_color(color())
 
-    def _validate_action_params(delete_release, release_id):
-        if delete_release == 'yes' and release_id == '':
+    def _validate_action_params(delete_release, test_duplicated_variants, release_id):
+        if (delete_release == 'yes' or test_duplicated_variants == 'yes') and release_id == '':
             raise AirflowFailException('release_id is required for delete_release')
 
     params_action_validate = PythonOperator(
         task_id='params_action_validate',
-        op_args=[delete_release(), release_id()],
+        op_args=[delete_release(), test_duplicated_variants(), release_id()],
         python_callable=_validate_action_params,
     )
 
@@ -65,6 +73,26 @@ with DAG(
                 under_color=color('_'),
                 ),
         ],
+    )
+    
+    es_test_duplicated_release_variant = PythonOperator(
+        task_id='es_test_duplicated_release_variant',
+        python_callable=test_duplicated_by_url,
+        op_args=[
+            format_es_url('variant', _color=color(), release_id=release_id()),
+            skip_if_param_not(test_duplicated_variants(), "yes")
+            ],
+        dag=dag,
+    )
+
+    es_test_duplicated_release_cnv = PythonOperator(
+        task_id='es_test_duplicated_release_cnv',
+        python_callable=test_duplicated_by_url,
+        op_args=[
+            format_es_url('cnv', _color=color(), release_id=release_id()),
+            skip_if_param_not(test_duplicated_variants(), "yes")
+            ],
+        dag=dag,
     )
 
     es_list_indexes = CurlOperator(
@@ -93,4 +121,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> params_action_validate >> es_delete_release >> es_list_indexes >> es_disk_usage >> slack
+    params_validate >> params_action_validate >> es_delete_release >> es_test_duplicated_release_variant >> es_test_duplicated_release_cnv >> es_list_indexes >> es_disk_usage >> slack

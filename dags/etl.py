@@ -7,7 +7,6 @@ from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import Env, K8sContext, env
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
@@ -181,6 +180,13 @@ with DAG(
         batch_id=get_batch_ids_task
     )
 
+    trigger_qc_es_dag = TriggerDagRunOperator(
+        task_id='qc_es',
+        trigger_dag_id='etl_qc_es',
+        wait_for_completion=True,
+        skip=skip_qc(),
+    )
+
     trigger_qc_dag = TriggerDagRunOperator(
         task_id='qc',
         trigger_dag_id='etl_qc',
@@ -207,4 +213,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_dag
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag
