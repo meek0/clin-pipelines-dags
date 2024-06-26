@@ -21,7 +21,7 @@ with DAG(
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
     },
-    max_active_tasks=4
+    max_active_tasks=1
 ) as dag:
 
     start = EmptyOperator(
