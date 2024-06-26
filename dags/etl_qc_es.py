@@ -4,24 +4,23 @@ from airflow import DAG
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-from lib.doc import qc as doc
-from lib.groups.qc import qc
+from lib.groups.es import es
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_release
 from lib.utils_etl import spark_jar
 
 with DAG(
-    dag_id='etl_qc',
-    doc_md=doc.etl_qc,
+    dag_id='etl_qc_es',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule_interval='0 1 * * *',
+    catchup=False,  # IF true the dag will run every missing schedule_interval since start_date
     params={
-        'spark_jar': Param('', type=['null', 'string']),
+
     },
     default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
+        'trigger_rule': TriggerRule.ALL_DONE,
     },
-    max_active_tasks=1
+    max_active_tasks=4
 ) as dag:
 
     start = EmptyOperator(
@@ -29,9 +28,8 @@ with DAG(
         on_success_callback=Slack.notify_dag_start
     )
 
-    qc = qc(
-        group_id='qc',
-        spark_jar=spark_jar(),
+    es = es(
+        group_id='es',
     )
 
     slack = EmptyOperator(
@@ -39,4 +37,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start >> qc >> slack
+    start >> es >> slack
