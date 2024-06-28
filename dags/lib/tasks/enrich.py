@@ -2,7 +2,6 @@ from typing import List
 
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.context import Context
-
 from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.utils_etl import ClinAnalysis
