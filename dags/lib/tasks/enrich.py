@@ -109,7 +109,7 @@ def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: s
         name=name,
         steps=steps,
         app_name=app_name,
-        spark_config='config-etl-large',
+        spark_config='config-etl-xlarge',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
@@ -124,7 +124,7 @@ def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
         name=name,
         steps=steps,
         app_name=app_name,
-        spark_config='config-etl-large',
+        spark_config='config-etl-xlarge',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
