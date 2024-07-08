@@ -49,7 +49,7 @@ def skip_batch() -> str:
 
 
 def default_or_initial(batch_param_name: str = 'batch_id') -> str:
-    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}default{{% else %}}initial{{% endif %}}'
+    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length %}}default{{% else %}}initial{{% endif %}}'
 
 
 def skip_notify(batch_param_name: str = 'batch_id') -> str:
