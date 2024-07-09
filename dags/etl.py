@@ -135,7 +135,7 @@ with DAG(
         )
 
         # Always run variants, consequences and coverage by gene
-        variants = enrich.variants(spark_jar=spark_jar(), steps=steps)
+        variants = enrich.variants(spark_jar=spark_jar(), steps='initial')
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
