@@ -60,7 +60,7 @@ def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-
         name=name,
         steps=steps,
         app_name=app_name,
-        spark_config='config-etl-xlarge',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
