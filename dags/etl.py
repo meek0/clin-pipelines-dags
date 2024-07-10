@@ -95,7 +95,7 @@ with DAG(
     def enrich_group():
         # Only run snv if at least one germline batch
         snv = enrich.snv(
-            steps=steps,
+            steps='initial',
             spark_jar=spark_jar(),
             skip=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE])
         )
