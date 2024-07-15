@@ -12,7 +12,8 @@ from lib.utils_etl import spark_jar
 with DAG(
     dag_id='etl_qc_es',
     start_date=datetime(2022, 1, 1),
-    schedule_interval='0 1 * * *',
+    schedule_interval=None,
+    #schedule_interval='0 1 * * *',
     catchup=False,  # IF true the dag will run every missing schedule_interval since start_date
     params={
 
