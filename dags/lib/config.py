@@ -91,7 +91,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:e4f78ed'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.2.1.jar'
+    spark_jar = 's3a://cqgc-prod-app-datalake/jars/clin-variant-etl-v3.2.3.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
