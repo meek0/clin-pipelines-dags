@@ -13,15 +13,10 @@ with DAG(
     dag_id='etl_qc_es',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
-    #schedule_interval='0 1 * * *',
-    catchup=False,  # IF true the dag will run every missing schedule_interval since start_date
-    params={
-
-    },
     default_args={
         'trigger_rule': TriggerRule.ALL_DONE,
     },
-    max_active_tasks=4
+    max_active_tasks=1
 ) as dag:
 
     start = EmptyOperator(
