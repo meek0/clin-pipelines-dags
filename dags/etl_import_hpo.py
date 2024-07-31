@@ -38,12 +38,12 @@ with DAG(
 
     params_validate = validate_color(color())
 
-    def _file(file):
+    def download(file, dest = None):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/hpo/{file}'
+        s3_key = f'raw/landing/hpo/{file if dest is None else dest}'
 
         # Get latest version
         html = http_get(url).text
@@ -68,15 +68,15 @@ with DAG(
 
     download_hpo_genes = PythonOperator(
         task_id='download_hpo_genes',
-        python_callable=_file,
+        python_callable=download,
         op_args=['genes_to_phenotype.txt'],
         on_execute_callback=Slack.notify_dag_start,
     )
 
     download_hpo_obo = PythonOperator(
         task_id='download_hpo_obo',
-        python_callable=_file,
-        op_args=['hp-fr.obo'],
+        python_callable=download,
+        op_args=['hp-fr.obo', 'hp.obo'],
     )
 
     normalized_hpo_genes = SparkOperator(
