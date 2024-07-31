@@ -4,13 +4,14 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
+from airflow.models.baseoperator import chain
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
@@ -31,6 +32,8 @@ with DAG(
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure
     },
+    max_active_tasks=2,
+    max_active_runs=1
     ) as dag:
 
     params_validate = validate_color(color())
@@ -81,7 +84,7 @@ with DAG(
         name='etl-import-hpo-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-large',
+        spark_config='config-etl-medium',
         spark_jar=spark_jar,
         arguments=[
             'hpo',
@@ -96,13 +99,31 @@ with DAG(
         name='etl-import-hpo-obo-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-large',
+        spark_config='config-etl-medium',
         spark_jar=spark_jar,
         arguments=[
             'hpo-obo',
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_import_hpo_table',
+        ],
+    )
+
+    index_hpo_es = SparkOperator(
+        task_id='index_hpo_es',
+        name='etl-index-hpo',
+        k8s_context=indexer_context,
+        spark_class='bio.ferlab.clin.etl.es.Indexer',
+        spark_config='config-etl-singleton',
+        spark_jar=spark_jar,
+        arguments=[
+            es_url, '', '',
+            f'clin_{env}_hpo',
+            '',
+            'hpo_template.json',
+            'hpo',
+            '1900-01-01 00:00:00',
+            f'config/{env}.conf',
         ],
     )
 
@@ -121,4 +142,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> download_hpo_genes >> download_hpo_obo >> normalized_hpo_genes >> normalized_hpo_obo >> publish_hpo_to_fhir >> slack
+    chain(params_validate, [download_hpo_genes, download_hpo_obo], [normalized_hpo_genes, normalized_hpo_obo], index_hpo_es, publish_hpo_to_fhir, slack)

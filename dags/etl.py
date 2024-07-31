@@ -41,6 +41,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
         max_active_tasks=4,
+        max_active_runs=1,
         render_template_as_native_obj=True,
         user_defined_macros={'any_in': batch_type.any_in}
 ) as dag:
