@@ -14,7 +14,7 @@ with DAG(
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     default_args={
-        'trigger_rule': TriggerRule.ALL_DONE,
+        'trigger_rule': TriggerRule.NONE_FAILED,
     },
     max_active_tasks=1
 ) as dag:
