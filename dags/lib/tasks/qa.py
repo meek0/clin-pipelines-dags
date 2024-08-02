@@ -38,7 +38,7 @@ def no_dup_nor_snv(spark_jar: str) -> SparkOperator:
         name='etl-qc-no-dup-nor-snv',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorSNV',
-        spark_config='config-etl-small',
+        spark_config='config-etl-medium',
         spark_jar=spark_jar,
         arguments=['clin' + env_url('_')],
         skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
