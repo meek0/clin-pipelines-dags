@@ -17,7 +17,8 @@ from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
-from lib.utils_etl import batch_id, color, skip_import, spark_jar
+from lib.utils_etl import (batch_id, color, obo_parser_spark_jar, skip_import,
+                           spark_jar)
 from lib.utils_import import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
@@ -27,6 +28,7 @@ with DAG(
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
+        'obo_parser_spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -73,10 +75,11 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
-    download_hpo_obo = PythonOperator(
-        task_id='download_hpo_obo',
+    # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
+    download_hpo_terms = PythonOperator(
+        task_id='download_hpo_terms',
         python_callable=download,
-        op_args=['hp-fr.obo', 'hp.obo'],
+        op_args=['hp.obo', 'hp.obo'],
     )
 
     normalized_hpo_genes = SparkOperator(
@@ -94,24 +97,25 @@ with DAG(
         ],
     )
 
-    normalized_hpo_obo = SparkOperator(
-        task_id='normalized_hpo_obo',
-        name='etl-import-hpo-obo-table',
+    normalized_hpo_terms = SparkOperator(
+        task_id='normalized_hpo_terms',
+        name='etl-import-hpo-terms-table',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_class='bio.ferlab.HPOMain',
         spark_config='config-etl-medium',
-        spark_jar=spark_jar,
+        spark_jar=obo_parser_spark_jar(),
         arguments=[
-            'hpo-obo',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_import_hpo_table',
+            'https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo',
+            'cqgc-qa-app-datalake',
+            'test/hpo_terms',
+            False,
+            "HP:0000118",
         ],
     )
 
-    index_hpo_es = SparkOperator(
-        task_id='index_hpo_es',
-        name='etl-index-hpo',
+    index_hpo_terms = SparkOperator(
+        task_id='index_hpo_eterms',
+        name='etl-index-terms',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
@@ -120,8 +124,8 @@ with DAG(
             es_url, '', '',
             f'clin_{env}_hpo',
             '',
-            'hpo_template.json',
-            'hpo',
+            'hpo_terms_template.json',
+            'hpo_terms',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
@@ -142,4 +146,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, [download_hpo_genes, download_hpo_obo], [normalized_hpo_genes, normalized_hpo_obo], index_hpo_es, publish_hpo_to_fhir, slack)
+    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_to_fhir, slack)
