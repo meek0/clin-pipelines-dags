@@ -116,7 +116,7 @@ with DAG(
             'https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo',
             'cqgc-qa-app-datalake',
             'test/hpo_terms',
-            False,
+            'False',
             "HP:0000118",
         ],
     )
@@ -130,7 +130,7 @@ with DAG(
         spark_jar=spark_jar(),
         arguments=[
             es_url, '', '',
-            f'clin_{env}' + color('_') + '_hpo',
+            f'clin_{env}' + color('_') + '_hpo', #clin_qa_green_hpo_v2024-01-01
             '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}',
             'hpo_terms_template.json',
             'hpo_terms',
