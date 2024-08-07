@@ -58,8 +58,6 @@ class SparkOperator(KubernetesPodOperator):
         
         if not self.spark_jar or self.spark_jar == '':
             self.spark_jar = config.spark_jar
-        else:
-            self.spark_jar = 's3a://cqgc-' + env + '-app-datalake/jars/clin-variant-etl-' + self.spark_jar + '.jar'
 
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_policy = 'Always'
@@ -79,7 +77,7 @@ class SparkOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='SPARK_JAR',
-                value=self.spark_jar,
+                value=f's3a://cqgc-{env}-app-datalake/jars/{self.spark_jar}',
             ),
             k8s.V1EnvVar(
                 name='SPARK_CLASS',

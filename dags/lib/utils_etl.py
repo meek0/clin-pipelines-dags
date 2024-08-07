@@ -2,7 +2,8 @@ import json
 from enum import Enum
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from lib.config import clin_import_bucket
+from lib import config
+from lib.config import clin_import_bucket, obo_parser_spark_jar
 
 
 class ClinAnalysis(Enum):
@@ -34,6 +35,9 @@ def release_id() -> str:
 
 def spark_jar() -> str:
     return '{{ params.spark_jar or "" }}'
+
+def obo_parser_spark_jar() -> str:
+    return f'{{ params.obo_parser_spark_jar or "{config.obo_parser_spark_jar}" }}'
 
 
 def color(prefix: str = '') -> str:
