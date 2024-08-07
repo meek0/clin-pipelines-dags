@@ -61,7 +61,7 @@ with DAG(
         logging.info(f'{file} imported version: {imported_ver}')
 
         # share the current version with other tasks
-        context['ti'].xcom_push(key=f'{destFile}.version', value=imported_ver)
+        context['ti'].xcom_push(key=f'{destFile}.version', value=(latest_ver if imported_ver is None else imported_ver))
 
         # Skip task if up to date
         if imported_ver == latest_ver:
@@ -80,7 +80,6 @@ with DAG(
         python_callable=download,
         op_args=['genes_to_phenotype.txt'],
         provide_context=True,
-        on_execute_callback=Slack.notify_dag_start,
     )
 
     # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
@@ -97,7 +96,7 @@ with DAG(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='config-etl-medium',
-        spark_jar=spark_jar,
+        spark_jar=spark_jar(),
         arguments=[
             'hpo',
             '--config', config_file,
@@ -128,7 +127,7 @@ with DAG(
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
-        spark_jar=spark_jar,
+        spark_jar=spark_jar(),
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color('_') + '_hpo',
