@@ -118,7 +118,7 @@ with DAG(
             'cqgc-qa-app-datalake',
             'test/hpo_terms',
             'False',
-            "HP:0000118",
+            'HP:0000118',
         ],
     )
 
