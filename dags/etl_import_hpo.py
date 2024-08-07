@@ -92,7 +92,7 @@ with DAG(
 
     normalized_hpo_genes = SparkOperator(
         task_id='normalized_hpo_genes',
-        name='etl-import-hpo-table',
+        name='etl-import-hpo-genes',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='config-etl-medium',
@@ -100,14 +100,14 @@ with DAG(
         arguments=[
             'hpo',
             '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_import_hpo_table',
+            '--steps', 'initial',
+            '--app-name', 'etl_import_hpo_genes',
         ],
     )
 
     normalized_hpo_terms = SparkOperator(
         task_id='normalized_hpo_terms',
-        name='etl-import-hpo-terms-table',
+        name='etl-import-hpo-terms',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.HPOMain',
         spark_config='config-etl-medium',
