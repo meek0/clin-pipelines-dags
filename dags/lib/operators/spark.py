@@ -27,6 +27,7 @@ class SparkOperator(KubernetesPodOperator):
         skip_env: List[str] = [],
         skip_fail_env: List[str] = [],
         skip: bool = False,
+        spark_packages: List[str] = [],
         **kwargs,
     ) -> None:
         super().__init__(
@@ -46,6 +47,7 @@ class SparkOperator(KubernetesPodOperator):
         self.spark_jar = spark_jar
         self.skip_env = skip_env
         self.skip_fail_env = skip_fail_env
+        self.spark_packages = spark_packages
         self.skip = skip
 
     def execute(self, context):
@@ -58,6 +60,11 @@ class SparkOperator(KubernetesPodOperator):
         
         if not self.spark_jar or self.spark_jar == '':
             self.spark_jar = config.spark_jar
+
+        # Build --packages attribute
+        if (self.spark_packages):
+            spark_packages_attributes = ['--packages', ','.join(self.spark_packages)]
+            self.arguments = [*spark_packages_attributes, *self.arguments]
 
         self.cmds = ['/opt/client-entrypoint.sh']
         self.image_pull_policy = 'Always'
