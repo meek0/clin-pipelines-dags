@@ -112,7 +112,6 @@ with DAG(
         spark_class='bio.ferlab.HPOMain',
         spark_config='config-etl-medium',
         spark_jar=obo_parser_spark_jar(),
-        spark_packages=['org.apache.hadoop:hadoop-aws:3.3.6', 'io.delta:delta-core_2.12:2.4.0', 'io.delta:delta-spark_2.12:3.1.0'],
         arguments=[
             'https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo',
             'cqgc-qa-app-datalake',
