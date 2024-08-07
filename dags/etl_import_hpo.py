@@ -115,7 +115,7 @@ with DAG(
         arguments=[
             'https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo',
             'cqgc-qa-app-datalake',
-            'test/hpo_terms',
+            'public/hpo_terms',
             'False',
             'HP:0000118',
         ],
