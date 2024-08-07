@@ -9,9 +9,11 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.context import Context
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 from lib.config import K8sContext, config_file, env, es_url, indexer_context
+from lib.operators.curl import CurlOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
@@ -40,12 +42,14 @@ with DAG(
 
     params_validate = validate_color(color())
 
-    def download(file, dest = None):
+    def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
+
+        destFile = file if dest is None else dest
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/hpo/{file if dest is None else dest}'
+        s3_key = f'raw/landing/hpo/{destFile}'
 
         # Get latest version
         html = http_get(url).text
@@ -55,6 +59,9 @@ with DAG(
         # Get imported version
         imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
         logging.info(f'{file} imported version: {imported_ver}')
+
+        # share the current version with other tasks
+        context['ti'].xcom_push(key=f'{destFile}.version', value=imported_ver)
 
         # Skip task if up to date
         if imported_ver == latest_ver:
@@ -72,6 +79,7 @@ with DAG(
         task_id='download_hpo_genes',
         python_callable=download,
         op_args=['genes_to_phenotype.txt'],
+        provide_context=True,
         on_execute_callback=Slack.notify_dag_start,
     )
 
@@ -79,7 +87,8 @@ with DAG(
     download_hpo_terms = PythonOperator(
         task_id='download_hpo_terms',
         python_callable=download,
-        op_args=['hp.obo', 'hp.obo'],
+        op_args=['hp-fr.obo', 'hp.obo'],
+        provide_context=True,
     )
 
     normalized_hpo_genes = SparkOperator(
@@ -122,8 +131,8 @@ with DAG(
         spark_jar=spark_jar,
         arguments=[
             es_url, '', '',
-            f'clin_{env}_hpo',
-            '',
+            f'clin_{env}' + color('_') + '_hpo',
+            '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}',
             'hpo_terms_template.json',
             'hpo_terms',
             '1900-01-01 00:00:00',
@@ -131,13 +140,14 @@ with DAG(
         ],
     )
 
-    publish_hpo_to_fhir = PipelineOperator(
-        task_id='publish_hpo_to_fhir',
-        name='publish-hpo-to-fhir',
+    # will update FHIR and switch alias in ES
+    publish_hpo_terms = PipelineOperator(
+        task_id='publish_hpo_terms',
+        name='etl-publish-hpo-terms',
         k8s_context=K8sContext.DEFAULT,
         color=color,
         arguments=[
-            'bio.ferlab.clin.etl.PublishHpoToFhir', 'hpo'
+            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + color('_') + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
         ],
     )
 
@@ -146,4 +156,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_to_fhir, slack)
+    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_terms, slack)

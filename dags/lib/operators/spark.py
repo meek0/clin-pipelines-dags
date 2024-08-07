@@ -77,7 +77,7 @@ class SparkOperator(KubernetesPodOperator):
             ),
             k8s.V1EnvVar(
                 name='SPARK_JAR',
-                value='s3a://cqgc-' + env + '-app-datalake/jars/' + self.spark_jar,
+                value=f's3a://cqgc-{env}-app-datalake/jars/{self.spark_jar}',
             ),
             k8s.V1EnvVar(
                 name='SPARK_CLASS',
