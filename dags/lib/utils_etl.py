@@ -37,7 +37,7 @@ def spark_jar() -> str:
     return '{{ params.spark_jar or "" }}'
 
 def obo_parser_spark_jar() -> str:
-    return f'{{ params.obo_parser_spark_jar or "{config.obo_parser_spark_jar}" }}'
+    return '{{ params.obo_parser_spark_jar or "'+config.obo_parser_spark_jar+'" }}'
 
 
 def color(prefix: str = '') -> str:
