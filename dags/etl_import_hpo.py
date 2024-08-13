@@ -144,7 +144,7 @@ with DAG(
         task_id='publish_hpo_terms',
         name='etl-publish-hpo-terms',
         k8s_context=K8sContext.DEFAULT,
-        color=color,
+        color=color(),
         arguments=[
             'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + color('_') + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
         ],
