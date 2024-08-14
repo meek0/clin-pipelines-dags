@@ -53,6 +53,22 @@ def test_duplicated_by_url(url, skip=None):
         raise AirflowFailException('Failed')
     return 
 
+def test_disk_usage(skip=None):
+    if skip: 
+        raise AirflowSkipException()
+
+    response = requests.get(f'{es_url}/_cat/allocation?v&pretty', verify=False)
+    logging.info(f'ES response:\n{response.text}')
+
+    first_node_usage = response.text.split('\n')[1]
+    first_node_disk_usage = first_node_usage.split()[5]
+
+    logging.info(f'ES disk usage: {first_node_disk_usage}%')
+
+    if float(first_node_disk_usage) > 75:
+        raise AirflowFailException(f'ES disk usage is too high: {first_node_disk_usage}% please delete some old releases')
+    return 
+
 def es(
     group_id: str,
 ) -> TaskGroup:
@@ -76,6 +92,13 @@ def es(
                 ],
         )
 
-        [es_test_duplicated_variant, es_test_duplicated_cnv]
+        es_test_disk_usage = PythonOperator(
+            task_id='es_test_disk_usage',
+            python_callable=test_disk_usage,
+            op_args=[
+                ],
+        )
+
+        [es_test_duplicated_variant, es_test_duplicated_cnv, es_test_disk_usage]
 
     return group
