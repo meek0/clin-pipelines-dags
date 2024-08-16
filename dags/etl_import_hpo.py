@@ -61,7 +61,7 @@ with DAG(
         logging.info(f'{file} imported version: {imported_ver}')
 
         # share the current version with other tasks
-        context['ti'].xcom_push(key=f'{destFile}.version', value=(latest_ver if imported_ver is None else imported_ver))
+        context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
 
         # Skip task if up to date
         if imported_ver == latest_ver:
