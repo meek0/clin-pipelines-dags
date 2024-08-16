@@ -20,7 +20,7 @@ def FranklinUpdate(
     batch_id: str,
     skip: bool,
     poke_interval = 300,
-    timeout = 3600
+    timeout = 28800 # 8h
 ) -> TaskGroup:
 
     with TaskGroup(group_id=group_id) as group:
