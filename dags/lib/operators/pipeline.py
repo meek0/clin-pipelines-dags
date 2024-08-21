@@ -168,9 +168,9 @@ class PipelineOperator(KubernetesPodOperator):
                 ),
             ),
             k8s.V1Volume(
-                name='certificates',
+                name='elasticsearch-ca-certificate',
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name='kube-root-ca.crt',
+                    name='elasticsearch-ca-certificate',
                     default_mode=0o555,
                 ),
             ),
@@ -181,7 +181,7 @@ class PipelineOperator(KubernetesPodOperator):
                 mount_path='/opt/entrypoint',
             ),
             k8s.V1VolumeMount(
-                name='certificates',
+                name='elasticsearch-ca-certificate',
                 mount_path='/opt/ca-certificates-bundle',
             ),
         ]
