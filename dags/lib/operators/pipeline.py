@@ -154,6 +154,10 @@ class PipelineOperator(KubernetesPodOperator):
                 name='MAILER_BCC',
                 value='clin_test@ferlab.bio',
             ),
+            k8s.V1EnvVar(
+                name='ES_URL',
+                value=config.es_url,
+            ),
         ]
         self.volumes = [
             k8s.V1Volume(
