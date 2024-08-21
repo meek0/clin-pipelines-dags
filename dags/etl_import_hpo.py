@@ -114,7 +114,7 @@ with DAG(
         spark_jar=obo_parser_spark_jar(),
         arguments=[
             'https://raw.githubusercontent.com/obophenotype/human-phenotype-ontology/master/hp.obo',
-            'cqgc-qa-app-datalake',
+            f'cqgc-{env}-app-datalake',
             'public/hpo_terms',
             'False',
             'HP:0000118',
