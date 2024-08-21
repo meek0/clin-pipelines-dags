@@ -167,11 +167,22 @@ class PipelineOperator(KubernetesPodOperator):
                     default_mode=0o555,
                 ),
             ),
+            k8s.V1Volume(
+                name='kube-root-ca.crt',
+                config_map=k8s.V1ConfigMapVolumeSource(
+                    name='kube-root-ca.crt',
+                    default_mode=0o555,
+                ),
+            ),
         ]
         self.volume_mounts = [
             k8s.V1VolumeMount(
                 name='entrypoint',
                 mount_path='/opt/entrypoint',
+            ),
+            k8s.V1VolumeMount(
+                name='kube-root-ca.crt',
+                mount_path='/opt/ca-certificates-bundle',
             ),
         ]
 
