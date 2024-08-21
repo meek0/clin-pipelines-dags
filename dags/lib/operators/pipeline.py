@@ -167,24 +167,32 @@ class PipelineOperator(KubernetesPodOperator):
                     default_mode=0o555,
                 ),
             ),
-            k8s.V1Volume(
-                name='elasticsearch-ca-certificate',
-                config_map=k8s.V1ConfigMapVolumeSource(
-                    name='elasticsearch-ca-certificate',
-                    default_mode=0o555,
-                ),
-            ),
         ]
+        if env == 'prod':
+            self.volumes.append(
+                k8s.V1Volume(
+                    name='elasticsearch-ca-certificate',
+                    config_map=k8s.V1ConfigMapVolumeSource(
+                        name='elasticsearch-ca-certificate',
+                        default_mode=0o555,
+                    ),
+                ),
+            )
+
         self.volume_mounts = [
             k8s.V1VolumeMount(
                 name='entrypoint',
                 mount_path='/opt/entrypoint',
             ),
-            k8s.V1VolumeMount(
-                name='elasticsearch-ca-certificate',
-                mount_path='/opt/ca-certificates-bundle',
-            ),
         ]
+
+        if env == 'prod':
+            self.volume_mounts.append(
+                k8s.V1VolumeMount(
+                    name='elasticsearch-ca-certificate',
+                    mount_path='/opt/ca-certificates-bundle',
+                ),
+            )
 
         if self.aws_bucket:
             self.env_vars.append(
