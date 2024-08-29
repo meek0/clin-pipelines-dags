@@ -63,8 +63,8 @@ if env == Env.QA:
     config_file = f'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
-        '201106_A00516_0169_AHFM3HDSXY', 
-        'test_extum', 'Batch_ParCas', 'test_franklin', 
+        '201106_A00516_0169_AHFM3HDSXY',
+        'test_extum', 'Batch_ParCas', 'test_franklin',
         'test_somatic_normal_part1', 'test_somatic_normal_part2',
         '2_data_to_import_germinal', 'test_dragen_4_2_4_germline', 'test_franklin']
 elif env == Env.STAGING:
@@ -184,7 +184,8 @@ elif env == Env.PROD:
         '240809_A00516_0586_BHVGJMDMXY_germinal',
         '240815_A00516_0588_BHG7LVDRX5_somatic',
         '240821_A00516_0591_BHG7MVDRX5_somatic',
-        
+        '240816_A00516_0590_AHG7MWDRX5_germinal',
+
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
