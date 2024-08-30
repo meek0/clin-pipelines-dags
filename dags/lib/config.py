@@ -185,6 +185,12 @@ elif env == Env.PROD:
         '240815_A00516_0588_BHG7LVDRX5_somatic',
         '240821_A00516_0591_BHG7MVDRX5_somatic',
         '240816_A00516_0590_AHG7MWDRX5_germinal',
+        '240815_A00516_0588_BHG7LVDRX5_somatic_normal',
+        '240513_A00516_0555_AH5J3VDRX5_somatic_normal',
+        '240613_A00516_0566_AH5WJVDRX5_somatic_normal',
+        '240710_A00516_0571_AHF7CYDRX5_somatic_normal',
+        '240712_A00516_0573_BH3WCYDRX5_somatic_normal',
+        '240724_A00516_0576_BHF7KFDRX5_somatic_normal',
 
     ]
 else:
